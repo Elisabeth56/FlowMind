@@ -97,7 +97,7 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
         >
           <motion.a
-            href="#start"
+            href="/signup"
             className="inline-flex items-center gap-3 px-8 py-4 bg-azure-500 text-white text-lg font-medium rounded-full hover:bg-azure-600 transition-all duration-300 shadow-lg group"
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
