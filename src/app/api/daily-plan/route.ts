@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       content: item.content,
       priority: item.priority,
       due_date: item.due_date,
-      project_name: (item.projects as { name: string } | null)?.name || null,
+      project_name: (item.projects as unknown as { name: string } | null)?.name || null,
       is_actionable: item.is_actionable,
     }))
 
