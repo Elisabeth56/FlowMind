@@ -67,19 +67,18 @@ export async function POST(request: NextRequest) {
     switch (event.event) {
       case 'charge.success': {
         // Payment successful - could be one-time or subscription
-        const { customer, reference, amount } = event.data
+        const { customer, reference } = event.data
 
         if (customer && reference) {
           // Log the successful charge
-          await supabase.from('payment_transactions').upsert({
-            reference,
-            paystack_transaction_id: event.data.id,
-            amount,
-            status: 'success',
-            verified_at: new Date().toISOString(),
-          }, {
-            onConflict: 'reference',
-          })
+          await supabase
+            .from('payment_transactions')
+            .update({
+              paystack_transaction_id: event.data.id,
+              status: 'success',
+              verified_at: new Date().toISOString(),
+            })
+            .eq('reference', reference)
         }
         break
       }

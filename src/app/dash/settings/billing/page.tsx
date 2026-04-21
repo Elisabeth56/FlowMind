@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import * as motion from 'motion/react-client'
 import { useSubscription } from '@/hooks/useSubscription'
@@ -17,7 +17,7 @@ import {
   Infinity,
 } from 'lucide-react'
 
-export default function BillingPage() {
+function BillingPageContent() {
   const searchParams = useSearchParams()
   const success = searchParams.get('success')
   const error = searchParams.get('error')
@@ -368,5 +368,19 @@ export default function BillingPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-azure-500" />
+        </div>
+      }
+    >
+      <BillingPageContent />
+    </Suspense>
   )
 }

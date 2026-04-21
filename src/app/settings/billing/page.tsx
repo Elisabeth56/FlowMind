@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSubscription } from '@/hooks/useSubscription'
 import { 
@@ -14,7 +14,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 
-export default function BillingPage() {
+function BillingPageContent() {
   const searchParams = useSearchParams()
   const success = searchParams.get('success')
   const error = searchParams.get('error')
@@ -318,5 +318,19 @@ export default function BillingPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        </div>
+      }
+    >
+      <BillingPageContent />
+    </Suspense>
   )
 }

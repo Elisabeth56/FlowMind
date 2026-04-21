@@ -130,8 +130,8 @@ export async function POST(request: NextRequest) {
     // Get projects touched
     const projectsTouched = new Set<string>()
     completedItems?.forEach(item => {
-      if ((item.projects as { name: string } | null)?.name) {
-        projectsTouched.add((item.projects as { name: string }).name)
+      if ((item.projects as unknown as { name: string } | null)?.name) {
+        projectsTouched.add((item.projects as unknown as { name: string }).name)
       }
     })
 
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       itemsCarriedOver: pendingItems?.length || 0,
       completedItems: (completedItems || []).map(item => ({
         content: item.content,
-        project_name: (item.projects as { name: string } | null)?.name || null,
+        project_name: (item.projects as unknown as { name: string } | null)?.name || null,
         completed_at: item.completed_at!,
       })),
       pendingItems: (pendingItems || []).map(item => ({
