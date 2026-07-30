@@ -1,6 +1,3 @@
-// Add these types to your existing types/database.ts file
-// Or replace the profiles type with this updated version
-
 export type Profile = {
   id: string
   email: string | null
