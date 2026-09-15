@@ -6,18 +6,13 @@ import { AnimatePresence } from 'motion/react'
 import {
   FolderKanban,
   Plus,
-  MoreHorizontal,
   Sparkles,
-  CheckCircle2,
-  Circle,
+  AlertCircle,
   Archive,
   Trash2,
-  Edit3,
-  ChevronRight,
   Loader2,
 } from 'lucide-react'
 import { useProjects } from '@/hooks/useProjects'
-import { useInboxItems } from '@/hooks/useInboxItems'
 
 const projectColors = [
   { name: 'Azure', value: '#0c87eb', bg: 'bg-azure-100', text: 'text-azure-600' },
@@ -31,25 +26,31 @@ const projectColors = [
 const projectIcons = ['📁', '💼', '🎯', '💡', '🚀', '📊', '🎨', '📝', '⚡', '🔧']
 
 export default function ProjectsPage() {
-  const { projects, loading, createProject, archiveProject, deleteProject } = useProjects()
+  const { projects, loading, error, createProject, archiveProject, deleteProject } = useProjects()
   const [showNewProject, setShowNewProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectColor, setNewProjectColor] = useState(projectColors[0].value)
   const [newProjectIcon, setNewProjectIcon] = useState('📁')
-  const [expandedProject, setExpandedProject] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const handleCreateProject = async () => {
-    if (!newProjectName.trim()) return
-    
+    const name = newProjectName.trim()
+    if (!name || creating) return
+
+    setCreating(true)
+    setCreateError(null)
     try {
-      await createProject(newProjectName, {
+      await createProject(name, {
         color: newProjectColor,
         icon: newProjectIcon,
       })
       setNewProjectName('')
       setShowNewProject(false)
-    } catch (error) {
-      console.error('Failed to create project:', error)
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Could not create that project')
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -163,6 +164,13 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
+                {createError && (
+                  <div className="mb-4 flex items-center gap-2 text-sm text-red-600">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {createError}
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex justify-end gap-2">
                   <button
@@ -173,11 +181,12 @@ export default function ProjectsPage() {
                   </button>
                   <motion.button
                     onClick={handleCreateProject}
-                    disabled={!newProjectName.trim()}
-                    className="px-4 py-2 bg-violet-500 text-white font-medium rounded-lg hover:bg-violet-600 transition-colors disabled:opacity-50"
+                    disabled={!newProjectName.trim() || creating}
+                    className="flex items-center gap-2 px-4 py-2 bg-violet-500 text-white font-medium rounded-lg hover:bg-violet-600 transition-colors disabled:opacity-50"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
+                    {creating && <Loader2 className="w-4 h-4 animate-spin" />}
                     Create Project
                   </motion.button>
                 </div>
@@ -186,6 +195,17 @@ export default function ProjectsPage() {
           </>
         )}
       </AnimatePresence>
+
+      {error && (
+        <motion.div
+          className="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <span className="text-sm text-red-700">{error}</span>
+        </motion.div>
+      )}
 
       {/* Projects Grid */}
       {loading ? (
@@ -242,16 +262,13 @@ export default function ProjectsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1">
                     {project.suggested_by_ai && (
                       <span className="px-2 py-1 bg-violet-100 text-violet-600 text-xs rounded-lg flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
                         AI
                       </span>
                     )}
-                    <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
 
@@ -297,10 +314,6 @@ export default function ProjectsPage() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <button className="flex items-center gap-1 text-sm font-medium text-violet-600 hover:text-violet-700">
-                    View items
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
                 </div>
               </div>
             </motion.div>

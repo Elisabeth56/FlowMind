@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
   getSubscription,
   disableSubscription,
   enableSubscription,
-  getCustomer,
 } from '@/lib/paystack/client'
+import { FREE_TIER_AI_CALLS } from '@/lib/plans'
 
 // GET - Get current subscription details
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient()
 
@@ -32,11 +32,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         subscription: null,
-        tier: 'free',
+        tier: profile.subscription_tier,
+        status: profile.subscription_status,
         limits: {
-          ai_calls_per_month: 50,
+          ai_calls_per_month: FREE_TIER_AI_CALLS,
           ai_calls_used: profile.ai_calls_this_month,
-          ai_calls_remaining: Math.max(0, 50 - profile.ai_calls_this_month),
+          ai_calls_remaining: Math.max(0, FREE_TIER_AI_CALLS - profile.ai_calls_this_month),
         },
       })
     }
@@ -57,11 +58,11 @@ export async function GET(request: NextRequest) {
       tier: profile.subscription_tier,
       status: profile.subscription_status,
       limits: {
-        ai_calls_per_month: profile.subscription_tier === 'pro' ? 'unlimited' : 50,
+        ai_calls_per_month: profile.subscription_tier === 'pro' ? 'unlimited' : FREE_TIER_AI_CALLS,
         ai_calls_used: profile.ai_calls_this_month,
         ai_calls_remaining: profile.subscription_tier === 'pro' 
           ? 'unlimited' 
-          : Math.max(0, 50 - profile.ai_calls_this_month),
+          : Math.max(0, FREE_TIER_AI_CALLS - profile.ai_calls_this_month),
       },
     })
 
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Manage subscription (cancel, reactivate)
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient()
 
@@ -145,6 +146,8 @@ export async function POST(request: NextRequest) {
         message: 'Subscription reactivated successfully.',
       })
     }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
 
   } catch (error) {
     console.error('Manage subscription error:', error)

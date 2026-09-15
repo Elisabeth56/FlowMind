@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { weeklySummaryChain, type WeeklySummary } from '@/lib/ai/chains/weekly-summary'
-import { rateLimiter } from '@/lib/ai/groq'
+import { FREE_TIER_AI_CALLS } from '@/lib/plans'
+import { getWeeklySummaryChain, type WeeklySummary } from '@/lib/ai/chains/weekly-summary'
+import { MODELS, rateLimiter } from '@/lib/ai/groq'
 
 // Helper to get week boundaries
 function getWeekBounds(date: Date = new Date()): { start: string; end: string } {
@@ -47,11 +48,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check free tier
-    const FREE_TIER_LIMIT = 50
-    if (profile.subscription_tier === 'free' && profile.ai_calls_this_month >= FREE_TIER_LIMIT) {
+    if (profile.subscription_tier === 'free' && profile.ai_calls_this_month >= FREE_TIER_AI_CALLS) {
       return NextResponse.json({ 
         error: 'Free tier limit reached',
-        limit: FREE_TIER_LIMIT,
+        limit: FREE_TIER_AI_CALLS,
         used: profile.ai_calls_this_month,
       }, { status: 429 })
     }
@@ -81,9 +81,9 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now()
 
     // Get items created this week
-    const { data: createdItems, count: itemsCreated } = await supabase
+    const { count: itemsCreated } = await supabase
       .from('inbox_items')
-      .select('*', { count: 'exact' })
+      .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .gte('created_at', weekStart)
       .lte('created_at', weekEnd + 'T23:59:59')
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     // Generate summary
-    const summary: WeeklySummary = await weeklySummaryChain.invoke({
+    const summary: WeeklySummary = await getWeeklySummaryChain().invoke({
       weekStart,
       weekEnd,
       itemsCreated: itemsCreated || 0,
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
     await supabase.from('ai_processing_log').insert({
       user_id: user.id,
       operation_type: 'weekly_summary',
-      model_used: 'llama-3.1-70b-versatile',
+      model_used: MODELS.LLAMA_70B,
       latency_ms: latencyMs,
       success: true,
     })
@@ -247,7 +247,33 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = parseInt(searchParams.get('limit') || '4')
+    const parsedLimit = Number.parseInt(searchParams.get('limit') || '4', 10)
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 52)
+      : 4
+
+    // A specific week, so the UI can show an existing summary without
+    // spending an AI call to (re)generate one.
+    const weekOffsetParam = searchParams.get('weekOffset')
+    if (weekOffsetParam !== null) {
+      const weekOffset = Number.parseInt(weekOffsetParam, 10)
+      if (!Number.isFinite(weekOffset)) {
+        return NextResponse.json({ error: 'Invalid weekOffset' }, { status: 400 })
+      }
+
+      const targetDate = new Date()
+      targetDate.setDate(targetDate.getDate() + weekOffset * 7)
+      const { start: weekStart } = getWeekBounds(targetDate)
+
+      const { data: summary } = await supabase
+        .from('weekly_summaries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('week_start', weekStart)
+        .maybeSingle()
+
+      return NextResponse.json({ success: true, summary: summary ?? null })
+    }
 
     // Get recent summaries
     const { data: summaries } = await supabase
@@ -259,7 +285,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      summaries,
+      summaries: summaries ?? [],
     })
 
   } catch (error) {

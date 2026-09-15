@@ -1,6 +1,7 @@
 "use client";
 
 import * as motion from "motion/react-client";
+import { revealViewport } from "@/lib/motion";
 import { ArrowUpRight, MessageSquare, Sparkles, Clock, CheckCircle2 } from "lucide-react";
 
 export default function DailyPlan() {
@@ -12,8 +13,8 @@ export default function DailyPlan() {
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            viewport={revealViewport}
+            transition={{ duration: 0.5 }}
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-azure-100 rounded-full text-azure-700 text-sm font-medium mb-6">
               <MessageSquare className="w-4 h-4" />
@@ -46,7 +47,7 @@ export default function DailyPlan() {
                   className="flex items-center gap-3 text-slate-700"
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
+                  viewport={revealViewport}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                 >
                   <CheckCircle2 className="w-5 h-5 text-azure-500 flex-shrink-0" />
@@ -56,7 +57,7 @@ export default function DailyPlan() {
             </ul>
 
             <motion.a
-              href="#try"
+              href="/signup"
               className="inline-flex items-center gap-3 px-6 py-3 bg-azure-500 text-white font-medium rounded-full hover:bg-azure-600 transition-all duration-300 group"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -73,8 +74,8 @@ export default function DailyPlan() {
             className="relative"
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={revealViewport}
+            transition={{ duration: 0.5, delay: 0.1 }}
           >
             <div className="bg-white rounded-3xl shadow-soft-lg border border-slate-200 overflow-hidden">
               {/* Chat header */}

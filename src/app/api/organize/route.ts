@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { organizeChain, organizeItems, type OrganizedItem } from '@/lib/ai/chains/organize'
-import { rateLimiter } from '@/lib/ai/groq'
+import { FREE_TIER_AI_CALLS } from '@/lib/plans'
+import { getOrganizeChain, organizeItems, type OrganizedItem } from '@/lib/ai/chains/organize'
+import { MODELS, rateLimiter } from '@/lib/ai/groq'
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,8 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Check free tier limits (50 AI calls per month)
-    const FREE_TIER_LIMIT = 50
+    // Check free tier limits
     if (profile.subscription_tier === 'free') {
       // Reset counter if new month
       const resetDate = new Date(profile.ai_calls_reset_at)
@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
         profile.ai_calls_this_month = 0
       }
 
-      if (profile.ai_calls_this_month >= FREE_TIER_LIMIT) {
+      if (profile.ai_calls_this_month >= FREE_TIER_AI_CALLS) {
         return NextResponse.json({ 
           error: 'Free tier limit reached',
-          limit: FREE_TIER_LIMIT,
+          limit: FREE_TIER_AI_CALLS,
           used: profile.ai_calls_this_month,
         }, { status: 429 })
       }
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Single item or batch
     if (content) {
       // Single new item - organize it
-      result = await organizeChain.invoke({ content, existingProjects })
+      result = await getOrganizeChain().invoke({ content, existingProjects })
     } else if (itemIds && Array.isArray(itemIds)) {
       // Batch organize existing items
       const { data: items } = await supabase
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     await supabase.from('ai_processing_log').insert({
       user_id: user.id,
       operation_type: 'organize',
-      model_used: 'llama-3.1-8b-instant',
+      model_used: MODELS.LLAMA_8B,
       latency_ms: latencyMs,
       success: true,
     })

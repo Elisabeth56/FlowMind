@@ -1,9 +1,21 @@
 'use client'
 
 import { Suspense, useState } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import * as motion from 'motion/react-client'
 import { useSubscription } from '@/hooks/useSubscription'
+import {
+  FREE_FEATURES,
+  PLAN_IDS,
+  PRO_FEATURES,
+  PRO_YEARLY_SAVINGS,
+  PRO_YEARLY_TOTAL,
+  YEARLY_DISCOUNT_PERCENT,
+  formatNaira,
+  proMonthlyPrice,
+  type BillingPeriod,
+} from '@/lib/plans'
 import { 
   Check, 
   Loader2, 
@@ -16,6 +28,12 @@ import {
   Crown,
   Infinity,
 } from 'lucide-react'
+
+const CHECKOUT_ERRORS: Record<string, string> = {
+  payment_failed: 'Payment failed. Please try again.',
+  verification_failed: 'Could not verify payment. Contact support if you were charged.',
+  missing_reference: 'Invalid payment reference.',
+}
 
 function BillingPageContent() {
   const searchParams = useSearchParams()
@@ -35,12 +53,21 @@ function BillingPageContent() {
     isActive,
   } = useSubscription()
 
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly')
   const [actionLoading, setActionLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const handleCheckout = async () => {
     setActionLoading(true)
-    await checkout(billingPeriod === 'yearly' ? 'pro_yearly' : 'pro_monthly')
+    setActionError(null)
+    try {
+      // On success this redirects to Paystack and never returns.
+      await checkout(PLAN_IDS[billingPeriod])
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not start checkout')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const handleCancel = async () => {
@@ -48,8 +75,11 @@ function BillingPageContent() {
       return
     }
     setActionLoading(true)
+    setActionError(null)
     try {
       await cancel()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not cancel your subscription')
     } finally {
       setActionLoading(false)
     }
@@ -57,8 +87,11 @@ function BillingPageContent() {
 
   const handleReactivate = async () => {
     setActionLoading(true)
+    setActionError(null)
     try {
       await reactivate()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not reactivate your subscription')
     } finally {
       setActionLoading(false)
     }
@@ -88,18 +121,14 @@ function BillingPageContent() {
         </motion.div>
       )}
 
-      {error && (
+      {(error || actionError) && (
         <motion.div
           className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <AlertCircle className="w-5 h-5 text-red-600" />
-          <span className="text-red-700">
-            {error === 'payment_failed' && 'Payment failed. Please try again.'}
-            {error === 'verification_failed' && 'Could not verify payment. Contact support if charged.'}
-            {error === 'missing_reference' && 'Invalid payment reference.'}
-          </span>
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <span className="text-red-700">{CHECKOUT_ERRORS[error ?? ''] ?? actionError}</span>
         </motion.div>
       )}
 
@@ -235,7 +264,7 @@ function BillingPageContent() {
                     ? 'bg-white/20 text-white'
                     : 'bg-green-100 text-green-700'
                 }`}>
-                  -20%
+                  -{YEARLY_DISCOUNT_PERCENT}%
                 </span>
               </button>
             </div>
@@ -253,19 +282,14 @@ function BillingPageContent() {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-slate-900 mb-1">Free</h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-slate-900">₦0</span>
+                  <span className="text-3xl font-bold text-slate-900">{formatNaira(0)}</span>
                   <span className="text-slate-500">/forever</span>
                 </div>
               </div>
               
               <ul className="space-y-3 mb-6">
-                {[
-                  '50 AI calls per month',
-                  'Basic inbox organization',
-                  'Daily planning',
-                  'Weekly summaries',
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-slate-600">
+                {FREE_FEATURES.map((feature) => (
+                  <li key={feature} className="flex items-center gap-3 text-sm text-slate-600">
                     <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
                       <Check className="w-3 h-3 text-slate-500" />
                     </div>
@@ -294,33 +318,23 @@ function BillingPageContent() {
                   <Sparkles className="w-4 h-4 text-white/80" />
                   {billingPeriod === 'yearly' && (
                     <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
-                      Save ₦12,000
+                      Save {PRO_YEARLY_SAVINGS}
                     </span>
                   )}
                 </div>
                 <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-3xl font-bold">
-                    {billingPeriod === 'yearly' ? '₦4,000' : '₦5,000'}
-                  </span>
-                  <span className="text-white/70">
-                    /month{billingPeriod === 'yearly' ? ' (billed yearly)' : ''}
-                  </span>
+                  <span className="text-3xl font-bold">{proMonthlyPrice(billingPeriod)}</span>
+                  <span className="text-white/70">/month</span>
                 </div>
-                {billingPeriod === 'yearly' && (
-                  <p className="text-sm text-white/70 mb-6">₦48,000/year</p>
-                )}
-                {billingPeriod === 'monthly' && <div className="mb-6" />}
+                <p className="text-sm text-white/70 mb-6">
+                  {billingPeriod === 'yearly'
+                    ? `Billed yearly at ${PRO_YEARLY_TOTAL}.`
+                    : 'Billed monthly. Cancel any time.'}
+                </p>
                 
                 <ul className="space-y-3 mb-6">
-                  {[
-                    'Unlimited AI calls',
-                    'Advanced organization',
-                    'Priority support',
-                    'Custom projects',
-                    'API access',
-                    'Export data',
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm text-white/90">
+                  {PRO_FEATURES.map((feature) => (
+                    <li key={feature} className="flex items-center gap-3 text-sm text-white/90">
                       <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
                         <Check className="w-3 h-3 text-white" />
                       </div>
@@ -366,6 +380,12 @@ function BillingPageContent() {
           <Shield className="w-4 h-4" />
           <span>Secured by Paystack</span>
         </div>
+        <Link
+          href="/pricing"
+          className="text-sm text-azure-600 hover:text-azure-700 font-medium"
+        >
+          Compare plans
+        </Link>
       </motion.div>
     </div>
   )

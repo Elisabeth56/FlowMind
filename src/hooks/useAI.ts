@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 
-interface OrganizedItem {
+export interface OrganizedItem {
   item_type: 'note' | 'task' | 'idea' | 'reminder' | 'link'
   is_actionable: boolean
   priority: number
@@ -14,29 +14,31 @@ interface OrganizedItem {
   summary: string
 }
 
-interface DailyPlan {
+export interface DailyPlanItem {
+  item_id: string
+  scheduled_time: string
+  duration_minutes: number
+  notes: string
+  item: {
+    id: string
+    content: string
+    status: string
+    priority: number
+  } | null
+}
+
+export interface DailyPlan {
   id: string
   plan_date: string
   reasoning: string
   energy_recommendation: string
-  plan_items: Array<{
-    item_id: string
-    scheduled_time: string
-    duration_minutes: number
-    notes: string
-    item?: {
-      id: string
-      content: string
-      status: string
-      priority: number
-    }
-  }>
+  plan_items: DailyPlanItem[]
   items_total: number
   items_completed: number
   status: 'active' | 'completed' | 'skipped'
 }
 
-interface WeeklySummary {
+export interface WeeklySummary {
   id: string
   week_start: string
   week_end: string
@@ -85,31 +87,41 @@ export function useAI() {
     }
   }, [])
 
-  // Generate or get daily plan
-  const getDailyPlan = useCallback(async (
+  // Load today's plan if one already exists (never spends an AI call)
+  const loadDailyPlan = useCallback(async (): Promise<DailyPlan | null> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/daily-plan')
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load plan')
+      }
+
+      return data.plan
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Generate (or regenerate) today's plan
+  const generateDailyPlan = useCallback(async (
     options?: { regenerate?: boolean }
   ): Promise<DailyPlan | null> => {
     setLoading(true)
     setError(null)
 
     try {
-      // First try to get existing plan
-      if (!options?.regenerate) {
-        const getResponse = await fetch('/api/daily-plan')
-        const getData = await getResponse.json()
-        
-        if (getData.plan) {
-          setLoading(false)
-          return getData.plan
-        }
-      }
-
-      // Generate new plan
       const response = await fetch('/api/daily-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: options?.regenerate ? 'regenerate' : 'generate' 
+        body: JSON.stringify({
+          action: options?.regenerate ? 'regenerate' : 'generate',
         }),
       })
 
@@ -121,11 +133,37 @@ export function useAI() {
 
       return data.plan
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      setError(message)
+      setError(err instanceof Error ? err.message : 'Unknown error')
       return null
     } finally {
       setLoading(false)
+    }
+  }, [])
+
+  // Tick a planned item off (or back on)
+  const setPlanItemCompleted = useCallback(async (
+    itemId: string,
+    completed: boolean
+  ): Promise<DailyPlan | null> => {
+    setError(null)
+
+    try {
+      const response = await fetch('/api/daily-plan', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId, completed }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update plan')
+      }
+
+      return data.plan
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+      return null
     }
   }, [])
 
@@ -151,6 +189,30 @@ export function useAI() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       setError(message)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Read an existing weekly summary (no AI call)
+  const loadWeeklySummary = useCallback(async (
+    weekOffset = 0
+  ): Promise<WeeklySummary | null> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/weekly-summary?weekOffset=${weekOffset}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load summary')
+      }
+
+      return data.summary
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
       return null
     } finally {
       setLoading(false)
@@ -210,8 +272,11 @@ export function useAI() {
     loading,
     error,
     organize,
-    getDailyPlan,
+    loadDailyPlan,
+    generateDailyPlan,
+    setPlanItemCompleted,
     askAboutDay,
+    loadWeeklySummary,
     getWeeklySummary,
     getPastSummaries,
   }

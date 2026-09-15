@@ -1,22 +1,38 @@
 import Groq from 'groq-sdk'
 
-// Initialize Groq client
-export const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-})
-
-// Available Mistral models on Groq
+// Models currently served by Groq. `mixtral-8x7b-32768` and
+// `llama-3.1-70b-versatile` used to live here but have both been
+// decommissioned, so every request against them failed.
 export const MODELS = {
-  // Fast and efficient for simple tasks
-  MIXTRAL_8X7B: 'mixtral-8x7b-32768',
-  // Larger context, better reasoning
-  LLAMA_70B: 'llama-3.1-70b-versatile',
-  // Fastest, good for simple classification
+  // Fastest, good for classification and entity extraction
   LLAMA_8B: 'llama-3.1-8b-instant',
+  // Balanced default
+  LLAMA_70B: 'llama-3.3-70b-versatile',
 } as const
 
 // Default model for FlowMind
-export const DEFAULT_MODEL = MODELS.MIXTRAL_8X7B
+export const DEFAULT_MODEL = MODELS.LLAMA_70B
+
+export function getGroqApiKey(): string {
+  const key = process.env.GROQ_API_KEY
+  if (!key) {
+    throw new Error(
+      'GROQ_API_KEY is not set. Add it to your environment to enable AI features.'
+    )
+  }
+  return key
+}
+
+// Instantiated on first use, not at import time: the SDK throws when the key
+// is missing, which broke `next build` for every route that imports a chain.
+let groqClient: Groq | null = null
+
+export function getGroq(): Groq {
+  if (!groqClient) {
+    groqClient = new Groq({ apiKey: getGroqApiKey() })
+  }
+  return groqClient
+}
 
 // Rate limiting helper
 export class RateLimiter {

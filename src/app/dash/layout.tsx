@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import * as motion from 'motion/react-client'
 import { AnimatePresence } from 'motion/react'
 import {
@@ -16,11 +17,13 @@ import {
   ChevronLeft,
   Sparkles,
   Plus,
-  Search,
-  Bell,
+  Loader2,
+  AlertCircle,
   User,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useInboxItems } from '@/hooks/useInboxItems'
+import { useAI } from '@/hooks/useAI'
 
 const navigation = [
   { name: 'Inbox', href: '/dash', icon: Inbox },
@@ -35,9 +38,15 @@ const bottomNav = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { user, profile, signOut } = useAuth()
+  const router = useRouter()
+  const { profile, signOut } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.replace('/login')
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-mist via-white to-cloud">
@@ -171,7 +180,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )
           })}
           <button
-            onClick={() => signOut()}
+            onClick={handleSignOut}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all ${
               collapsed ? 'justify-center' : ''
             }`}
@@ -191,28 +200,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Top Bar */}
         <header className="sticky top-0 z-30 bg-white/60 backdrop-blur-xl border-b border-slate-200/50">
           <div className="flex items-center justify-between px-6 py-4">
-            {/* Search */}
-            <div className="flex-1 max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search your mind..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 border-0 rounded-xl text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-azure-500/20 focus:bg-white transition-all"
-                />
-              </div>
-            </div>
+            <p className="text-sm text-slate-500">
+              {navigation.find((item) => item.href === pathname)?.name ?? 'Settings'}
+            </p>
 
             {/* Right side */}
             <div className="flex items-center gap-3">
-              <motion.button
-                className="relative p-2.5 hover:bg-slate-100 rounded-xl transition-colors"
-                whileTap={{ scale: 0.95 }}
-              >
-                <Bell className="w-5 h-5 text-slate-600" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-azure-500 rounded-full" />
-              </motion.button>
-              
               <Link href="/dash/settings">
                 <motion.div
                   className="flex items-center gap-3 pl-3 pr-4 py-2 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
@@ -220,10 +213,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-azure-400 to-violet-500 rounded-full flex items-center justify-center">
                     {profile?.avatar_url ? (
-                      <img
+                      <Image
                         src={profile.avatar_url}
                         alt=""
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <User className="w-4 h-4 text-white" />
@@ -261,6 +257,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 function QuickAddModal({ onClose }: { onClose: () => void }) {
   const [content, setContent] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const { addItem } = useInboxItems()
+  const { organize } = useAI()
+
+  const handleSave = async () => {
+    const trimmed = content.trim()
+    if (!trimmed || saving) return
+
+    setSaving(true)
+    setError(null)
+    try {
+      const item = await addItem(trimmed)
+      // Close as soon as the item is safely stored; organising it is a
+      // best-effort follow-up that must not hold the modal open.
+      onClose()
+      if (item) {
+        organize({ itemIds: [item.id] })
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save that item')
+      setSaving(false)
+    }
+  }
 
   return (
     <>
@@ -291,10 +311,22 @@ function QuickAddModal({ onClose }: { onClose: () => void }) {
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSave()
+              if (e.key === 'Escape') onClose()
+            }}
             placeholder="What's on your mind? A task, idea, note, reminder..."
             className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl resize-none focus:ring-2 focus:ring-azure-500/20 focus:border-azure-300 transition-all"
             autoFocus
           />
+
+          {error && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-red-600">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
           <div className="flex items-center justify-between mt-4">
             <p className="text-xs text-slate-400">
               Press ⌘+Enter to save
@@ -307,11 +339,17 @@ function QuickAddModal({ onClose }: { onClose: () => void }) {
                 Cancel
               </button>
               <motion.button
-                className="px-4 py-2 bg-azure-500 text-white font-medium rounded-lg hover:bg-azure-600 transition-colors flex items-center gap-2"
+                onClick={handleSave}
+                disabled={!content.trim() || saving}
+                className="px-4 py-2 bg-azure-500 text-white font-medium rounded-lg hover:bg-azure-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Sparkles className="w-4 h-4" />
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
                 Add & Organize
               </motion.button>
             </div>

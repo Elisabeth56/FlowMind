@@ -15,11 +15,19 @@ import {
   ChevronRight,
   Loader2,
   Award,
-  AlertTriangle,
+  AlertCircle,
   Lightbulb,
   Calendar,
 } from 'lucide-react'
-import { useAI } from '@/hooks/useAI'
+import { useAI, type WeeklySummary } from '@/hooks/useAI'
+
+// Mirrors getWeekBounds() in the weekly-summary route: weeks start on Sunday.
+function getWeekBounds(date: Date): { start: string } {
+  const d = new Date(date)
+  d.setDate(d.getDate() - d.getDay())
+  d.setHours(0, 0, 0, 0)
+  return { start: d.toISOString().split('T')[0] }
+}
 
 const trendIcons = {
   improving: TrendingUp,
@@ -34,38 +42,62 @@ const trendColors = {
 }
 
 export default function InsightsPage() {
-  const { getWeeklySummary, getPastSummaries, loading } = useAI()
-  const [summary, setSummary] = useState<any>(null)
-  const [pastSummaries, setPastSummaries] = useState<any[]>([])
+  const { loadWeeklySummary, getWeeklySummary, getPastSummaries, error } = useAI()
+  const [summary, setSummary] = useState<WeeklySummary | null>(null)
+  const [pastSummaries, setPastSummaries] = useState<WeeklySummary[]>([])
+  const [loadingSummary, setLoadingSummary] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
 
+  // Read what already exists; generating costs an AI call, so that stays
+  // behind the explicit button.
   useEffect(() => {
-    fetchSummary()
-    fetchPastSummaries()
-  }, [weekOffset])
+    let cancelled = false
+    setLoadingSummary(true)
 
-  const fetchSummary = async () => {
+    Promise.all([loadWeeklySummary(weekOffset), getPastSummaries(5)])
+      .then(([current, past]) => {
+        if (cancelled) return
+        setSummary(current)
+        setPastSummaries(past)
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSummary(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [weekOffset, loadWeeklySummary, getPastSummaries])
+
+  const otherWeeks = pastSummaries.filter((past) => past.id !== summary?.id)
+
+  const handleGenerate = async () => {
     setGenerating(true)
     try {
       const result = await getWeeklySummary(weekOffset)
       if (result) {
         setSummary(result)
+        setPastSummaries(await getPastSummaries(5))
       }
     } finally {
       setGenerating(false)
     }
   }
 
-  const fetchPastSummaries = async () => {
-    const results = await getPastSummaries(4)
-    setPastSummaries(results)
-  }
-
   const getWeekLabel = () => {
     if (weekOffset === 0) return 'This Week'
     if (weekOffset === -1) return 'Last Week'
     return `${Math.abs(weekOffset)} weeks ago`
+  }
+
+  // How many weeks back a stored summary sits, so clicking it navigates to the
+  // right week instead of assuming summaries exist for every week in between.
+  const offsetForWeekStart = (weekStart: string) => {
+    const { start: currentWeekStart } = getWeekBounds(new Date())
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000
+    const diff = new Date(weekStart).getTime() - new Date(currentWeekStart).getTime()
+    return Math.round(diff / msPerWeek)
   }
 
   return (
@@ -110,11 +142,24 @@ export default function InsightsPage() {
         </div>
       </motion.div>
 
-      {loading || generating ? (
+      {error && (
+        <motion.div
+          className="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <span className="text-sm text-red-700">{error}</span>
+        </motion.div>
+      )}
+
+      {loadingSummary || generating ? (
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mx-auto mb-4" />
-            <p className="text-slate-600">Analyzing your week...</p>
+            <p className="text-slate-600">
+              {generating ? 'Analyzing your week...' : 'Loading your insights...'}
+            </p>
           </div>
         </div>
       ) : !summary ? (
@@ -131,7 +176,7 @@ export default function InsightsPage() {
             Complete some tasks to generate your weekly insights.
           </p>
           <motion.button
-            onClick={fetchSummary}
+            onClick={handleGenerate}
             className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white font-medium rounded-xl hover:bg-emerald-600 transition-colors"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -184,9 +229,9 @@ export default function InsightsPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${trendColors[summary.productivity_trend as keyof typeof trendColors]}`}>
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${trendColors[summary.productivity_trend]}`}>
                 {(() => {
-                  const TrendIcon = trendIcons[summary.productivity_trend as keyof typeof trendIcons]
+                  const TrendIcon = trendIcons[summary.productivity_trend]
                   return <TrendIcon className="w-4 h-4" />
                 })()}
                 <span className="font-medium capitalize">{summary.productivity_trend}</span>
@@ -225,7 +270,7 @@ export default function InsightsPage() {
               </div>
               <div className="p-4 space-y-3">
                 {Array.isArray(summary.accomplishments) && summary.accomplishments.length > 0 ? (
-                  summary.accomplishments.map((item: string, i: number) => (
+                  summary.accomplishments.map((item, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                       <span className="text-sm text-slate-700">{item}</span>
@@ -250,7 +295,7 @@ export default function InsightsPage() {
               </div>
               <div className="p-4 space-y-3">
                 {Array.isArray(summary.suggestions) && summary.suggestions.length > 0 ? (
-                  summary.suggestions.map((item: any, i: number) => (
+                  summary.suggestions.map((item, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                         item.priority === 'high' ? 'bg-red-100 text-red-600' :
@@ -282,7 +327,7 @@ export default function InsightsPage() {
                 <span className="font-semibold text-slate-900">Patterns Detected</span>
               </div>
               <div className="p-4 space-y-3">
-                {summary.patterns.map((pattern: any, i: number) => (
+                {summary.patterns.map((pattern, i) => (
                   <div
                     key={i}
                     className={`p-3 rounded-xl ${
@@ -308,7 +353,7 @@ export default function InsightsPage() {
           )}
 
           {/* Past Weeks */}
-          {pastSummaries.length > 1 && (
+          {otherWeeks.length > 0 && (
             <motion.div
               className="bg-white rounded-2xl border border-slate-200 shadow-soft overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
@@ -319,10 +364,10 @@ export default function InsightsPage() {
                 <span className="font-semibold text-slate-900">Past Weeks</span>
               </div>
               <div className="divide-y divide-slate-100">
-                {pastSummaries.slice(1).map((past, i) => (
+                {otherWeeks.map((past) => (
                   <button
                     key={past.id}
-                    onClick={() => setWeekOffset(-(i + 1))}
+                    onClick={() => setWeekOffset(offsetForWeekStart(past.week_start))}
                     className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                   >
                     <div className="text-left">

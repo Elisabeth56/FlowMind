@@ -81,7 +81,7 @@ export default function SignUpPage() {
     setGoogleLoading(true)
     try {
       await loginWithGoogle()
-    } catch (err) {
+    } catch {
       setError('Failed to sign up with Google')
       setGoogleLoading(false)
     }
@@ -140,8 +140,8 @@ export default function SignUpPage() {
               <span className="font-serif italic">into clarity</span>
             </h2>
             <p className="text-white/80 text-lg leading-relaxed mb-12 max-w-md">
-              Join thousands of people who've finally organized their thoughts 
-              and supercharged their productivity with AI.
+              Capture what&apos;s in your head, let AI sort it into projects and
+              priorities, and start each day with a plan you didn&apos;t have to make.
             </p>
 
             {/* Features */}

@@ -2,7 +2,8 @@ import { ChatPromptTemplate } from '@langchain/core/prompts'
 import { RunnableSequence } from '@langchain/core/runnables'
 import { StructuredOutputParser } from '@langchain/core/output_parsers'
 import { z } from 'zod'
-import { models } from '../langchain'
+import { getModel } from '../langchain'
+import { lazyChain } from '../lazy'
 
 // Schema for organized item output
 const organizedItemSchema = z.object({
@@ -46,21 +47,23 @@ Rules:
 User's existing projects for context: {existing_projects}`],
 ])
 
-// Create the chain
-export const organizeChain = RunnableSequence.from([
-  {
-    content: (input: { content: string; existingProjects: string[] }) => input.content,
-    existing_projects: (input: { content: string; existingProjects: string[] }) => 
-      input.existingProjects.length > 0 
-        ? input.existingProjects.join(', ') 
-        : 'None yet',
-    today: () => new Date().toISOString().split('T')[0],
-    format_instructions: () => organizeParser.getFormatInstructions(),
-  },
-  organizePrompt,
-  models.fast,
-  organizeParser,
-])
+// Create the chain (built on first use, see lazyChain)
+export const getOrganizeChain = lazyChain(() =>
+  RunnableSequence.from([
+    {
+      content: (input: { content: string; existingProjects: string[] }) => input.content,
+      existing_projects: (input: { content: string; existingProjects: string[] }) =>
+        input.existingProjects.length > 0
+          ? input.existingProjects.join(', ')
+          : 'None yet',
+      today: () => new Date().toISOString().split('T')[0],
+      format_instructions: () => organizeParser.getFormatInstructions(),
+    },
+    organizePrompt,
+    getModel('fast'),
+    organizeParser,
+  ])
+)
 
 // Batch organize multiple items
 export async function organizeItems(
@@ -75,7 +78,7 @@ export async function organizeItems(
     const batch = items.slice(i, i + batchSize)
     const promises = batch.map(async (item) => {
       try {
-        const result = await organizeChain.invoke({
+        const result = await getOrganizeChain().invoke({
           content: item.content,
           existingProjects,
         })

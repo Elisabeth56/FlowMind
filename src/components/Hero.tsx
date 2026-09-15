@@ -63,7 +63,7 @@ export default function Hero() {
           transition={{ duration: 0.6 }}
         >
           <Sparkles className="w-4 h-4 text-azure-500" />
-          <span className="text-sm font-medium text-slate-700">Powered by Groq + Mistral AI</span>
+          <span className="text-sm font-medium text-slate-700">Powered by Groq</span>
         </motion.div>
 
         <motion.h1
@@ -108,12 +108,12 @@ export default function Hero() {
             </span>
           </motion.a>
           <motion.a
-            href="#demo"
+            href="/pricing"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white/80 text-slate-700 text-lg font-medium rounded-full border border-slate-200 hover:bg-white hover:border-azure-300 transition-all duration-300"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Watch demo
+            See pricing
           </motion.a>
         </motion.div>
 

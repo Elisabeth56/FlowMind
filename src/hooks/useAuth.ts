@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Profile } from '@/types/database'
@@ -62,11 +62,31 @@ export function useAuth() {
     setSession(null)
   }
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) {
       await fetchProfile(user.id)
     }
-  }
+  }, [user, fetchProfile])
+
+  /** Persist preference changes and keep the cached profile in step. */
+  const updateProfile = useCallback(
+    async (updates: Partial<Pick<Profile, 'full_name' | 'timezone' | 'daily_plan_time' | 'weekly_summary_day'>>) => {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update profile')
+      }
+
+      setProfile(result.profile)
+      return result.profile as Profile
+    },
+    []
+  )
 
   return {
     user,
@@ -75,6 +95,7 @@ export function useAuth() {
     loading,
     signOut,
     refreshProfile,
+    updateProfile,
     isAuthenticated: !!user,
     isPro: profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'enterprise',
   }

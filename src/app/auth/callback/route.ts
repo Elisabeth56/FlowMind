@@ -15,6 +15,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // Return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  // /auth/auth-code-error was never built, so this used to 404 with no
+  // explanation. Send people back to login with a message they can read.
+  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
 }

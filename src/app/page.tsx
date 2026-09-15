@@ -1,6 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import TrustBar from "@/components/TrustBar";
+import BuiltWith from "@/components/BuiltWith";
 import Features from "@/components/Features";
 import HowItWorks from "@/components/HowItWorks";
 import DailyPlan from "@/components/DailyPlan";
@@ -9,10 +9,10 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-mist overflow-x-hidden">
+    <main className="min-h-screen bg-mist overflow-x-clip">
       <Navbar />
       <Hero />
-      <TrustBar />
+      <BuiltWith />
       <Features />
       <HowItWorks />
       <DailyPlan />

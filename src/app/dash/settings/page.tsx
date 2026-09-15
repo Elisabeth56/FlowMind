@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import * as motion from 'motion/react-client'
-import { User, Mail, Globe, Clock, Camera, Loader2, Check } from 'lucide-react'
+import { AlertCircle, Check, Clock, Globe, Loader2, Mail, User } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 const timezones = [
@@ -16,22 +17,40 @@ const timezones = [
 ]
 
 export default function ProfileSettingsPage() {
-  const { user, profile } = useAuth()
+  const { user, profile, updateProfile } = useAuth()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    full_name: profile?.full_name || '',
-    timezone: profile?.timezone || 'Africa/Lagos',
-    daily_plan_time: profile?.daily_plan_time || '08:00',
+    full_name: '',
+    timezone: 'Africa/Lagos',
+    daily_plan_time: '08:00',
   })
+
+  // The profile arrives asynchronously, so seed the form once it lands
+  // rather than only on the first render (when it is still null).
+  useEffect(() => {
+    if (!profile) return
+    setFormData({
+      full_name: profile.full_name || '',
+      timezone: profile.timezone || 'Africa/Lagos',
+      // Postgres returns `time` values as HH:MM:SS; the input wants HH:MM
+      daily_plan_time: (profile.daily_plan_time || '08:00').slice(0, 5),
+    })
+  }, [profile])
 
   const handleSave = async () => {
     setSaving(true)
-    // Simulate save - replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setError(null)
+    try {
+      await updateProfile(formData)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save your changes')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -49,18 +68,18 @@ export default function ProfileSettingsPage() {
           <div className="relative">
             <div className="w-20 h-20 bg-gradient-to-br from-azure-400 to-violet-500 rounded-2xl flex items-center justify-center">
               {profile?.avatar_url ? (
-                <img
+                <Image
                   src={profile.avatar_url}
                   alt=""
+                  width={80}
+                  height={80}
                   className="w-20 h-20 rounded-2xl object-cover"
+                  unoptimized
                 />
               ) : (
                 <User className="w-10 h-10 text-white" />
               )}
             </div>
-            <button className="absolute -bottom-2 -right-2 p-2 bg-white rounded-xl border border-slate-200 shadow-soft hover:bg-slate-50 transition-colors">
-              <Camera className="w-4 h-4 text-slate-600" />
-            </button>
           </div>
           <div>
             <h3 className="font-medium text-slate-900">{profile?.full_name || 'User'}</h3>
@@ -145,6 +164,13 @@ export default function ProfileSettingsPage() {
           </div>
         </div>
 
+        {error && (
+          <div className="mt-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <span className="text-sm text-red-700">{error}</span>
+          </div>
+        )}
+
         {/* Save Button */}
         <div className="mt-8 flex justify-end">
           <motion.button
@@ -164,21 +190,6 @@ export default function ProfileSettingsPage() {
         </div>
       </motion.div>
 
-      {/* Danger Zone */}
-      <motion.div
-        className="bg-white rounded-2xl border border-red-200 p-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <h2 className="text-lg font-semibold text-red-600 mb-2">Danger Zone</h2>
-        <p className="text-sm text-slate-600 mb-4">
-          Permanently delete your account and all associated data.
-        </p>
-        <button className="px-4 py-2 border border-red-300 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors">
-          Delete Account
-        </button>
-      </motion.div>
     </div>
   )
 }

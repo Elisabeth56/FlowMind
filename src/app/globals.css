@@ -73,13 +73,35 @@
 
 /* Base styles */
 html {
+  /* `clip` instead of `hidden`: hidden would turn <html> into a scroll
+     container and break the sticky/fixed headers inside it. */
+  overflow-x: clip;
+  /* Anchor targets clear the fixed 80px navbar instead of hiding under it. */
+  scroll-padding-top: 6rem;
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Scroll reveals become instant rather than a page that fills itself in. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 body {
   font-family: var(--font-sans);
   background-color: var(--color-mist);
   color: var(--color-slate-900);
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

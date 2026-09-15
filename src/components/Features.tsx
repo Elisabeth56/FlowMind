@@ -1,7 +1,8 @@
 "use client";
 
 import * as motion from "motion/react-client";
-import { Inbox, Sparkles, Calendar, BarChart3, ArrowUpRight } from "lucide-react";
+import { revealViewport } from "@/lib/motion";
+import { Inbox, Sparkles, Calendar, BarChart3 } from "lucide-react";
 
 const features = [
   {
@@ -15,7 +16,7 @@ const features = [
     icon: Sparkles,
     title: "AI Auto-Organization",
     description:
-      "Our AI (powered by Groq + Mistral) automatically sorts your chaos into projects, priorities, and actionable items.",
+      "Our AI (running on Groq) automatically sorts your chaos into projects, priorities, and actionable items.",
     color: "violet",
   },
   {
@@ -43,8 +44,8 @@ export default function Features() {
           className="text-center mb-16"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          viewport={revealViewport}
+          transition={{ duration: 0.5 }}
         >
           <h2 className="text-4xl md:text-5xl font-medium text-slate-900 mb-6 leading-tight">
             Everything you need to
@@ -67,7 +68,7 @@ export default function Features() {
               className="relative group"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={revealViewport}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
               <div className="relative bg-white rounded-3xl p-8 shadow-soft border border-slate-100 hover:shadow-soft-lg hover:border-azure-200 transition-all duration-300 h-full">
@@ -93,15 +94,6 @@ export default function Features() {
                 <p className="text-slate-600 leading-relaxed mb-4">
                   {feature.description}
                 </p>
-
-                {/* Learn more link */}
-                <a
-                  href="#"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-azure-600 hover:text-azure-700 transition-colors group/link"
-                >
-                  Learn more
-                  <ArrowUpRight className="w-4 h-4 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
-                </a>
 
                 {/* Decorative gradient */}
                 <div

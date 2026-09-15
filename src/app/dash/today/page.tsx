@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import * as motion from 'motion/react-client'
-import { AnimatePresence } from 'motion/react'
 import {
-  Calendar,
   Sparkles,
   Sun,
   Coffee,
@@ -17,35 +15,61 @@ import {
   MessageSquare,
   Send,
   Loader2,
-  ChevronRight,
   Target,
   TrendingUp,
   AlertCircle,
 } from 'lucide-react'
-import { useAI } from '@/hooks/useAI'
+import { useAI, type DailyPlan } from '@/hooks/useAI'
 
 export default function TodayPage() {
-  const { getDailyPlan, askAboutDay, loading } = useAI()
-  const [plan, setPlan] = useState<any>(null)
-  const [aiPlan, setAiPlan] = useState<any>(null)
+  const {
+    loadDailyPlan,
+    generateDailyPlan,
+    setPlanItemCompleted,
+    askAboutDay,
+    error,
+  } = useAI()
+  const [plan, setPlan] = useState<DailyPlan | null>(null)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [askingAI, setAskingAI] = useState(false)
+  const [loadingPlan, setLoadingPlan] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
+  // Only read on mount — generating costs an AI call, so that stays an
+  // explicit action rather than a side effect of opening the page.
   useEffect(() => {
-    fetchPlan()
-  }, [])
+    let cancelled = false
+    loadDailyPlan()
+      .then((result) => {
+        if (!cancelled) setPlan(result)
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingPlan(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [loadDailyPlan])
 
-  const fetchPlan = async (regenerate = false) => {
+  const handleGenerate = async (regenerate = false) => {
     setGenerating(true)
     try {
-      const result = await getDailyPlan({ regenerate })
-      if (result) {
-        setPlan(result)
-      }
+      const result = await generateDailyPlan({ regenerate })
+      if (result) setPlan(result)
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleToggleItem = async (itemId: string, completed: boolean) => {
+    setTogglingId(itemId)
+    try {
+      const updated = await setPlanItemCompleted(itemId, completed)
+      if (updated) setPlan(updated)
+    } finally {
+      setTogglingId(null)
     }
   }
 
@@ -78,7 +102,7 @@ export default function TodayPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <Calendar className="w-6 h-6 text-white" />
+              <TimeIcon className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
@@ -91,8 +115,8 @@ export default function TodayPage() {
           </div>
 
           <motion.button
-            onClick={() => fetchPlan(true)}
-            disabled={generating}
+            onClick={() => handleGenerate(true)}
+            disabled={generating || loadingPlan}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -106,6 +130,17 @@ export default function TodayPage() {
           </motion.button>
         </div>
       </motion.div>
+
+      {error && (
+        <motion.div
+          className="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <span className="text-sm text-red-700">{error}</span>
+        </motion.div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Plan Area */}
@@ -133,11 +168,13 @@ export default function TodayPage() {
           )}
 
           {/* Plan Items */}
-          {loading || generating ? (
+          {loadingPlan || generating ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-azure-500 mx-auto mb-4" />
-                <p className="text-slate-600">Generating your daily plan...</p>
+                <p className="text-slate-600">
+                  {generating ? 'Generating your daily plan...' : 'Loading your plan...'}
+                </p>
               </div>
             </div>
           ) : !plan ? (
@@ -156,7 +193,7 @@ export default function TodayPage() {
                 Add some items to your inbox and generate a daily plan.
               </p>
               <motion.button
-                onClick={() => fetchPlan(true)}
+                onClick={() => handleGenerate()}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-azure-500 text-white font-medium rounded-xl hover:bg-azure-600 transition-colors"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -175,7 +212,7 @@ export default function TodayPage() {
               <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Target className="w-5 h-5 text-azure-500" />
-                  <span className="font-semibold text-slate-900">Today's Focus</span>
+                  <span className="font-semibold text-slate-900">Today&apos;s Focus</span>
                 </div>
                 <span className="text-sm text-slate-500">
                   {plan.items_completed || 0} / {plan.items_total || 0} completed
@@ -183,44 +220,62 @@ export default function TodayPage() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {Array.isArray(plan.plan_items) && plan.plan_items.length > 0 ? (
-                  plan.plan_items.map((planItem: any, index: number) => (
-                    <motion.div
-                      key={planItem.item_id || index}
-                      className="p-4 hover:bg-slate-50 transition-colors"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * index }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <button className="mt-1 flex-shrink-0">
-                          <Circle className="w-5 h-5 text-slate-300 hover:text-azure-500 transition-colors" />
-                        </button>
-                        <div className="flex-1">
-                          <p className="text-slate-900 font-medium">
-                            {planItem.item?.content || `Task ${index + 1}`}
-                          </p>
-                          {planItem.notes && (
-                            <p className="text-sm text-slate-500 mt-1">{planItem.notes}</p>
-                          )}
-                          <div className="flex items-center gap-3 mt-2">
-                            {planItem.scheduled_time && (
-                              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-                                <Clock className="w-3 h-3" />
-                                {planItem.scheduled_time}
-                              </span>
+                {plan.plan_items.length > 0 ? (
+                  plan.plan_items.map((planItem, index) => {
+                    const done = planItem.item?.status === 'completed'
+                    const busy = togglingId === planItem.item_id
+                    return (
+                      <motion.div
+                        key={planItem.item_id || index}
+                        className="p-4 hover:bg-slate-50 transition-colors"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.05 * index }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <button
+                            onClick={() => handleToggleItem(planItem.item_id, !done)}
+                            disabled={busy || !planItem.item}
+                            className="mt-1 flex-shrink-0 disabled:opacity-50"
+                            aria-label={done ? 'Mark as not done' : 'Mark as done'}
+                          >
+                            {busy ? (
+                              <Loader2 className="w-5 h-5 animate-spin text-azure-500" />
+                            ) : done ? (
+                              <CheckCircle2 className="w-5 h-5 text-green-500" />
+                            ) : (
+                              <Circle className="w-5 h-5 text-slate-300 hover:text-azure-500 transition-colors" />
                             )}
-                            {planItem.duration_minutes && (
-                              <span className="text-xs text-slate-400">
-                                ~{planItem.duration_minutes} min
-                              </span>
+                          </button>
+                          <div className="flex-1">
+                            <p
+                              className={`font-medium ${
+                                done ? 'text-slate-400 line-through' : 'text-slate-900'
+                              }`}
+                            >
+                              {planItem.item?.content || 'This item is no longer in your inbox'}
+                            </p>
+                            {planItem.notes && (
+                              <p className="text-sm text-slate-500 mt-1">{planItem.notes}</p>
                             )}
+                            <div className="flex items-center gap-3 mt-2">
+                              {planItem.scheduled_time && (
+                                <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                                  <Clock className="w-3 h-3" />
+                                  {planItem.scheduled_time}
+                                </span>
+                              )}
+                              {planItem.duration_minutes ? (
+                                <span className="text-xs text-slate-400">
+                                  ~{planItem.duration_minutes} min
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-slate-300" />
-                      </div>
-                    </motion.div>
-                  ))
+                      </motion.div>
+                    )
+                  })
                 ) : (
                   <div className="p-8 text-center text-slate-500">
                     No tasks scheduled for today
@@ -311,7 +366,7 @@ export default function TodayPage() {
           >
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-5 h-5 text-green-500" />
-              <span className="font-semibold text-slate-900">Today's Progress</span>
+              <span className="font-semibold text-slate-900">Today&apos;s Progress</span>
             </div>
             <div className="space-y-3">
               <div>
