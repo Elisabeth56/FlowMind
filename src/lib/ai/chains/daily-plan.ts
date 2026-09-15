@@ -2,7 +2,8 @@ import { ChatPromptTemplate } from '@langchain/core/prompts'
 import { RunnableSequence } from '@langchain/core/runnables'
 import { StructuredOutputParser } from '@langchain/core/output_parsers'
 import { z } from 'zod'
-import { models } from '../langchain'
+import { getModel } from '../langchain'
+import { lazyChain } from '../lazy'
 
 // Schema for daily plan output
 const dailyPlanSchema = z.object({
@@ -79,7 +80,8 @@ function formatItems(items: Array<{
   }).join('\n')
 }
 
-export const dailyPlanChain = RunnableSequence.from([
+export const getDailyPlanChain = lazyChain(() =>
+  RunnableSequence.from([
   {
     items: (input: {
       items: Array<{
@@ -105,9 +107,10 @@ export const dailyPlanChain = RunnableSequence.from([
     format_instructions: () => dailyPlanParser.getFormatInstructions(),
   },
   dailyPlanPrompt,
-  models.reasoning,
+  getModel('reasoning'),
   dailyPlanParser,
-])
+  ])
+)
 
 // Simple question answering about the plan
 const questionPrompt = ChatPromptTemplate.fromMessages([
@@ -119,13 +122,15 @@ Be concise and actionable. Today is {today}.`],
 User's question: {question}`],
 ])
 
-export const answerQuestionChain = RunnableSequence.from([
+export const getAnswerQuestionChain = lazyChain(() =>
+  RunnableSequence.from([
   {
     plan_summary: (input: { planSummary: string; question: string }) => input.planSummary,
     question: (input) => input.question,
     today: () => new Date().toISOString().split('T')[0],
   },
   questionPrompt,
-  models.balanced,
+  getModel('balanced'),
   (response) => response.content,
-])
+  ])
+)

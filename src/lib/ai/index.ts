@@ -1,8 +1,8 @@
 // AI Configuration
-export { groq, MODELS, DEFAULT_MODEL, rateLimiter } from './groq'
-export { createChatModel, models } from './langchain'
+export { getGroq, MODELS, DEFAULT_MODEL, rateLimiter } from './groq'
+export { createChatModel, getModel } from './langchain'
 
 // Chains
-export { organizeChain, organizeItems, type OrganizedItem } from './chains/organize'
-export { dailyPlanChain, answerQuestionChain, type DailyPlan } from './chains/daily-plan'
-export { weeklySummaryChain, improvementChain, type WeeklySummary } from './chains/weekly-summary'
+export { getOrganizeChain, organizeItems, type OrganizedItem } from './chains/organize'
+export { getDailyPlanChain, getAnswerQuestionChain, type DailyPlan } from './chains/daily-plan'
+export { getWeeklySummaryChain, getImprovementChain, type WeeklySummary } from './chains/weekly-summary'

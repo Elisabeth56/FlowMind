@@ -2,7 +2,8 @@ import { ChatPromptTemplate } from '@langchain/core/prompts'
 import { RunnableSequence } from '@langchain/core/runnables'
 import { StructuredOutputParser } from '@langchain/core/output_parsers'
 import { z } from 'zod'
-import { models } from '../langchain'
+import { getModel } from '../langchain'
+import { lazyChain } from '../lazy'
 
 // Schema for weekly summary output
 const weeklySummarySchema = z.object({
@@ -97,7 +98,8 @@ function formatPendingItems(items: Array<{
   }).join('\n')
 }
 
-export const weeklySummaryChain = RunnableSequence.from([
+export const getWeeklySummaryChain = lazyChain(() =>
+  RunnableSequence.from([
   {
     week_start: (input: {
       weekStart: string
@@ -130,9 +132,10 @@ export const weeklySummaryChain = RunnableSequence.from([
     format_instructions: () => weeklySummaryParser.getFormatInstructions(),
   },
   weeklySummaryPrompt,
-  models.reasoning,
+  getModel('reasoning'),
   weeklySummaryParser,
-])
+  ])
+)
 
 // Generate improvement suggestions based on patterns
 const improvementPrompt = ChatPromptTemplate.fromMessages([
@@ -144,11 +147,13 @@ Be specific and actionable. Keep response under 100 words.`],
 Suggest one focused improvement for the user.`],
 ])
 
-export const improvementChain = RunnableSequence.from([
+export const getImprovementChain = lazyChain(() =>
+  RunnableSequence.from([
   {
     patterns: (input: { patterns: string }) => input.patterns,
   },
   improvementPrompt,
-  models.balanced,
+  getModel('balanced'),
   (response) => response.content,
-])
+  ])
+)

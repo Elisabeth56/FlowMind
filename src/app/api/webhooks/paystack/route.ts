@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 
       case 'subscription.disable': {
         // Subscription cancelled
-        const { customer, subscription_code } = event.data
+        const { customer } = event.data
 
         if (customer) {
           const { data: profile } = await supabase

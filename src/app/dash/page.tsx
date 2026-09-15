@@ -6,16 +6,9 @@ import { AnimatePresence } from 'motion/react'
 import {
   Inbox,
   Sparkles,
-  Filter,
-  SortAsc,
-  MoreHorizontal,
-  CheckCircle2,
   Circle,
   Clock,
-  Tag,
-  Folder,
   Trash2,
-  ArrowRight,
   Loader2,
   AlertCircle,
   Lightbulb,
@@ -49,53 +42,64 @@ const priorityLabels = {
 }
 
 export default function InboxPage() {
-  const { items, loading, addItem, updateItem, completeItem, deleteItem } = useInboxItems('all')
-  const { organize, loading: aiLoading } = useAI()
+  const { items, loading, error, addItem, completeItem, deleteItem, refetch } = useInboxItems()
+  const { organize, loading: aiLoading, error: aiError } = useAI()
   const [filter, setFilter] = useState<'all' | 'inbox' | 'organized'>('all')
   const [newItemContent, setNewItemContent] = useState('')
+  const [adding, setAdding] = useState(false)
   const [organizingIds, setOrganizingIds] = useState<Set<string>>(new Set())
 
-  const filteredItems = items.filter(item => {
-    if (filter === 'all') return item.status !== 'completed' && item.status !== 'archived'
-    if (filter === 'inbox') return item.status === 'inbox'
-    if (filter === 'organized') return item.status === 'organized' || item.status === 'in_progress'
-    return true
-  })
+  const openItems = items.filter(
+    item => item.status !== 'completed' && item.status !== 'archived'
+  )
+  const inboxItems = items.filter(i => i.status === 'inbox')
+  const organizedItems = items.filter(
+    i => i.status === 'organized' || i.status === 'in_progress'
+  )
 
-  const inboxCount = items.filter(i => i.status === 'inbox').length
-  const organizedCount = items.filter(i => i.status === 'organized' || i.status === 'in_progress').length
+  const filteredItems =
+    filter === 'inbox' ? inboxItems : filter === 'organized' ? organizedItems : openItems
 
   const handleAddItem = async () => {
-    if (!newItemContent.trim()) return
-    
+    const content = newItemContent.trim()
+    if (!content || adding) return
+
+    setAdding(true)
     try {
-      const item = await addItem(newItemContent)
+      const item = await addItem(content)
       setNewItemContent('')
-      
+
       // Auto-organize the new item
       if (item) {
         setOrganizingIds(prev => new Set(prev).add(item.id))
-        await organize({ itemIds: [item.id] })
-        setOrganizingIds(prev => {
-          const next = new Set(prev)
-          next.delete(item.id)
-          return next
-        })
+        try {
+          await organize({ itemIds: [item.id] })
+          await refetch()
+        } finally {
+          setOrganizingIds(prev => {
+            const next = new Set(prev)
+            next.delete(item.id)
+            return next
+          })
+        }
       }
     } catch (error) {
       console.error('Failed to add item:', error)
+    } finally {
+      setAdding(false)
     }
   }
 
   const handleOrganizeAll = async () => {
-    const unorganizedItems = items.filter(i => i.status === 'inbox')
-    if (unorganizedItems.length === 0) return
+    if (inboxItems.length === 0) return
 
-    const ids = unorganizedItems.map(i => i.id)
+    const ids = inboxItems.map(i => i.id)
     setOrganizingIds(new Set(ids))
-    
+
     try {
       await organize({ itemIds: ids })
+      // The API writes the organised fields server-side, so pull them back in
+      await refetch()
     } finally {
       setOrganizingIds(new Set())
     }
@@ -121,7 +125,7 @@ export default function InboxPage() {
             </div>
           </div>
           
-          {inboxCount > 0 && (
+          {inboxItems.length > 0 && (
             <motion.button
               onClick={handleOrganizeAll}
               disabled={aiLoading}
@@ -134,7 +138,7 @@ export default function InboxPage() {
               ) : (
                 <Sparkles className="w-4 h-4" />
               )}
-              Organize All ({inboxCount})
+              Organize All ({inboxItems.length})
             </motion.button>
           )}
         </div>
@@ -167,17 +171,32 @@ export default function InboxPage() {
             </p>
             <motion.button
               onClick={handleAddItem}
-              disabled={!newItemContent.trim()}
+              disabled={!newItemContent.trim() || adding}
               className="flex items-center gap-2 px-4 py-2 bg-azure-500 text-white font-medium rounded-lg hover:bg-azure-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <Sparkles className="w-4 h-4" />
+              {adding ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
               Add
             </motion.button>
           </div>
         </div>
       </motion.div>
+
+      {(error || aiError) && (
+        <motion.div
+          className="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <span className="text-sm text-red-700">{error || aiError}</span>
+        </motion.div>
+      )}
 
       {/* Filters */}
       <motion.div
@@ -187,9 +206,9 @@ export default function InboxPage() {
         transition={{ delay: 0.2 }}
       >
         {[
-          { key: 'all', label: 'All', count: filteredItems.length },
-          { key: 'inbox', label: 'Unorganized', count: inboxCount },
-          { key: 'organized', label: 'Organized', count: organizedCount },
+          { key: 'all', label: 'All', count: openItems.length },
+          { key: 'inbox', label: 'Unorganized', count: inboxItems.length },
+          { key: 'organized', label: 'Organized', count: organizedItems.length },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -314,17 +333,13 @@ export default function InboxPage() {
                             <Loader2 className="w-4 h-4 animate-spin text-violet-500" />
                           </div>
                         ) : (
-                          <>
-                            <button
-                              onClick={() => deleteItem(item.id)}
-                              className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                            <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-                          </>
+                          <button
+                            onClick={() => deleteItem(item.id)}
+                            className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         )}
                       </div>
                     </div>

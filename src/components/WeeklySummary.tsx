@@ -1,6 +1,7 @@
 "use client";
 
 import * as motion from "motion/react-client";
+import { revealViewport } from "@/lib/motion";
 import { ArrowUpRight, TrendingUp, CheckCircle, Clock, Target } from "lucide-react";
 
 export default function WeeklySummary() {
@@ -12,8 +13,8 @@ export default function WeeklySummary() {
           className="text-center mb-16"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          viewport={revealViewport}
+          transition={{ duration: 0.5 }}
         >
           <h2 className="text-4xl md:text-5xl font-medium text-slate-900 mb-6 leading-tight">
             Weekly summaries that
@@ -33,8 +34,8 @@ export default function WeeklySummary() {
           className="max-w-3xl mx-auto"
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          viewport={revealViewport}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
           <div className="bg-white rounded-3xl shadow-soft-lg border border-slate-200 overflow-hidden">
             {/* Header */}
@@ -134,7 +135,7 @@ export default function WeeklySummary() {
                   Ready to see your own insights?
                 </span>
                 <motion.a
-                  href="#start"
+                  href="/signup"
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-full hover:bg-azure-600 transition-colors"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -152,8 +153,8 @@ export default function WeeklySummary() {
           className="mt-20 text-center"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.4 }}
+          viewport={revealViewport}
+          transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className="inline-block bg-gradient-to-r from-azure-500 to-violet-500 p-px rounded-3xl">
             <div className="bg-white rounded-3xl px-12 py-10">
@@ -161,15 +162,15 @@ export default function WeeklySummary() {
                 Ready to think clearly?
               </h3>
               <p className="text-slate-600 mb-6 max-w-md mx-auto">
-                Join thousands of busy professionals using FlowMind to bring order to chaos.
+Start free with 50 AI calls a month. No card required.
               </p>
               <motion.a
-                href="#start"
+                href="/signup"
                 className="inline-flex items-center gap-3 px-8 py-4 bg-azure-500 text-white font-medium rounded-full hover:bg-azure-600 transition-all duration-300 group"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Start your free trial
+                Start for free
                 <span className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full group-hover:bg-white/30 transition-colors">
                   <ArrowUpRight className="w-4 h-4" />
                 </span>

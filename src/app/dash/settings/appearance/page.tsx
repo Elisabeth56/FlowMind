@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import * as motion from 'motion/react-client'
+import NotYetSavedNotice from '@/components/NotYetSavedNotice'
 import { 
   Palette, 
   Sun, 
@@ -9,7 +10,6 @@ import {
   Monitor,
   Type,
   Maximize2,
-  Loader2, 
   Check,
   Sparkles,
 } from 'lucide-react'
@@ -28,8 +28,6 @@ const accentColors: { name: AccentColor; color: string; bg: string }[] = [
 ]
 
 export default function AppearancePage() {
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   
   const [appearance, setAppearance] = useState({
     theme: 'light' as Theme,
@@ -39,16 +37,9 @@ export default function AppearancePage() {
     reduceMotion: false,
   })
 
-  const handleSave = async () => {
-    setSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
   return (
     <div className="space-y-6">
+      <NotYetSavedNotice what="Appearance preferences" />
       {/* Theme */}
       <motion.div
         className="bg-white rounded-2xl border border-slate-200 shadow-soft overflow-hidden"
@@ -278,28 +269,6 @@ export default function AppearancePage() {
         </div>
       </motion.div>
 
-      {/* Save Button */}
-      <motion.div
-        className="flex justify-end"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        <motion.button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-3 bg-azure-500 text-white font-medium rounded-xl hover:bg-azure-600 transition-colors disabled:opacity-50"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saved ? (
-            <Check className="w-4 h-4" />
-          ) : null}
-          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
-        </motion.button>
-      </motion.div>
     </div>
   )
 }

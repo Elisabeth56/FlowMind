@@ -22,19 +22,8 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Ignore TypeScript errors during build (remove in strict mode)
-  // typescript: {
-  //   ignoreBuildErrors: true,
-  // },
-
-  // Ignore ESLint errors during build (remove in strict mode)
-  // eslint: {
-  //   ignoreDuringBuilds: true,
-  // },
-
-  // Experimental features
+  // Server Actions
   experimental: {
-    // Enable server actions (already stable in Next.js 14+)
     serverActions: {
       bodySizeLimit: '2mb',
     },
@@ -80,7 +69,12 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/dashboard',
-        destination: '/app',
+        destination: '/dash',
+        permanent: true,
+      },
+      {
+        source: '/app',
+        destination: '/dash',
         permanent: true,
       },
       {

@@ -6,10 +6,16 @@ import {
   createCustomer,
   generateReference,
 } from '@/lib/paystack/client'
+import { PRO_PRICE_KOBO, type PaidPlanId } from '@/lib/plans'
 
-const PLANS = {
-  pro_monthly: process.env.PAYSTACK_PRO_MONTHLY_PLAN_CODE!,
-  pro_yearly: process.env.PAYSTACK_PRO_YEARLY_PLAN_CODE!,
+const PLAN_CODES: Record<PaidPlanId, string | undefined> = {
+  pro_monthly: process.env.PAYSTACK_PRO_MONTHLY_PLAN_CODE,
+  pro_yearly: process.env.PAYSTACK_PRO_YEARLY_PLAN_CODE,
+}
+
+const PLAN_AMOUNTS: Record<PaidPlanId, number> = {
+  pro_monthly: PRO_PRICE_KOBO.monthly,
+  pro_yearly: PRO_PRICE_KOBO.yearly,
 }
 
 export async function POST(request: NextRequest) {
@@ -26,8 +32,18 @@ export async function POST(request: NextRequest) {
     const { plan = 'pro_monthly' } = body
 
     // Validate plan
-    if (!['pro_monthly', 'pro_yearly'].includes(plan)) {
+    if (plan !== 'pro_monthly' && plan !== 'pro_yearly') {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
+    }
+    const planId: PaidPlanId = plan
+
+    const planCode = PLAN_CODES[planId]
+    if (!planCode) {
+      console.error(`Missing Paystack plan code for ${planId}`)
+      return NextResponse.json(
+        { error: 'Checkout is not configured yet. Please try again later.' },
+        { status: 503 }
+      )
     }
 
     // Get user profile
@@ -80,17 +96,18 @@ export async function POST(request: NextRequest) {
     // Initialize transaction with plan (creates subscription on success)
     const reference = generateReference('sub')
     
+    // Paystack charges the plan amount, but the API still wants one passed
+    const amount = PLAN_AMOUNTS[planId]
+
     const transaction = await initializeTransaction({
       email: user.email!,
-      // Amount is set by the plan, but we need to pass something
-      // Paystack will use the plan amount
-      amount: plan === 'pro_yearly' ? 4800000 : 500000, // ₦48,000 or ₦5,000 in kobo
+      amount,
       reference,
-      plan: PLANS[plan as keyof typeof PLANS],
+      plan: planCode,
       callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`,
       metadata: {
         user_id: user.id,
-        plan_type: plan,
+        plan_type: planId,
       },
       channels: ['card', 'bank', 'ussd', 'bank_transfer'],
     })
@@ -99,8 +116,8 @@ export async function POST(request: NextRequest) {
     await supabase.from('payment_transactions').insert({
       user_id: user.id,
       reference,
-      amount: plan === 'pro_yearly' ? 4800000 : 500000,
-      plan_type: plan,
+      amount,
+      plan_type: planId,
       status: 'pending',
     })
 

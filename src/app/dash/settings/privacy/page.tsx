@@ -2,17 +2,14 @@
 
 import { useState } from 'react'
 import * as motion from 'motion/react-client'
+import NotYetSavedNotice from '@/components/NotYetSavedNotice'
 import { 
-  Shield, 
-  Eye, 
   Database, 
   Download, 
-  Trash2, 
-  Lock,
-  Loader2, 
+  Loader2,
   Check,
+  Lock,
   AlertTriangle,
-  FileText,
   Brain,
 } from 'lucide-react'
 
@@ -39,9 +36,8 @@ function Toggle({ enabled, onToggle }: ToggleProps) {
 }
 
 export default function PrivacyPage() {
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
   
   const [privacy, setPrivacy] = useState({
     ai_data_training: false,
@@ -54,24 +50,35 @@ export default function PrivacyPage() {
     setPrivacy(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const handleSave = async () => {
-    setSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
   const handleExport = async () => {
     setExporting(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setExporting(false)
-    // In production, this would trigger a download
-    alert('Your data export has been prepared. Check your email for the download link.')
+    setExportError(null)
+    try {
+      const response = await fetch('/api/export')
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}))
+        throw new Error(result.error || 'Export failed')
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `flowmind-export-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Could not export your data')
+    } finally {
+      setExporting(false)
+    }
   }
 
   return (
     <div className="space-y-6">
+      <NotYetSavedNotice what="Privacy preferences" />
       {/* Data & AI */}
       <motion.div
         className="bg-white rounded-2xl border border-slate-200 shadow-soft overflow-hidden"
@@ -187,25 +194,13 @@ export default function PrivacyPage() {
               {exporting ? 'Preparing...' : 'Export'}
             </motion.button>
           </div>
-          
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                <FileText className="w-5 h-5 text-slate-600" />
-              </div>
-              <div>
-                <p className="font-medium text-slate-900">Privacy Policy</p>
-                <p className="text-sm text-slate-500">Read how we handle your data</p>
-              </div>
+
+          {exportError && (
+            <div className="px-4 pb-4 flex items-center gap-2 text-sm text-red-600">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              {exportError}
             </div>
-            <a
-              href="/privacy"
-              className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
-            >
-              <Eye className="w-4 h-4" />
-              View
-            </a>
-          </div>
+          )}
         </div>
       </motion.div>
 
@@ -240,60 +235,6 @@ export default function PrivacyPage() {
             <span className="text-sm text-green-700">AI processing via Groq (no data retention)</span>
           </div>
         </div>
-      </motion.div>
-
-      {/* Danger Zone */}
-      <motion.div
-        className="bg-white rounded-2xl border border-red-200 overflow-hidden"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div className="p-4 border-b border-red-100 flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-red-600">Danger Zone</h2>
-            <p className="text-sm text-slate-500">Irreversible actions</p>
-          </div>
-        </div>
-        
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-slate-900">Delete All Data</p>
-              <p className="text-sm text-slate-500">Permanently delete all your items, projects, and plans</p>
-            </div>
-            <button className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 font-medium rounded-xl hover:bg-red-50 transition-colors">
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Save Button */}
-      <motion.div
-        className="flex justify-end"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-      >
-        <motion.button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-3 bg-azure-500 text-white font-medium rounded-xl hover:bg-azure-600 transition-colors disabled:opacity-50"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saved ? (
-            <Check className="w-4 h-4" />
-          ) : null}
-          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
-        </motion.button>
       </motion.div>
     </div>
   )

@@ -1,18 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import * as motion from 'motion/react-client'
 import { Brain, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { login, loginWithGoogle } from '@/app/auth/actions'
 
-export default function LoginPage() {
+const AUTH_ERRORS: Record<string, string> = {
+  auth_failed: 'We could not complete that sign-in. Please try again.',
+}
+
+function LoginPageContent() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Surface failures handed back by the OAuth callback
+  useEffect(() => {
+    const code = searchParams.get('error')
+    if (code) setError(AUTH_ERRORS[code] ?? 'Something went wrong. Please try again.')
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +49,7 @@ export default function LoginPage() {
     setGoogleLoading(true)
     try {
       await loginWithGoogle()
-    } catch (err) {
+    } catch {
       setError('Failed to sign in with Google')
       setGoogleLoading(false)
     }
@@ -311,5 +323,13 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
   )
 }

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import * as motion from 'motion/react-client'
-import { Bell, Mail, Smartphone, Clock, Sparkles, Loader2, Check } from 'lucide-react'
+import NotYetSavedNotice from '@/components/NotYetSavedNotice'
+import { Mail, Smartphone, Clock, Sparkles } from 'lucide-react'
 
 interface ToggleProps {
   enabled: boolean
@@ -27,8 +28,6 @@ function Toggle({ enabled, onToggle }: ToggleProps) {
 }
 
 export default function NotificationsPage() {
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   
   const [notifications, setNotifications] = useState({
     email_daily_plan: true,
@@ -46,16 +45,9 @@ export default function NotificationsPage() {
     setNotifications(prev => ({ ...prev, [key]: value }))
   }
 
-  const handleSave = async () => {
-    setSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
   return (
     <div className="space-y-6">
+      <NotYetSavedNotice what="Notification preferences" />
       {/* Email Notifications */}
       <motion.div
         className="bg-white rounded-2xl border border-slate-200 shadow-soft overflow-hidden"
@@ -215,28 +207,6 @@ export default function NotificationsPage() {
         )}
       </motion.div>
 
-      {/* Save Button */}
-      <motion.div
-        className="flex justify-end"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        <motion.button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-3 bg-azure-500 text-white font-medium rounded-xl hover:bg-azure-600 transition-colors disabled:opacity-50"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saved ? (
-            <Check className="w-4 h-4" />
-          ) : null}
-          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
-        </motion.button>
-      </motion.div>
     </div>
   )
 }

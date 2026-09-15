@@ -1,6 +1,7 @@
 "use client";
 
 import * as motion from "motion/react-client";
+import { revealViewport } from "@/lib/motion";
 import { ArrowRight, Download, Wand2, Target } from "lucide-react";
 
 const steps = [
@@ -103,8 +104,8 @@ export default function HowItWorks() {
           className="text-center mb-16"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          viewport={revealViewport}
+          transition={{ duration: 0.5 }}
         >
           <h2 className="text-4xl md:text-5xl font-medium text-slate-900 mb-6 leading-tight">
             How it{" "}
@@ -127,7 +128,7 @@ export default function HowItWorks() {
               }`}
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={revealViewport}
               transition={{ duration: 0.8, delay: index * 0.1 }}
             >
               {/* Content */}

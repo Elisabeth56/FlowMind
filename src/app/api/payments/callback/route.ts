@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   if (!ref) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?error=missing_reference`
+      `${process.env.NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=missing_reference`
     )
   }
 
@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (txRecord) {
-        // Update user profile to Pro
+        // Promote to Pro and reset the usage counter in a single write
+        const now = new Date().toISOString()
         await supabase
           .from('profiles')
           .update({
@@ -49,33 +50,26 @@ export async function GET(request: NextRequest) {
             subscription_status: 'active',
             paystack_customer_code: transaction.customer.customer_code,
             subscription_plan: txRecord.plan_type,
-            subscription_started_at: new Date().toISOString(),
-          })
-          .eq('id', txRecord.user_id)
-
-        // Reset AI call counter for new Pro user
-        await supabase
-          .from('profiles')
-          .update({
+            subscription_started_at: now,
             ai_calls_this_month: 0,
-            ai_calls_reset_at: new Date().toISOString(),
+            ai_calls_reset_at: now,
           })
           .eq('id', txRecord.user_id)
       }
 
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?success=true`
+        `${process.env.NEXT_PUBLIC_APP_URL}/dash/settings/billing?success=true`
       )
     } else {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?error=payment_failed`
+        `${process.env.NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=payment_failed`
       )
     }
 
   } catch (error) {
     console.error('Payment callback error:', error)
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?error=verification_failed`
+      `${process.env.NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=verification_failed`
     )
   }
 }
