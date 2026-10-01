@@ -39,7 +39,7 @@ const bottomNav = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, isPro } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
 
@@ -230,7 +230,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       {profile?.full_name || 'User'}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {profile?.subscription_tier === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                      {isPro ? 'Pro Plan' : 'Free Plan'}
                     </p>
                   </div>
                 </motion.div>

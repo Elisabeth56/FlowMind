@@ -55,6 +55,15 @@ Change the schema only with a new migration in `supabase/migrations/`, then run
 `npm run db:types`. CI applies every migration and the seed to a fresh database, runs
 the pgTAP tests and fails if the committed types don't match the migrations.
 
+## Billing and quota
+
+Plan and AI usage are server-owned (`docs/decisions/006`). `subscriptions`, `ai_runs`,
+`payment_events` and `payment_transactions` are written only through
+`createAdminClient()`; users can read their own rows and nothing else. Check access
+with `getQuota()` and record every model call with `recordAiRun()` from
+`src/lib/billing/quota.ts`. Never add a billing or usage column to `profiles`, and never
+grant a client role more than `select` on those tables.
+
 ## Checks
 
 ```
