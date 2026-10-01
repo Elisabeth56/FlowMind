@@ -14,7 +14,7 @@ export function supabaseBillingStore(admin: SupabaseClient<Database>): BillingSt
     async claimEvent(key, type, payload) {
       const { error } = await admin
         .from('payment_events')
-        .insert({ event_key: key, event_type: type, payload: payload as Json })
+        .insert({ event_key: key, event_type: type, payload: payload as NonNullable<Json> })
       if (!error) return true
       if (error.code !== UNIQUE_VIOLATION) throw new Error(`Could not record payment event: ${error.message}`)
 

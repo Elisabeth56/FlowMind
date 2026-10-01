@@ -194,7 +194,7 @@ export type Database = {
           event_key: string
           event_type: string
           id: number
-          payload: Json
+          payload: NonNullable<Json>
           processed_at: string | null
           received_at: string
         }
@@ -202,7 +202,7 @@ export type Database = {
           event_key: string
           event_type: string
           id?: number
-          payload: Json
+          payload: NonNullable<Json>
           processed_at?: string | null
           received_at?: string
         }
@@ -210,7 +210,7 @@ export type Database = {
           event_key?: string
           event_type?: string
           id?: number
-          payload?: Json
+          payload?: NonNullable<Json>
           processed_at?: string | null
           received_at?: string
         }

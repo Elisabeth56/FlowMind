@@ -55,14 +55,32 @@ jobs:
           import type { Database as Committed } from './committed'
           import type { Database as Generated } from './generated'
           type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
-          type Section = 'Tables' | 'Views' | 'Functions' | 'Enums' | 'CompositeTypes'
-          export const same: { [K in Section]: Same<Committed['public'][K], Generated['public'][K]> } = {
-            Tables: true,
-            Views: true,
-            Functions: true,
-            Enums: true,
-            CompositeTypes: true,
-          }
+          type C = Committed['public']
+          type G = Generated['public']
+          // Names what differs, so the failure says where to look: "table.Row.column".
+          type Part = 'Row' | 'Insert' | 'Update' | 'Relationships'
+          type Columns<A, B, Where extends string> = {
+            [K in keyof A & string]: K extends keyof B
+              ? Same<A[K], B[K]> extends true ? never : `${Where}.${K}`
+              : `${Where}.${K} (only in one file)`
+          }[keyof A & string]
+          type Tables<A, B> = {
+            [T in keyof A & string]: T extends keyof B
+              ? { [P in Part]: P extends keyof A[T] & keyof B[T]
+                  ? P extends 'Relationships'
+                    ? Same<A[T][P], B[T][P]> extends true ? never : `${T}.Relationships`
+                    : Columns<A[T][P], B[T][P], `${T}.${P}`> | Columns<Required<A[T][P]>, Required<B[T][P]>, `${T}.${P}`>
+                  : never }[Part]
+              : `${T} (only in one file)`
+          }[keyof A & string]
+          type Other<K extends 'Views' | 'Functions' | 'Enums' | 'CompositeTypes'> =
+            | Columns<C[K], G[K], K> | Columns<G[K], C[K], K>
+          type Differences =
+            | Tables<C['Tables'], G['Tables']> | Tables<G['Tables'], C['Tables']>
+            | Other<'Views'> | Other<'Functions'> | Other<'Enums'> | Other<'CompositeTypes'>
+          // Each difference becomes a missing property, which is how tsc prints the names.
+          export const differences: { [K in Differences]: true } = {}
+          export const identical: Same<C, G> = true
           TS
           if ! npx -y -p typescript@5 tsc --noEmit --strict --skipLibCheck /tmp/types/check.ts > /tmp/types/out.txt 2>&1; then
             cat /tmp/types/out.txt
