@@ -269,7 +269,9 @@ export function verifyWebhookSignature(
     .update(payload)
     .digest('hex')
 
-  return hash === signature
+  const expected = Buffer.from(hash)
+  const received = Buffer.from(signature)
+  return expected.length === received.length && crypto.timingSafeEqual(expected, received)
 }
 
 // ============================================
