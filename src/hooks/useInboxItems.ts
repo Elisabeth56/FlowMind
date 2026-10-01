@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { InboxItem, NewInboxItem } from '@/types/database'
+import type { InboxItem, NewInboxItem } from '@/types/models'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 type InboxFilter = 'all' | 'inbox' | 'organized' | 'completed'

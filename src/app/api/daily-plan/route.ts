@@ -4,7 +4,7 @@ import { FREE_TIER_AI_CALLS } from '@/lib/plans'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getDailyPlanChain, getAnswerQuestionChain, type DailyPlan } from '@/lib/ai/chains/daily-plan'
 import { MODELS, rateLimiter } from '@/lib/ai/groq'
-import type { Database, DailyPlan as DailyPlanRow } from '@/types/database'
+import type { Database, DailyPlan as DailyPlanRow } from '@/types/models'
 
 type PlanItem = {
   item_id: string
@@ -63,11 +63,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check free tier limits
-    if (profile.subscription_tier === 'free' && profile.ai_calls_this_month >= FREE_TIER_AI_CALLS) {
+    if (profile.subscription_tier === 'free' && (profile.ai_calls_this_month ?? 0) >= FREE_TIER_AI_CALLS) {
       return NextResponse.json({ 
         error: 'Free tier limit reached',
         limit: FREE_TIER_AI_CALLS,
-        used: profile.ai_calls_this_month,
+        used: (profile.ai_calls_this_month ?? 0),
       }, { status: 429 })
     }
 
@@ -156,18 +156,18 @@ export async function POST(request: NextRequest) {
     const formattedItems = (pendingItems || []).map(item => ({
       id: item.id,
       content: item.content,
-      priority: item.priority,
+      priority: item.priority ?? 0,
       due_date: item.due_date,
       project_name: (item.projects as unknown as { name: string } | null)?.name || null,
-      is_actionable: item.is_actionable,
+      is_actionable: item.is_actionable ?? false,
     }))
 
     // Generate the plan
     const plan: DailyPlan = await getDailyPlanChain().invoke({
       items: formattedItems,
       projects: projects?.map(p => p.name) || [],
-      timezone: profile.timezone,
-      preferredStart: profile.daily_plan_time,
+      timezone: profile.timezone ?? 'UTC',
+      preferredStart: profile.daily_plan_time ?? '08:00',
       completedToday: completedToday || 0,
     })
 
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
     // Increment AI call counter
     await supabase
       .from('profiles')
-      .update({ ai_calls_this_month: profile.ai_calls_this_month + 1 })
+      .update({ ai_calls_this_month: (profile.ai_calls_this_month ?? 0) + 1 })
       .eq('id', user.id)
 
     return NextResponse.json({

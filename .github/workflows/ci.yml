@@ -30,3 +30,42 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # A fresh local Supabase with every migration and the seed applied.
+      - run: supabase db start
+      - run: supabase test db
+      # The committed types must describe the same schema the migrations produce, so the
+      # schema in git and the types the app compiles against never drift apart. The two
+      # files are compared as types, not as text: the generator's formatting changes
+      # between CLI versions, the schema it describes must not.
+      - name: Types match migrations
+        run: |
+          mkdir -p /tmp/types
+          cp src/types/database.ts /tmp/types/committed.ts
+          supabase gen types typescript --local > /tmp/types/generated.ts
+          cat > /tmp/types/check.ts <<'TS'
+          import type { Database as Committed } from './committed'
+          import type { Database as Generated } from './generated'
+          type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
+          type Section = 'Tables' | 'Views' | 'Functions' | 'Enums' | 'CompositeTypes'
+          export const same: { [K in Section]: Same<Committed['public'][K], Generated['public'][K]> } = {
+            Tables: true,
+            Views: true,
+            Functions: true,
+            Enums: true,
+            CompositeTypes: true,
+          }
+          TS
+          if ! npx -y -p typescript@5 tsc --noEmit --strict --skipLibCheck /tmp/types/check.ts > /tmp/types/out.txt 2>&1; then
+            cat /tmp/types/out.txt
+            echo "::error title=Types out of date::Run npm run db:types and commit. $(head -c 4000 /tmp/types/out.txt | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi

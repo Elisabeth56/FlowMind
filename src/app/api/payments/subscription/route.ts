@@ -36,8 +36,8 @@ export async function GET() {
         status: profile.subscription_status,
         limits: {
           ai_calls_per_month: FREE_TIER_AI_CALLS,
-          ai_calls_used: profile.ai_calls_this_month,
-          ai_calls_remaining: Math.max(0, FREE_TIER_AI_CALLS - profile.ai_calls_this_month),
+          ai_calls_used: (profile.ai_calls_this_month ?? 0),
+          ai_calls_remaining: Math.max(0, FREE_TIER_AI_CALLS - (profile.ai_calls_this_month ?? 0)),
         },
       })
     }
@@ -59,10 +59,10 @@ export async function GET() {
       status: profile.subscription_status,
       limits: {
         ai_calls_per_month: profile.subscription_tier === 'pro' ? 'unlimited' : FREE_TIER_AI_CALLS,
-        ai_calls_used: profile.ai_calls_this_month,
+        ai_calls_used: (profile.ai_calls_this_month ?? 0),
         ai_calls_remaining: profile.subscription_tier === 'pro' 
           ? 'unlimited' 
-          : Math.max(0, FREE_TIER_AI_CALLS - profile.ai_calls_this_month),
+          : Math.max(0, FREE_TIER_AI_CALLS - (profile.ai_calls_this_month ?? 0)),
       },
     })
 

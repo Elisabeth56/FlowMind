@@ -7,353 +7,409 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
-      profiles: {
+      ai_processing_log: {
         Row: {
+          created_at: string | null
+          error_message: string | null
           id: string
-          email: string | null
-          full_name: string | null
-          avatar_url: string | null
-          timezone: string
-          // Subscription (Paystack)
-          subscription_tier: 'free' | 'pro' | 'enterprise'
-          subscription_status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'non_renewing'
-          subscription_plan: 'pro_monthly' | 'pro_yearly' | null
-          subscription_started_at: string | null
-          subscription_ended_at: string | null
-          subscription_next_payment: string | null
-          // Paystack integration
-          paystack_customer_code: string | null
-          paystack_subscription_code: string | null
-          // Usage
-          ai_calls_this_month: number
-          ai_calls_reset_at: string
-          // Preferences
-          daily_plan_time: string
-          weekly_summary_day: number
-          created_at: string
-          updated_at: string
+          input_tokens: number | null
+          latency_ms: number | null
+          model_used: string | null
+          operation_type: string
+          output_tokens: number | null
+          success: boolean | null
+          user_id: string
         }
         Insert: {
-          id: string
-          email?: string | null
-          full_name?: string | null
-          avatar_url?: string | null
-          timezone?: string
-          subscription_tier?: 'free' | 'pro' | 'enterprise'
-          subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'non_renewing'
-          subscription_plan?: 'pro_monthly' | 'pro_yearly' | null
-          subscription_started_at?: string | null
-          subscription_ended_at?: string | null
-          subscription_next_payment?: string | null
-          paystack_customer_code?: string | null
-          paystack_subscription_code?: string | null
-          ai_calls_this_month?: number
-          ai_calls_reset_at?: string
-          daily_plan_time?: string
-          weekly_summary_day?: number
-          created_at?: string
-          updated_at?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
+          model_used?: string | null
+          operation_type: string
+          output_tokens?: number | null
+          success?: boolean | null
+          user_id: string
         }
         Update: {
+          created_at?: string | null
+          error_message?: string | null
           id?: string
-          email?: string | null
-          full_name?: string | null
-          avatar_url?: string | null
-          timezone?: string
-          subscription_tier?: 'free' | 'pro' | 'enterprise'
-          subscription_status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'non_renewing'
-          subscription_plan?: 'pro_monthly' | 'pro_yearly' | null
-          subscription_started_at?: string | null
-          subscription_ended_at?: string | null
-          subscription_next_payment?: string | null
-          paystack_customer_code?: string | null
-          paystack_subscription_code?: string | null
-          ai_calls_this_month?: number
-          ai_calls_reset_at?: string
-          daily_plan_time?: string
-          weekly_summary_day?: number
-          created_at?: string
-          updated_at?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
+          model_used?: string | null
+          operation_type?: string
+          output_tokens?: number | null
+          success?: boolean | null
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_processing_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_plans: {
+        Row: {
+          completion_notes: string | null
+          created_at: string | null
+          energy_recommendation: string | null
+          id: string
+          items_completed: number | null
+          items_total: number | null
+          plan_date: string
+          plan_items: Json | null
+          reasoning: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completion_notes?: string | null
+          created_at?: string | null
+          energy_recommendation?: string | null
+          id?: string
+          items_completed?: number | null
+          items_total?: number | null
+          plan_date: string
+          plan_items?: Json | null
+          reasoning?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completion_notes?: string | null
+          created_at?: string | null
+          energy_recommendation?: string | null
+          id?: string
+          items_completed?: number | null
+          items_total?: number | null
+          plan_date?: string
+          plan_items?: Json | null
+          reasoning?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inbox_items: {
         Row: {
-          id: string
-          user_id: string
-          content: string
-          item_type: 'note' | 'task' | 'idea' | 'reminder' | 'link'
-          extracted_entities: Json
-          extracted_topics: Json
-          sentiment: 'positive' | 'neutral' | 'negative' | 'urgent' | null
-          project_id: string | null
-          priority: number
-          due_date: string | null
-          status: 'inbox' | 'organized' | 'in_progress' | 'completed' | 'archived'
-          is_actionable: boolean
-          created_at: string
-          updated_at: string
-          organized_at: string | null
           completed_at: string | null
+          content: string
+          created_at: string | null
+          due_date: string | null
+          extracted_entities: Json | null
+          extracted_topics: Json | null
+          id: string
+          is_actionable: boolean | null
+          item_type: string | null
+          organized_at: string | null
+          priority: number | null
+          project_id: string | null
+          sentiment: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          content: string
-          item_type?: 'note' | 'task' | 'idea' | 'reminder' | 'link'
-          extracted_entities?: Json
-          extracted_topics?: Json
-          sentiment?: 'positive' | 'neutral' | 'negative' | 'urgent' | null
-          project_id?: string | null
-          priority?: number
-          due_date?: string | null
-          status?: 'inbox' | 'organized' | 'in_progress' | 'completed' | 'archived'
-          is_actionable?: boolean
-          created_at?: string
-          updated_at?: string
-          organized_at?: string | null
           completed_at?: string | null
+          content: string
+          created_at?: string | null
+          due_date?: string | null
+          extracted_entities?: Json | null
+          extracted_topics?: Json | null
+          id?: string
+          is_actionable?: boolean | null
+          item_type?: string | null
+          organized_at?: string | null
+          priority?: number | null
+          project_id?: string | null
+          sentiment?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          content?: string
-          item_type?: 'note' | 'task' | 'idea' | 'reminder' | 'link'
-          extracted_entities?: Json
-          extracted_topics?: Json
-          sentiment?: 'positive' | 'neutral' | 'negative' | 'urgent' | null
-          project_id?: string | null
-          priority?: number
-          due_date?: string | null
-          status?: 'inbox' | 'organized' | 'in_progress' | 'completed' | 'archived'
-          is_actionable?: boolean
-          created_at?: string
-          updated_at?: string
-          organized_at?: string | null
           completed_at?: string | null
+          content?: string
+          created_at?: string | null
+          due_date?: string | null
+          extracted_entities?: Json | null
+          extracted_topics?: Json | null
+          id?: string
+          is_actionable?: boolean | null
+          item_type?: string | null
+          organized_at?: string | null
+          priority?: number | null
+          project_id?: string | null
+          sentiment?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          paystack_transaction_id: number | null
+          plan_type: string | null
+          reference: string
+          status: string | null
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          paystack_transaction_id?: number | null
+          plan_type?: string | null
+          reference: string
+          status?: string | null
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          paystack_transaction_id?: number | null
+          plan_type?: string | null
+          reference?: string
+          status?: string | null
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          ai_calls_reset_at: string | null
+          ai_calls_this_month: number | null
+          avatar_url: string | null
+          created_at: string | null
+          daily_plan_time: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          paystack_customer_code: string | null
+          paystack_subscription_code: string | null
+          subscription_ended_at: string | null
+          subscription_next_payment: string | null
+          subscription_plan: string | null
+          subscription_started_at: string | null
+          subscription_status: string | null
+          subscription_tier: string | null
+          timezone: string | null
+          updated_at: string | null
+          weekly_summary_day: number | null
+        }
+        Insert: {
+          ai_calls_reset_at?: string | null
+          ai_calls_this_month?: number | null
+          avatar_url?: string | null
+          created_at?: string | null
+          daily_plan_time?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
+          subscription_ended_at?: string | null
+          subscription_next_payment?: string | null
+          subscription_plan?: string | null
+          subscription_started_at?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          weekly_summary_day?: number | null
+        }
+        Update: {
+          ai_calls_reset_at?: string | null
+          ai_calls_this_month?: number | null
+          avatar_url?: string | null
+          created_at?: string | null
+          daily_plan_time?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
+          subscription_ended_at?: string | null
+          subscription_next_payment?: string | null
+          subscription_plan?: string | null
+          subscription_started_at?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          weekly_summary_day?: number | null
         }
         Relationships: []
       }
       projects: {
         Row: {
-          id: string
-          user_id: string
-          name: string
-          description: string | null
-          color: string
-          icon: string
-          suggested_by_ai: boolean
           ai_confidence: number | null
-          status: 'active' | 'paused' | 'completed' | 'archived'
-          item_count: number
-          completed_count: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          name: string
-          description?: string | null
-          color?: string
-          icon?: string
-          suggested_by_ai?: boolean
-          ai_confidence?: number | null
-          status?: 'active' | 'paused' | 'completed' | 'archived'
-          item_count?: number
-          completed_count?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          name?: string
-          description?: string | null
-          color?: string
-          icon?: string
-          suggested_by_ai?: boolean
-          ai_confidence?: number | null
-          status?: 'active' | 'paused' | 'completed' | 'archived'
-          item_count?: number
-          completed_count?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      daily_plans: {
-        Row: {
+          color: string | null
+          completed_count: number | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
           id: string
+          item_count: number | null
+          name: string
+          status: string | null
+          suggested_by_ai: boolean | null
+          updated_at: string | null
           user_id: string
-          plan_date: string
-          reasoning: string | null
-          energy_recommendation: string | null
-          plan_items: Json
-          items_completed: number
-          items_total: number
-          completion_notes: string | null
-          status: 'active' | 'completed' | 'skipped'
-          created_at: string
-          updated_at: string
         }
         Insert: {
+          ai_confidence?: number | null
+          color?: string | null
+          completed_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
           id?: string
+          item_count?: number | null
+          name: string
+          status?: string | null
+          suggested_by_ai?: boolean | null
+          updated_at?: string | null
           user_id: string
-          plan_date: string
-          reasoning?: string | null
-          energy_recommendation?: string | null
-          plan_items?: Json
-          items_completed?: number
-          items_total?: number
-          completion_notes?: string | null
-          status?: 'active' | 'completed' | 'skipped'
-          created_at?: string
-          updated_at?: string
         }
         Update: {
+          ai_confidence?: number | null
+          color?: string | null
+          completed_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
           id?: string
+          item_count?: number | null
+          name?: string
+          status?: string | null
+          suggested_by_ai?: boolean | null
+          updated_at?: string | null
           user_id?: string
-          plan_date?: string
-          reasoning?: string | null
-          energy_recommendation?: string | null
-          plan_items?: Json
-          items_completed?: number
-          items_total?: number
-          completion_notes?: string | null
-          status?: 'active' | 'completed' | 'skipped'
-          created_at?: string
-          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       weekly_summaries: {
         Row: {
-          id: string
-          user_id: string
-          week_start: string
-          week_end: string
-          items_created: number
-          items_completed: number
-          items_carried_over: number
-          summary_text: string | null
-          accomplishments: Json
-          patterns: Json
-          suggestions: Json
-          productivity_trend: 'improving' | 'stable' | 'declining' | null
+          accomplishments: Json | null
+          created_at: string | null
           focus_score: number | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
+          id: string
+          items_carried_over: number | null
+          items_completed: number | null
+          items_created: number | null
+          patterns: Json | null
+          productivity_trend: string | null
+          suggestions: Json | null
+          summary_text: string | null
           user_id: string
-          week_start: string
           week_end: string
-          items_created?: number
-          items_completed?: number
-          items_carried_over?: number
-          summary_text?: string | null
-          accomplishments?: Json
-          patterns?: Json
-          suggestions?: Json
-          productivity_trend?: 'improving' | 'stable' | 'declining' | null
+          week_start: string
+        }
+        Insert: {
+          accomplishments?: Json | null
+          created_at?: string | null
           focus_score?: number | null
-          created_at?: string
+          id?: string
+          items_carried_over?: number | null
+          items_completed?: number | null
+          items_created?: number | null
+          patterns?: Json | null
+          productivity_trend?: string | null
+          suggestions?: Json | null
+          summary_text?: string | null
+          user_id: string
+          week_end: string
+          week_start: string
         }
         Update: {
+          accomplishments?: Json | null
+          created_at?: string | null
+          focus_score?: number | null
           id?: string
+          items_carried_over?: number | null
+          items_completed?: number | null
+          items_created?: number | null
+          patterns?: Json | null
+          productivity_trend?: string | null
+          suggestions?: Json | null
+          summary_text?: string | null
           user_id?: string
-          week_start?: string
           week_end?: string
-          items_created?: number
-          items_completed?: number
-          items_carried_over?: number
-          summary_text?: string | null
-          accomplishments?: Json
-          patterns?: Json
-          suggestions?: Json
-          productivity_trend?: 'improving' | 'stable' | 'declining' | null
-          focus_score?: number | null
-          created_at?: string
+          week_start?: string
         }
-        Relationships: []
-      }
-      ai_processing_log: {
-        Row: {
-          id: string
-          user_id: string
-          operation_type: 'organize' | 'daily_plan' | 'weekly_summary' | 'extract_entities'
-          input_tokens: number | null
-          output_tokens: number | null
-          model_used: string | null
-          latency_ms: number | null
-          success: boolean
-          error_message: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          operation_type: 'organize' | 'daily_plan' | 'weekly_summary' | 'extract_entities'
-          input_tokens?: number | null
-          output_tokens?: number | null
-          model_used?: string | null
-          latency_ms?: number | null
-          success?: boolean
-          error_message?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          operation_type?: 'organize' | 'daily_plan' | 'weekly_summary' | 'extract_entities'
-          input_tokens?: number | null
-          output_tokens?: number | null
-          model_used?: string | null
-          latency_ms?: number | null
-          success?: boolean
-          error_message?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      payment_transactions: {
-        Row: {
-          id: string
-          user_id: string
-          reference: string
-          paystack_transaction_id: number | null
-          amount: number
-          plan_type: 'pro_monthly' | 'pro_yearly' | null
-          status: 'pending' | 'success' | 'failed' | 'abandoned'
-          created_at: string
-          verified_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          reference: string
-          paystack_transaction_id?: number | null
-          amount: number
-          plan_type?: 'pro_monthly' | 'pro_yearly' | null
-          status?: 'pending' | 'success' | 'failed' | 'abandoned'
-          created_at?: string
-          verified_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          reference?: string
-          paystack_transaction_id?: number | null
-          amount?: number
-          plan_type?: 'pro_monthly' | 'pro_yearly' | null
-          status?: 'pending' | 'success' | 'failed' | 'abandoned'
-          created_at?: string
-          verified_at?: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "weekly_summaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -365,17 +421,131 @@ export type Database = {
     Enums: {
       [_ in never]: never
     }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
-// Helper types for easier usage
-export type Profile = Database['public']['Tables']['profiles']['Row']
-export type InboxItem = Database['public']['Tables']['inbox_items']['Row']
-export type Project = Database['public']['Tables']['projects']['Row']
-export type DailyPlan = Database['public']['Tables']['daily_plans']['Row']
-export type WeeklySummary = Database['public']['Tables']['weekly_summaries']['Row']
-export type PaymentTransaction = Database['public']['Tables']['payment_transactions']['Row']
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export type NewInboxItem = Database['public']['Tables']['inbox_items']['Insert']
-export type NewProject = Database['public']['Tables']['projects']['Insert']
-export type NewPaymentTransaction = Database['public']['Tables']['payment_transactions']['Insert']
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

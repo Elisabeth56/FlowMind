@@ -26,7 +26,10 @@ Paystack.
 - `src/hooks/` — client data hooks (`useAuth`, `useInboxItems`, `useProjects`,
   `useAI`, `useSubscription`).
 - `src/lib/` — `env.ts` (validated env), `ai/` (chains + Groq), `supabase/`, `paystack/`, `plans.ts`.
-- `src/types/database.ts` — hand-maintained Supabase schema types.
+- `src/types/database.ts` — generated from the migrations (`npm run db:types`); never edit
+  by hand. App-level row names (`Profile`, `InboxItem`…) live in `src/types/models.ts`.
+- `supabase/` — `migrations/` (the schema, in order), `seed.sql` (demo account and a
+  realistic week), `tests/` (pgTAP, run in CI with `supabase test db`).
 
 ## Conventions
 
@@ -45,6 +48,12 @@ Paystack.
 - Don't ship UI that doesn't work. A button with no handler, or a save that is a
   `setTimeout`, is worse than no button.
 - Keep marketing copy to claims the product can back up.
+
+## Database
+
+Change the schema only with a new migration in `supabase/migrations/`, then run
+`npm run db:types`. CI applies every migration and the seed to a fresh database, runs
+the pgTAP tests and fails if the committed types don't match the migrations.
 
 ## Checks
 
