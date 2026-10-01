@@ -9,7 +9,7 @@ commit messages, pull request descriptions, code comments, or anywhere else.
 Commit as the repository owner:
 
 ```
-git config user.name "Elisabeth"
+git config user.name "Elisabeth56"
 git config user.email "nnamanielisabeth@gmail.com"
 ```
 
@@ -25,11 +25,14 @@ Paystack.
 - `src/components/` — marketing-site components. In-app UI lives beside its route.
 - `src/hooks/` — client data hooks (`useAuth`, `useInboxItems`, `useProjects`,
   `useAI`, `useSubscription`).
-- `src/lib/` — `ai/` (chains + Groq), `supabase/`, `paystack/`, `plans.ts`.
+- `src/lib/` — `env.ts` (validated env), `ai/` (chains + Groq), `supabase/`, `paystack/`, `plans.ts`.
 - `src/types/database.ts` — hand-maintained Supabase schema types.
 
 ## Conventions
 
+- **Read env through `src/lib/env.ts`.** `publicEnv()` for `NEXT_PUBLIC_*`, `serverEnv()`
+  for secrets, always inside a function (never at module scope, which runs during
+  `next build`). Add new variables to the schema and to `.env.example`.
 - **Pricing lives in `src/lib/plans.ts`.** The marketing page, the in-app billing
   screen and the Paystack checkout route all read from it. Never hardcode an
   amount anywhere else.
@@ -46,12 +49,16 @@ Paystack.
 ## Checks
 
 ```
-npm run lint          # eslint flat config
-npx tsc --noEmit
+npm run lint
+npm run typecheck
+npm test
 npm run build
 ```
 
-`build` needs `GROQ_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`,
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
-`PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_APP_URL`, and the two
-`PAYSTACK_PRO_*_PLAN_CODE` values for live checkout.
+Every variable is listed in `.env.example`. `next build` needs only the three
+`NEXT_PUBLIC_*` values; the server checks the secrets when it starts.
+
+## Git
+
+Work happens on `feat/`, `fix/`, `chore/` branches, one per issue, each PR into
+`remodel`. `main` is only updated when `remodel` is merged as a whole.
