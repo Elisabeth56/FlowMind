@@ -30,3 +30,22 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # A fresh local Supabase with every migration and the seed applied.
+      - run: supabase db start
+      - run: supabase test db
+      # The committed types must match what the migrations produce, so the schema in
+      # git and the types the app compiles against never drift apart.
+      - name: Types match migrations
+        run: |
+          supabase gen types typescript --local > /tmp/database.ts
+          strip() { sed '/__InternalSupabase: {/,/^  }/d' "$1"; }
+          diff -u <(strip src/types/database.ts) <(strip /tmp/database.ts)
