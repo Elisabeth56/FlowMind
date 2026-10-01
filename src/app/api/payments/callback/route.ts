@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { verifyTransaction } from '@/lib/paystack/client'
+import { publicEnv } from '@/lib/env'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   if (!ref) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=missing_reference`
+      `${publicEnv().NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=missing_reference`
     )
   }
 
@@ -58,18 +59,18 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dash/settings/billing?success=true`
+        `${publicEnv().NEXT_PUBLIC_APP_URL}/dash/settings/billing?success=true`
       )
     } else {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=payment_failed`
+        `${publicEnv().NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=payment_failed`
       )
     }
 
   } catch (error) {
     console.error('Payment callback error:', error)
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=verification_failed`
+      `${publicEnv().NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=verification_failed`
     )
   }
 }

@@ -1,6 +1,6 @@
 import crypto from 'crypto'
+import { serverEnv } from '@/lib/env'
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!
 const PAYSTACK_BASE_URL = 'https://api.paystack.co'
 
 // Generic fetch wrapper for Paystack API
@@ -16,7 +16,7 @@ async function paystackFetch<T>(
   const response = await fetch(`${PAYSTACK_BASE_URL}${endpoint}`, {
     method,
     headers: {
-      Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+      Authorization: `Bearer ${serverEnv().PAYSTACK_SECRET_KEY}`,
       'Content-Type': 'application/json',
     },
     ...(body && { body: JSON.stringify(body) }),
@@ -265,7 +265,7 @@ export function verifyWebhookSignature(
   signature: string
 ): boolean {
   const hash = crypto
-    .createHmac('sha512', PAYSTACK_SECRET_KEY)
+    .createHmac('sha512', serverEnv().PAYSTACK_SECRET_KEY)
     .update(payload)
     .digest('hex')
 
