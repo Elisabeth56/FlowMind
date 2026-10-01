@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Check free tier limits
     if (profile.subscription_tier === 'free') {
       // Reset counter if new month
-      const resetDate = new Date(profile.ai_calls_reset_at)
+      const resetDate = new Date(profile.ai_calls_reset_at ?? 0)
       const now = new Date()
       if (resetDate.getMonth() !== now.getMonth() || resetDate.getFullYear() !== now.getFullYear()) {
         await supabase
@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
         profile.ai_calls_this_month = 0
       }
 
-      if (profile.ai_calls_this_month >= FREE_TIER_AI_CALLS) {
+      if ((profile.ai_calls_this_month ?? 0) >= FREE_TIER_AI_CALLS) {
         return NextResponse.json({ 
           error: 'Free tier limit reached',
           limit: FREE_TIER_AI_CALLS,
-          used: profile.ai_calls_this_month,
+          used: (profile.ai_calls_this_month ?? 0),
         }, { status: 429 })
       }
     }
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     // Increment AI call counter
     await supabase
       .from('profiles')
-      .update({ ai_calls_this_month: profile.ai_calls_this_month + itemCount })
+      .update({ ai_calls_this_month: (profile.ai_calls_this_month ?? 0) + itemCount })
       .eq('id', user.id)
 
     // If batch, update the items in the database

@@ -256,7 +256,7 @@ export default function InboxPage() {
         <div className="space-y-3">
           <AnimatePresence mode="popLayout">
             {filteredItems.map((item, index) => {
-              const TypeIcon = itemTypeIcons[item.item_type] || Lightbulb
+              const TypeIcon = itemTypeIcons[item.item_type ?? 'note'] || Lightbulb
               const isOrganizing = organizingIds.has(item.id)
               
               return (
@@ -294,7 +294,7 @@ export default function InboxPage() {
                           </span>
                           
                           {/* Priority badge */}
-                          {item.priority > 0 && (
+                          {(item.priority ?? 0) > 0 && (
                             <span className={`px-2 py-1 rounded-lg text-xs font-medium ${priorityColors[item.priority as keyof typeof priorityColors]}`}>
                               {priorityLabels[item.priority as keyof typeof priorityLabels]}
                             </span>

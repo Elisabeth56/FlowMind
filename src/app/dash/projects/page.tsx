@@ -277,11 +277,11 @@ export default function ProjectsPage() {
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full rounded-full"
-                      style={{ backgroundColor: project.color }}
+                      style={{ backgroundColor: project.color ?? undefined }}
                       initial={{ width: 0 }}
                       animate={{
                         width: project.item_count
-                          ? `${(project.completed_count / project.item_count) * 100}%`
+                          ? `${((project.completed_count ?? 0) / project.item_count) * 100}%`
                           : '0%',
                       }}
                       transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}

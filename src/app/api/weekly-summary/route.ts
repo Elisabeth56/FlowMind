@@ -48,11 +48,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check free tier
-    if (profile.subscription_tier === 'free' && profile.ai_calls_this_month >= FREE_TIER_AI_CALLS) {
+    if (profile.subscription_tier === 'free' && (profile.ai_calls_this_month ?? 0) >= FREE_TIER_AI_CALLS) {
       return NextResponse.json({ 
         error: 'Free tier limit reached',
         limit: FREE_TIER_AI_CALLS,
-        used: profile.ai_calls_this_month,
+        used: (profile.ai_calls_this_month ?? 0),
       }, { status: 429 })
     }
 
@@ -121,8 +121,8 @@ export async function POST(request: NextRequest) {
     // Calculate plan adherence
     let planAdherence = 'No daily plans created'
     if (dailyPlans && dailyPlans.length > 0) {
-      const totalPlanned = dailyPlans.reduce((sum, p) => sum + p.items_total, 0)
-      const totalCompleted = dailyPlans.reduce((sum, p) => sum + p.items_completed, 0)
+      const totalPlanned = dailyPlans.reduce((sum, p) => sum + (p.items_total ?? 0), 0)
+      const totalCompleted = dailyPlans.reduce((sum, p) => sum + (p.items_completed ?? 0), 0)
       const adherenceRate = totalPlanned > 0 ? Math.round((totalCompleted / totalPlanned) * 100) : 0
       planAdherence = `${dailyPlans.length} plans created, ${adherenceRate}% completion rate`
     }
@@ -161,8 +161,8 @@ export async function POST(request: NextRequest) {
       })),
       pendingItems: (pendingItems || []).map(item => ({
         content: item.content,
-        priority: item.priority,
-        created_at: item.created_at,
+        priority: item.priority ?? 0,
+        created_at: item.created_at ?? '',
       })),
       planAdherence,
       projectsTouched: Array.from(projectsTouched),
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     // Increment AI call counter
     await supabase
       .from('profiles')
-      .update({ ai_calls_this_month: profile.ai_calls_this_month + 1 })
+      .update({ ai_calls_this_month: (profile.ai_calls_this_month ?? 0) + 1 })
       .eq('id', user.id)
 
     return NextResponse.json({

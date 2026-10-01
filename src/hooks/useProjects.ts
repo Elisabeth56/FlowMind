@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Project, NewProject } from '@/types/database'
+import type { Project, NewProject } from '@/types/models'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export function useProjects() {
