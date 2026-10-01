@@ -1,6 +1,6 @@
 # 001 Database
 
-Status: proposed
+Status: accepted (2026-10-01)
 
 ## Context
 

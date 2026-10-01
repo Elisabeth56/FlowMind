@@ -1,6 +1,6 @@
 # 004 AI pipeline and providers
 
-Status: proposed
+Status: accepted (2026-10-01)
 
 ## Context
 

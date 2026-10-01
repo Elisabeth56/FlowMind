@@ -1,6 +1,6 @@
 # 005 Ask your notes (retrieval)
 
-Status: proposed
+Status: accepted (2026-10-01)
 
 ## Context
 

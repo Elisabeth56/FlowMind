@@ -1,6 +1,6 @@
 # FlowMind architecture
 
-Status: draft for the remodel. Decisions marked *proposed* live in `docs/decisions/` and are confirmed one by one.
+Status: accepted 2026-10-01. Decisions live in `docs/decisions/`.
 
 ## What it does
 
@@ -12,7 +12,7 @@ Core use cases:
 2. **Organize.** Each new item is classified (task, note, idea, link, reminder), given a priority and due date if it has one, tagged, and filed into a project. You can correct any of it.
 3. **Plan today.** "What should I focus on today?" returns an ordered plan built from open items, with a reason for each pick. You tick items off as you go.
 4. **Reflect weekly.** A summary of what you planned vs. what you finished, with patterns and a focus for next week. Every number in it is computed, not guessed.
-5. **Ask your notes** *(proposed, ADR 005)*. Ask a question in plain language and get an answer grounded in your own items, with links back to them.
+5. **Ask your notes** (ADR 005). Ask a question in plain language and get an answer grounded in your own items, with links back to them.
 
 Plus the SaaS frame: sign up (email or Google), free tier with a monthly AI allowance, Pro via Paystack, export and delete your data.
 

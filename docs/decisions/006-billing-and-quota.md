@@ -1,6 +1,6 @@
 # 006 Billing state and AI quota
 
-Status: proposed
+Status: accepted (2026-10-01)
 
 ## Context
 

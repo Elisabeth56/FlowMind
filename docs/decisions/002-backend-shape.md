@@ -1,6 +1,6 @@
 # 002 Backend shape
 
-Status: proposed
+Status: accepted (2026-10-01)
 
 ## Context
 

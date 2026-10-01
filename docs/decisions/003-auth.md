@@ -1,6 +1,6 @@
 # 003 Auth
 
-Status: proposed
+Status: accepted (2026-10-01)
 
 ## Context
 
