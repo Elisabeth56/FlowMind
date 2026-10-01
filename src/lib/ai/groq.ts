@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk'
+import { serverEnv } from '@/lib/env'
 
 // Models currently served by Groq. `mixtral-8x7b-32768` and
 // `llama-3.1-70b-versatile` used to live here but have both been
@@ -14,13 +15,7 @@ export const MODELS = {
 export const DEFAULT_MODEL = MODELS.LLAMA_70B
 
 export function getGroqApiKey(): string {
-  const key = process.env.GROQ_API_KEY
-  if (!key) {
-    throw new Error(
-      'GROQ_API_KEY is not set. Add it to your environment to enable AI features.'
-    )
-  }
-  return key
+  return serverEnv().GROQ_API_KEY
 }
 
 // Instantiated on first use, not at import time: the SDK throws when the key

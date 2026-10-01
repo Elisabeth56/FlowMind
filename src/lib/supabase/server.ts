@@ -1,13 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
+import { publicEnv, serverEnv } from '@/lib/env'
 
 export async function createClient() {
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    publicEnv().NEXT_PUBLIC_SUPABASE_URL,
+    publicEnv().NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
@@ -31,8 +32,8 @@ export async function createClient() {
 // Admin client for server-side operations that bypass RLS
 export function createAdminClient() {
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    publicEnv().NEXT_PUBLIC_SUPABASE_URL,
+    serverEnv().SUPABASE_SERVICE_ROLE_KEY,
     {
       cookies: {
         getAll() {

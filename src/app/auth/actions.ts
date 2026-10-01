@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { publicEnv } from '@/lib/env'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -36,7 +37,7 @@ export async function signup(formData: FormData) {
       data: {
         full_name: fullName,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      emailRedirectTo: `${publicEnv().NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   })
 
@@ -75,7 +76,7 @@ export async function loginWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      redirectTo: `${publicEnv().NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   })
 
@@ -93,7 +94,7 @@ export async function resetPassword(formData: FormData) {
   const email = formData.get('email') as string
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
+    redirectTo: `${publicEnv().NEXT_PUBLIC_APP_URL}/auth/reset-password`,
   })
 
   if (error) {

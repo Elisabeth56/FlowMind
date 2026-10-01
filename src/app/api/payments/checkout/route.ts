@@ -7,10 +7,12 @@ import {
   generateReference,
 } from '@/lib/paystack/client'
 import { PRO_PRICE_KOBO, type PaidPlanId } from '@/lib/plans'
+import { publicEnv, serverEnv } from '@/lib/env'
 
-const PLAN_CODES: Record<PaidPlanId, string | undefined> = {
-  pro_monthly: process.env.PAYSTACK_PRO_MONTHLY_PLAN_CODE,
-  pro_yearly: process.env.PAYSTACK_PRO_YEARLY_PLAN_CODE,
+// Read per request: plan codes are optional, and module scope runs during `next build`.
+function planCode(plan: PaidPlanId): string | undefined {
+  const env = serverEnv()
+  return plan === 'pro_monthly' ? env.PAYSTACK_PRO_MONTHLY_PLAN_CODE : env.PAYSTACK_PRO_YEARLY_PLAN_CODE
 }
 
 const PLAN_AMOUNTS: Record<PaidPlanId, number> = {
@@ -37,8 +39,8 @@ export async function POST(request: NextRequest) {
     }
     const planId: PaidPlanId = plan
 
-    const planCode = PLAN_CODES[planId]
-    if (!planCode) {
+    const code = planCode(planId)
+    if (!code) {
       console.error(`Missing Paystack plan code for ${planId}`)
       return NextResponse.json(
         { error: 'Checkout is not configured yet. Please try again later.' },
@@ -103,8 +105,8 @@ export async function POST(request: NextRequest) {
       email: user.email!,
       amount,
       reference,
-      plan: planCode,
-      callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`,
+      plan: code,
+      callback_url: `${publicEnv().NEXT_PUBLIC_APP_URL}/api/payments/callback`,
       metadata: {
         user_id: user.id,
         plan_type: planId,
