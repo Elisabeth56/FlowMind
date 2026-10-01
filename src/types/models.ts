@@ -10,6 +10,8 @@ export type Project = Tables<'projects'>
 export type DailyPlan = Tables<'daily_plans'>
 export type WeeklySummary = Tables<'weekly_summaries'>
 export type PaymentTransaction = Tables<'payment_transactions'>
+export type Subscription = Tables<'subscriptions'>
+export type AiRun = Tables<'ai_runs'>
 
 export type NewInboxItem = TablesInsert<'inbox_items'>
 export type NewProject = TablesInsert<'projects'>

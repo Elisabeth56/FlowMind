@@ -14,46 +14,49 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_processing_log: {
+      ai_runs: {
         Row: {
-          created_at: string | null
-          error_message: string | null
+          created_at: string
+          error: string | null
           id: string
           input_tokens: number | null
           latency_ms: number | null
-          model_used: string | null
-          operation_type: string
+          model: string | null
+          operation: string
           output_tokens: number | null
-          success: boolean | null
+          success: boolean
+          units: number
           user_id: string
         }
         Insert: {
-          created_at?: string | null
-          error_message?: string | null
+          created_at?: string
+          error?: string | null
           id?: string
           input_tokens?: number | null
           latency_ms?: number | null
-          model_used?: string | null
-          operation_type: string
+          model?: string | null
+          operation: string
           output_tokens?: number | null
-          success?: boolean | null
+          success?: boolean
+          units?: number
           user_id: string
         }
         Update: {
-          created_at?: string | null
-          error_message?: string | null
+          created_at?: string
+          error?: string | null
           id?: string
           input_tokens?: number | null
           latency_ms?: number | null
-          model_used?: string | null
-          operation_type?: string
+          model?: string | null
+          operation?: string
           output_tokens?: number | null
-          success?: boolean | null
+          success?: boolean
+          units?: number
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "ai_processing_log_user_id_fkey"
+            foreignKeyName: "ai_runs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -186,6 +189,33 @@ export type Database = {
           },
         ]
       }
+      payment_events: {
+        Row: {
+          event_key: string
+          event_type: string
+          id: number
+          payload: Json
+          processed_at: string | null
+          received_at: string
+        }
+        Insert: {
+          event_key: string
+          event_type: string
+          id?: number
+          payload: Json
+          processed_at?: string | null
+          received_at?: string
+        }
+        Update: {
+          event_key?: string
+          event_type?: string
+          id?: number
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
           amount: number
@@ -232,64 +262,34 @@ export type Database = {
       }
       profiles: {
         Row: {
-          ai_calls_reset_at: string | null
-          ai_calls_this_month: number | null
           avatar_url: string | null
           created_at: string | null
           daily_plan_time: string | null
           email: string | null
           full_name: string | null
           id: string
-          paystack_customer_code: string | null
-          paystack_subscription_code: string | null
-          subscription_ended_at: string | null
-          subscription_next_payment: string | null
-          subscription_plan: string | null
-          subscription_started_at: string | null
-          subscription_status: string | null
-          subscription_tier: string | null
           timezone: string | null
           updated_at: string | null
           weekly_summary_day: number | null
         }
         Insert: {
-          ai_calls_reset_at?: string | null
-          ai_calls_this_month?: number | null
           avatar_url?: string | null
           created_at?: string | null
           daily_plan_time?: string | null
           email?: string | null
           full_name?: string | null
           id: string
-          paystack_customer_code?: string | null
-          paystack_subscription_code?: string | null
-          subscription_ended_at?: string | null
-          subscription_next_payment?: string | null
-          subscription_plan?: string | null
-          subscription_started_at?: string | null
-          subscription_status?: string | null
-          subscription_tier?: string | null
           timezone?: string | null
           updated_at?: string | null
           weekly_summary_day?: number | null
         }
         Update: {
-          ai_calls_reset_at?: string | null
-          ai_calls_this_month?: number | null
           avatar_url?: string | null
           created_at?: string | null
           daily_plan_time?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
-          paystack_customer_code?: string | null
-          paystack_subscription_code?: string | null
-          subscription_ended_at?: string | null
-          subscription_next_payment?: string | null
-          subscription_plan?: string | null
-          subscription_started_at?: string | null
-          subscription_status?: string | null
-          subscription_tier?: string | null
           timezone?: string | null
           updated_at?: string | null
           weekly_summary_day?: number | null
@@ -347,6 +347,56 @@ export type Database = {
             foreignKeyName: "projects_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          next_payment_at: string | null
+          paystack_customer_code: string | null
+          paystack_subscription_code: string | null
+          plan: string | null
+          started_at: string | null
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          next_payment_at?: string | null
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
+          plan?: string | null
+          started_at?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          next_payment_at?: string | null
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
+          plan?: string | null
+          started_at?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -416,7 +466,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ai_units_this_month: {
+        Args: { p_now?: string; p_user_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

@@ -71,3 +71,10 @@ values ('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', current_date - 13, current_date 
   'Mornings carried the week: every deep-work block before 11 got done. Friday is where it slipped, with four admin tasks planned and one finished.',
   '["Shipped the client site fixes","Drafted the pitch outline"]',
   '[{"suggestion":"Two 20-minute admin slots on Tuesday and Wednesday instead of one Friday pile","priority":"high","effort":"quick"}]');
+
+-- AI usage this month, so the billing screen and Insights have something real to show
+insert into public.ai_runs (user_id, operation, units, model, input_tokens, output_tokens, latency_ms, created_at) values
+  ('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', 'organize',       6, 'llama-3.1-8b-instant',    1840, 620, 410,  now() - interval '3 hours'),
+  ('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', 'daily_plan',     1, 'llama-3.3-70b-versatile', 2210, 540, 1280, now() - interval '2 hours'),
+  ('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', 'organize',       4, 'llama-3.1-8b-instant',    1320, 450, 380,  now() - interval '1 hour'),
+  ('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', 'ask',            1, 'llama-3.3-70b-versatile', 640,  180, 720,  now() - interval '30 minutes');
