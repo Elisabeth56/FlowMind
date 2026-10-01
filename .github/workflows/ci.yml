@@ -48,4 +48,7 @@ jobs:
         run: |
           supabase gen types typescript --local > /tmp/database.ts
           strip() { sed '/__InternalSupabase: {/,/^  }/d' "$1"; }
-          diff -u <(strip src/types/database.ts) <(strip /tmp/database.ts)
+          if ! diff -u <(strip src/types/database.ts) <(strip /tmp/database.ts) > /tmp/types.diff; then
+            echo "::error title=Types out of date::Run npm run db:types and commit. $(head -c 6000 /tmp/types.diff | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi
