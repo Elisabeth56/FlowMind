@@ -19,7 +19,7 @@ interface Subscription {
 
 interface SubscriptionData {
   subscription: Subscription | null
-  tier: 'free' | 'pro' | 'enterprise'
+  tier: 'free' | 'pro'
   status: 'active' | 'canceled' | 'past_due' | 'non_renewing' | null
   limits: {
     ai_calls_per_month: number | 'unlimited'
@@ -144,7 +144,7 @@ export function useSubscription() {
     cancel,
     reactivate,
     refresh: fetchSubscription,
-    isPro: data?.tier === 'pro' || data?.tier === 'enterprise',
+    isPro: data?.tier === 'pro',
     isActive: data?.status === 'active',
   }
 }

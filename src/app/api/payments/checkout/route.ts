@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { isPro } from '@/lib/billing/entitlement'
 import {
   initializeTransaction,
   getCustomer,
@@ -59,8 +60,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Check if already on Pro
-    if (profile.subscription_tier === 'pro' && profile.subscription_status === 'active') {
+    // Billing rows are server-owned: read with the user's session, write as the service role.
+    const admin = createAdminClient()
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('tier, status, paystack_customer_code')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (isPro(subscription ?? null) && subscription?.status === 'active') {
       return NextResponse.json({ 
         error: 'Already subscribed to Pro',
         message: 'You already have an active Pro subscription'
@@ -68,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get or create Paystack customer
-    let customerCode = profile.paystack_customer_code
+    let customerCode = subscription?.paystack_customer_code ?? null
 
     if (!customerCode) {
       // Check if customer exists by email
@@ -88,11 +96,11 @@ export async function POST(request: NextRequest) {
 
       customerCode = customer.customer_code
 
-      // Save customer code to profile
-      await supabase
-        .from('profiles')
-        .update({ paystack_customer_code: customerCode })
-        .eq('id', user.id)
+      // Remember the customer, so webhooks can be matched back to this user
+      const { error: saveError } = await admin
+        .from('subscriptions')
+        .upsert({ user_id: user.id, paystack_customer_code: customerCode }, { onConflict: 'user_id' })
+      if (saveError) throw new Error(`Could not save Paystack customer: ${saveError.message}`)
     }
 
     // Initialize transaction with plan (creates subscription on success)
@@ -115,13 +123,15 @@ export async function POST(request: NextRequest) {
     })
 
     // Store pending transaction
-    await supabase.from('payment_transactions').insert({
+    const { error: txError } = await admin.from('payment_transactions').insert({
       user_id: user.id,
       reference,
       amount,
       plan_type: planId,
       status: 'pending',
     })
+    // Without this row the callback can't tell who paid, so don't send them to pay.
+    if (txError) throw new Error(`Could not store transaction: ${txError.message}`)
 
     return NextResponse.json({
       success: true,

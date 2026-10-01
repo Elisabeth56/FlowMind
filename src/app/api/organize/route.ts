@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { FREE_TIER_AI_CALLS } from '@/lib/plans'
+import { getQuota, quotaExceededBody, recordAiRun } from '@/lib/billing/quota'
 import { getOrganizeChain, organizeItems, type OrganizedItem } from '@/lib/ai/chains/organize'
 import { MODELS, rateLimiter } from '@/lib/ai/groq'
 
@@ -18,37 +18,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { itemIds, content } = body
 
-    // Check rate limit and subscription
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_tier, ai_calls_this_month, ai_calls_reset_at')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Check free tier limits
-    if (profile.subscription_tier === 'free') {
-      // Reset counter if new month
-      const resetDate = new Date(profile.ai_calls_reset_at ?? 0)
-      const now = new Date()
-      if (resetDate.getMonth() !== now.getMonth() || resetDate.getFullYear() !== now.getFullYear()) {
-        await supabase
-          .from('profiles')
-          .update({ ai_calls_this_month: 0, ai_calls_reset_at: now.toISOString() })
-          .eq('id', user.id)
-        profile.ai_calls_this_month = 0
-      }
-
-      if ((profile.ai_calls_this_month ?? 0) >= FREE_TIER_AI_CALLS) {
-        return NextResponse.json({ 
-          error: 'Free tier limit reached',
-          limit: FREE_TIER_AI_CALLS,
-          used: (profile.ai_calls_this_month ?? 0),
-        }, { status: 429 })
-      }
+    // What this request costs against the free quota: one unit per item
+    const cost = Array.isArray(itemIds) && !content ? Math.max(1, itemIds.length) : 1
+    const quota = await getQuota(supabase, user.id, cost)
+    if (!quota.allowed) {
+      return NextResponse.json(quotaExceededBody(quota), { status: 429 })
     }
 
     // Get existing projects for context
@@ -91,20 +65,13 @@ export async function POST(request: NextRequest) {
 
     const latencyMs = Date.now() - startTime
 
-    // Log the AI operation
-    await supabase.from('ai_processing_log').insert({
-      user_id: user.id,
-      operation_type: 'organize',
-      model_used: MODELS.LLAMA_8B,
-      latency_ms: latencyMs,
-      success: true,
+    await recordAiRun({
+      userId: user.id,
+      operation: 'organize',
+      units: itemCount,
+      model: MODELS.LLAMA_8B,
+      latencyMs,
     })
-
-    // Increment AI call counter
-    await supabase
-      .from('profiles')
-      .update({ ai_calls_this_month: (profile.ai_calls_this_month ?? 0) + itemCount })
-      .eq('id', user.id)
 
     // If batch, update the items in the database
     if (result instanceof Map) {
@@ -167,15 +134,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Organize API error:', error)
     
-    // Log the failure
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      await supabase.from('ai_processing_log').insert({
-        user_id: user.id,
-        operation_type: 'organize',
+      await recordAiRun({
+        userId: user.id,
+        operation: 'organize',
         success: false,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : 'Unknown error',
       })
     }
 

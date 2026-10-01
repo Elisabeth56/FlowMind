@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { FREE_TIER_AI_CALLS } from '@/lib/plans'
+import { getQuota, quotaExceededBody, recordAiRun } from '@/lib/billing/quota'
 import { getWeeklySummaryChain, type WeeklySummary } from '@/lib/ai/chains/weekly-summary'
 import { MODELS, rateLimiter } from '@/lib/ai/groq'
 
@@ -36,26 +36,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { weekOffset = 0 } = body // 0 = current week, -1 = last week
 
-    // Get profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Check free tier
-    if (profile.subscription_tier === 'free' && (profile.ai_calls_this_month ?? 0) >= FREE_TIER_AI_CALLS) {
-      return NextResponse.json({ 
-        error: 'Free tier limit reached',
-        limit: FREE_TIER_AI_CALLS,
-        used: (profile.ai_calls_this_month ?? 0),
-      }, { status: 429 })
-    }
-
     // Calculate week bounds
     const targetDate = new Date()
     targetDate.setDate(targetDate.getDate() + (weekOffset * 7))
@@ -75,6 +55,12 @@ export async function POST(request: NextRequest) {
         summary: existingSummary,
         cached: true,
       })
+    }
+
+    // Checked only now: showing a summary that already exists costs nothing
+    const quota = await getQuota(supabase, user.id)
+    if (!quota.allowed) {
+      return NextResponse.json(quotaExceededBody(quota), { status: 429 })
     }
 
     await rateLimiter.acquire()
@@ -193,20 +179,12 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    // Log the operation
-    await supabase.from('ai_processing_log').insert({
-      user_id: user.id,
-      operation_type: 'weekly_summary',
-      model_used: MODELS.LLAMA_70B,
-      latency_ms: latencyMs,
-      success: true,
+    await recordAiRun({
+      userId: user.id,
+      operation: 'weekly_summary',
+      model: MODELS.LLAMA_70B,
+      latencyMs,
     })
-
-    // Increment AI call counter
-    await supabase
-      .from('profiles')
-      .update({ ai_calls_this_month: (profile.ai_calls_this_month ?? 0) + 1 })
-      .eq('id', user.id)
 
     return NextResponse.json({
       success: true,
@@ -221,11 +199,11 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      await supabase.from('ai_processing_log').insert({
-        user_id: user.id,
-        operation_type: 'weekly_summary',
+      await recordAiRun({
+        userId: user.id,
+        operation: 'weekly_summary',
         success: false,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : 'Unknown error',
       })
     }
 

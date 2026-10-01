@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { FREE_TIER_AI_CALLS } from '@/lib/plans'
+import { getQuota, quotaExceededBody, recordAiRun } from '@/lib/billing/quota'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getDailyPlanChain, getAnswerQuestionChain, type DailyPlan } from '@/lib/ai/chains/daily-plan'
 import { MODELS, rateLimiter } from '@/lib/ai/groq'
@@ -62,13 +62,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Check free tier limits
-    if (profile.subscription_tier === 'free' && (profile.ai_calls_this_month ?? 0) >= FREE_TIER_AI_CALLS) {
-      return NextResponse.json({ 
-        error: 'Free tier limit reached',
-        limit: FREE_TIER_AI_CALLS,
-        used: (profile.ai_calls_this_month ?? 0),
-      }, { status: 429 })
+    const quota = await getQuota(supabase, user.id)
+    if (!quota.allowed) {
+      return NextResponse.json(quotaExceededBody(quota), { status: 429 })
     }
 
     await rateLimiter.acquire()
@@ -91,6 +87,13 @@ export async function POST(request: NextRequest) {
         : 'No plan generated for today yet.'
 
       const answer = await getAnswerQuestionChain().invoke({ planSummary, question })
+
+      await recordAiRun({
+        userId: user.id,
+        operation: 'ask',
+        model: MODELS.LLAMA_70B,
+        latencyMs: Date.now() - startTime,
+      })
 
       return NextResponse.json({
         success: true,
@@ -205,20 +208,12 @@ export async function POST(request: NextRequest) {
       savedPlan = data
     }
 
-    // Log the operation
-    await supabase.from('ai_processing_log').insert({
-      user_id: user.id,
-      operation_type: 'daily_plan',
-      model_used: MODELS.LLAMA_70B,
-      latency_ms: latencyMs,
-      success: true,
+    await recordAiRun({
+      userId: user.id,
+      operation: 'daily_plan',
+      model: MODELS.LLAMA_70B,
+      latencyMs,
     })
-
-    // Increment AI call counter
-    await supabase
-      .from('profiles')
-      .update({ ai_calls_this_month: (profile.ai_calls_this_month ?? 0) + 1 })
-      .eq('id', user.id)
 
     return NextResponse.json({
       success: true,
@@ -232,11 +227,11 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      await supabase.from('ai_processing_log').insert({
-        user_id: user.id,
-        operation_type: 'daily_plan',
+      await recordAiRun({
+        userId: user.id,
+        operation: 'daily_plan',
         success: false,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : 'Unknown error',
       })
     }
 

@@ -4,25 +4,28 @@ import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Profile } from '@/types/models'
+import { isPro as isProPlan } from '@/lib/billing/entitlement'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [isPro, setIsPro] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
   const supabase = createClient()
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    
+    const [{ data }, { data: subscription }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      // Row level security returns only the user's own row; no row means the free plan
+      supabase.from('subscriptions').select('tier, status').eq('user_id', userId).maybeSingle(),
+    ])
+
     if (data) {
       setProfile(data)
     }
+    setIsPro(isProPlan(subscription))
   }, [supabase])
 
   useEffect(() => {
@@ -59,6 +62,7 @@ export function useAuth() {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
+    setIsPro(false)
     setSession(null)
   }
 
@@ -97,6 +101,6 @@ export function useAuth() {
     refreshProfile,
     updateProfile,
     isAuthenticated: !!user,
-    isPro: profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'enterprise',
+    isPro,
   }
 }

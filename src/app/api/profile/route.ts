@@ -3,6 +3,15 @@ import { createClient } from '@/lib/supabase/server'
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 
+function isTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: value })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function GET() {
   const supabase = await createClient()
 
@@ -35,8 +44,8 @@ export async function PATCH(request: Request) {
 
     const body = await request.json()
 
-    // Only preference fields are writable here — tier, usage counters and
-    // Paystack identifiers are owned by the payment webhook.
+    // Only these columns are writable by a user at all: the database grants UPDATE on
+    // them and nothing else. Plan and usage live in server-owned tables.
     const updates: {
       full_name?: string
       timezone?: string
@@ -53,6 +62,10 @@ export async function PATCH(request: Request) {
     }
 
     if (typeof body.timezone === 'string' && body.timezone) {
+      // Dates and the monthly quota are computed in this zone, so it has to be a real one
+      if (!isTimeZone(body.timezone)) {
+        return NextResponse.json({ error: 'Unknown timezone' }, { status: 400 })
+      }
       updates.timezone = body.timezone
     }
 
