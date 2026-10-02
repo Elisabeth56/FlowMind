@@ -54,6 +54,9 @@ Gemini fallback) · Paystack.
 - **A plan step is done when its inbox item is done.** Plans are `daily_plans` plus
   `daily_plan_items`; progress is counted, never stored. Write a plan with the
   `save_daily_plan` RPC and read it with `loadDailyPlan()`.
+- **The model never produces a number.** Counts, rates and trends come from SQL
+  (`week_stats()`, `plan_candidates()`) and `src/lib/weekly.ts`, are passed into the prompt,
+  and are stored from the computed values, not from the model's answer.
 - Don't ship UI that doesn't work. A button with no handler, or a save that is a
   `setTimeout`, is worse than no button.
 - Keep marketing copy to claims the product can back up.
