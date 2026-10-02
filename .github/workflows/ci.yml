@@ -41,7 +41,14 @@ jobs:
           version: latest
       # A fresh local Supabase with every migration and the seed applied.
       - run: supabase db start
-      - run: supabase test db
+      - name: Database tests
+        run: |
+          if ! supabase test db > /tmp/db-tests.txt 2>&1; then
+            cat /tmp/db-tests.txt
+            echo "::error title=Database tests failed::$(grep -vE '^ok |^\s*$' /tmp/db-tests.txt | tail -c 3000 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi
+          cat /tmp/db-tests.txt
       # The committed types must describe the same schema the migrations produce, so the
       # schema in git and the types the app compiles against never drift apart. The two
       # files are compared as types, not as text: the generator's formatting changes

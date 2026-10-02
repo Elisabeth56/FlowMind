@@ -20,14 +20,9 @@ import {
   Calendar,
 } from 'lucide-react'
 import { useAI, type WeeklySummary } from '@/hooks/useAI'
+import { useAuth } from '@/hooks/useAuth'
+import { weekIn } from '@/lib/dates'
 
-// Mirrors getWeekBounds() in the weekly-summary route: weeks start on Sunday.
-function getWeekBounds(date: Date): { start: string } {
-  const d = new Date(date)
-  d.setDate(d.getDate() - d.getDay())
-  d.setHours(0, 0, 0, 0)
-  return { start: d.toISOString().split('T')[0] }
-}
 
 const trendIcons = {
   improving: TrendingUp,
@@ -43,6 +38,7 @@ const trendColors = {
 
 export default function InsightsPage() {
   const { loadWeeklySummary, getWeeklySummary, getPastSummaries, error } = useAI()
+  const { profile } = useAuth()
   const [summary, setSummary] = useState<WeeklySummary | null>(null)
   const [pastSummaries, setPastSummaries] = useState<WeeklySummary[]>([])
   const [loadingSummary, setLoadingSummary] = useState(true)
@@ -94,7 +90,8 @@ export default function InsightsPage() {
   // How many weeks back a stored summary sits, so clicking it navigates to the
   // right week instead of assuming summaries exist for every week in between.
   const offsetForWeekStart = (weekStart: string) => {
-    const { start: currentWeekStart } = getWeekBounds(new Date())
+    // Same week the server computes: Sunday to Saturday in the profile's timezone
+    const { start: currentWeekStart } = weekIn(profile?.timezone ?? 'UTC')
     const msPerWeek = 7 * 24 * 60 * 60 * 1000
     const diff = new Date(weekStart).getTime() - new Date(currentWeekStart).getTime()
     return Math.round(diff / msPerWeek)

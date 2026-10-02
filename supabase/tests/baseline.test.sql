@@ -25,8 +25,10 @@ select ok(
 );
 
 select is(
-  (select jsonb_array_length(plan_items) from public.daily_plans d join public.profiles p on p.id = d.user_id
-   where p.email = 'demo@elisabethnnamani.dev' and plan_date = current_date),
+  (select count(*)::int from public.daily_plan_items s
+     join public.daily_plans d on d.id = s.plan_id
+     join public.profiles p on p.id = d.user_id
+   where p.email = 'demo@elisabethnnamani.dev' and d.plan_date = current_date),
   4, 'demo account has a plan for today with four steps'
 );
 

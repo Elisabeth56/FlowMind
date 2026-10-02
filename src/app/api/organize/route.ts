@@ -82,7 +82,8 @@ export async function POST(request: NextRequest) {
         priority: organized.priority,
         sentiment: organized.sentiment,
         extracted_entities: organized.extracted_entities,
-        extracted_topics: organized.extracted_topics,
+        tags: [...new Set(organized.extracted_topics.map((topic) => topic.trim().toLowerCase()).filter(Boolean))],
+        ai_status: 'done',
         due_date: organized.due_date,
         status: 'organized' as const,
         organized_at: new Date().toISOString(),
@@ -97,10 +98,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Create suggested projects if they don't exist
+      // Project names are unique per user whatever the case, so "Clients" and "clients" are one
+      const known = new Set(existingProjects.map((name) => name.toLowerCase()))
       const suggestedProjects = new Set<string>()
       result.forEach(org => {
-        if (org.suggested_project && !existingProjects.includes(org.suggested_project)) {
-          suggestedProjects.add(org.suggested_project)
+        const name = org.suggested_project?.trim()
+        if (name && !known.has(name.toLowerCase())) {
+          known.add(name.toLowerCase())
+          suggestedProjects.add(name)
         }
       })
 

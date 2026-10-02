@@ -3,25 +3,14 @@ import { createClient } from '@/lib/supabase/server'
 import { getQuota, quotaExceededBody, recordAiRun } from '@/lib/billing/quota'
 import { getWeeklySummaryChain, type WeeklySummary } from '@/lib/ai/chains/weekly-summary'
 import { MODELS, rateLimiter } from '@/lib/ai/groq'
+import { addDays, startOfDayIn, weekIn } from '@/lib/dates'
 
-// Helper to get week boundaries
-function getWeekBounds(date: Date = new Date()): { start: string; end: string } {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day // Adjust to Sunday
-  
-  const start = new Date(d)
-  start.setDate(diff)
-  start.setHours(0, 0, 0, 0)
-  
-  const end = new Date(start)
-  end.setDate(start.getDate() + 6)
-  end.setHours(23, 59, 59, 999)
-  
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  }
+type Client = Awaited<ReturnType<typeof createClient>>
+
+// Weeks are the user's weeks: Sunday to Saturday in their own timezone.
+async function userTimeZone(supabase: Client, userId: string): Promise<string> {
+  const { data } = await supabase.from('profiles').select('timezone').eq('id', userId).single()
+  return data?.timezone ?? 'UTC'
 }
 
 export async function POST(request: NextRequest) {
@@ -36,10 +25,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { weekOffset = 0 } = body // 0 = current week, -1 = last week
 
-    // Calculate week bounds
-    const targetDate = new Date()
-    targetDate.setDate(targetDate.getDate() + (weekOffset * 7))
-    const { start: weekStart, end: weekEnd } = getWeekBounds(targetDate)
+    const timeZone = await userTimeZone(supabase, user.id)
+    const { start: weekStart, end: weekEnd } = weekIn(timeZone, new Date(), Number(weekOffset) || 0)
+    // The same week as instants, for comparing against timestamps
+    const weekStartsAt = startOfDayIn(timeZone, weekStart).toISOString()
+    const weekEndsAt = startOfDayIn(timeZone, addDays(weekEnd, 1)).toISOString()
 
     // Check if summary already exists
     const { data: existingSummary } = await supabase
@@ -71,8 +61,8 @@ export async function POST(request: NextRequest) {
       .from('inbox_items')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .gte('created_at', weekStart)
-      .lte('created_at', weekEnd + 'T23:59:59')
+      .gte('created_at', weekStartsAt)
+      .lt('created_at', weekEndsAt)
 
     // Get completed items this week
     const { data: completedItems } = await supabase
@@ -85,8 +75,8 @@ export async function POST(request: NextRequest) {
       `)
       .eq('user_id', user.id)
       .eq('status', 'completed')
-      .gte('completed_at', weekStart)
-      .lte('completed_at', weekEnd + 'T23:59:59')
+      .gte('completed_at', weekStartsAt)
+      .lt('completed_at', weekEndsAt)
 
     // Get pending items (carried over)
     const { data: pendingItems } = await supabase
@@ -94,12 +84,12 @@ export async function POST(request: NextRequest) {
       .select('content, priority, created_at')
       .eq('user_id', user.id)
       .in('status', ['inbox', 'organized', 'in_progress'])
-      .lt('created_at', weekStart) // Created before this week = carried over
+      .lt('created_at', weekStartsAt) // Created before this week = carried over
 
     // Get daily plans for adherence calculation
     const { data: dailyPlans } = await supabase
       .from('daily_plans')
-      .select('items_completed, items_total, status')
+      .select('id, daily_plan_items ( inbox_items ( status ) )')
       .eq('user_id', user.id)
       .gte('plan_date', weekStart)
       .lte('plan_date', weekEnd)
@@ -107,8 +97,9 @@ export async function POST(request: NextRequest) {
     // Calculate plan adherence
     let planAdherence = 'No daily plans created'
     if (dailyPlans && dailyPlans.length > 0) {
-      const totalPlanned = dailyPlans.reduce((sum, p) => sum + (p.items_total ?? 0), 0)
-      const totalCompleted = dailyPlans.reduce((sum, p) => sum + (p.items_completed ?? 0), 0)
+      const steps = dailyPlans.flatMap((plan) => plan.daily_plan_items)
+      const totalPlanned = steps.length
+      const totalCompleted = steps.filter((step) => step.inbox_items.status === 'completed').length
       const adherenceRate = totalPlanned > 0 ? Math.round((totalCompleted / totalPlanned) * 100) : 0
       planAdherence = `${dailyPlans.length} plans created, ${adherenceRate}% completion rate`
     }
@@ -122,10 +113,8 @@ export async function POST(request: NextRequest) {
     })
 
     // Get last week's summary for comparison
-    const lastWeekDate = new Date(targetDate)
-    lastWeekDate.setDate(lastWeekDate.getDate() - 7)
-    const { start: lastWeekStart } = getWeekBounds(lastWeekDate)
-    
+    const lastWeekStart = addDays(weekStart, -7)
+
     const { data: lastWeekSummary } = await supabase
       .from('weekly_summaries')
       .select('summary_text, focus_score, productivity_trend')
@@ -147,8 +136,8 @@ export async function POST(request: NextRequest) {
       })),
       pendingItems: (pendingItems || []).map(item => ({
         content: item.content,
-        priority: item.priority ?? 0,
-        created_at: item.created_at ?? '',
+        priority: item.priority,
+        created_at: item.created_at,
       })),
       planAdherence,
       projectsTouched: Array.from(projectsTouched),
@@ -239,9 +228,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid weekOffset' }, { status: 400 })
       }
 
-      const targetDate = new Date()
-      targetDate.setDate(targetDate.getDate() + weekOffset * 7)
-      const { start: weekStart } = getWeekBounds(targetDate)
+      const { start: weekStart } = weekIn(await userTimeZone(supabase, user.id), new Date(), weekOffset)
 
       const { data: summary } = await supabase
         .from('weekly_summaries')

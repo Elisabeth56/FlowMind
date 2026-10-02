@@ -4,6 +4,7 @@ import { StructuredOutputParser } from '@langchain/core/output_parsers'
 import { z } from 'zod'
 import { getModel } from '../langchain'
 import { lazyChain } from '../lazy'
+import { safeTimeZone, todayIn } from '@/lib/dates'
 
 // Schema for daily plan output
 const dailyPlanSchema = z.object({
@@ -101,9 +102,12 @@ export const getDailyPlanChain = lazyChain(() =>
     timezone: (input) => input.timezone,
     preferred_start: (input) => input.preferredStart,
     completed_today: (input) => input.completedToday.toString(),
-    today: () => new Date().toISOString().split('T')[0],
-    day_of_week: () => new Date().toLocaleDateString('en-US', { weekday: 'long' }),
-    current_time: () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    // The model plans the user's day, so it is told the user's date and clock, not the server's
+    today: (input) => todayIn(input.timezone),
+    day_of_week: (input) =>
+      new Date().toLocaleDateString('en-US', { weekday: 'long', timeZone: safeTimeZone(input.timezone) }),
+    current_time: (input) =>
+      new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: safeTimeZone(input.timezone) }),
     format_instructions: () => dailyPlanParser.getFormatInstructions(),
   },
   dailyPlanPrompt,

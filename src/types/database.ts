@@ -64,47 +64,83 @@ export type Database = {
           },
         ]
       }
+      daily_plan_items: {
+        Row: {
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          item_id: string
+          plan_id: string
+          position: number
+          scheduled_time: string | null
+          why: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          item_id: string
+          plan_id: string
+          position: number
+          scheduled_time?: string | null
+          why?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          item_id?: string
+          plan_id?: string
+          position?: number
+          scheduled_time?: string | null
+          why?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_plan_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inbox_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "daily_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_plans: {
         Row: {
           completion_notes: string | null
-          created_at: string | null
+          created_at: string
           energy_recommendation: string | null
           id: string
-          items_completed: number | null
-          items_total: number | null
           plan_date: string
-          plan_items: Json | null
           reasoning: string | null
-          status: string | null
-          updated_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           completion_notes?: string | null
-          created_at?: string | null
+          created_at?: string
           energy_recommendation?: string | null
           id?: string
-          items_completed?: number | null
-          items_total?: number | null
           plan_date: string
-          plan_items?: Json | null
           reasoning?: string | null
-          status?: string | null
-          updated_at?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           completion_notes?: string | null
-          created_at?: string | null
+          created_at?: string
           energy_recommendation?: string | null
           id?: string
-          items_completed?: number | null
-          items_total?: number | null
           plan_date?: string
-          plan_items?: Json | null
           reasoning?: string | null
-          status?: string | null
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -119,60 +155,70 @@ export type Database = {
       }
       inbox_items: {
         Row: {
+          ai_status: string
           completed_at: string | null
           content: string
-          created_at: string | null
+          created_at: string
           due_date: string | null
-          extracted_entities: Json | null
-          extracted_topics: Json | null
+          extracted_entities: NonNullable<Json>
           id: string
-          is_actionable: boolean | null
-          item_type: string | null
+          is_actionable: boolean
+          item_type: string
           organized_at: string | null
-          priority: number | null
+          priority: number
           project_id: string | null
           sentiment: string | null
-          status: string | null
-          updated_at: string | null
+          status: string
+          tags: string[]
+          updated_at: string
           user_id: string
         }
         Insert: {
+          ai_status?: string
           completed_at?: string | null
           content: string
-          created_at?: string | null
+          created_at?: string
           due_date?: string | null
-          extracted_entities?: Json | null
-          extracted_topics?: Json | null
+          extracted_entities?: NonNullable<Json>
           id?: string
-          is_actionable?: boolean | null
-          item_type?: string | null
+          is_actionable?: boolean
+          item_type?: string
           organized_at?: string | null
-          priority?: number | null
+          priority?: number
           project_id?: string | null
           sentiment?: string | null
-          status?: string | null
-          updated_at?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
           user_id: string
         }
         Update: {
+          ai_status?: string
           completed_at?: string | null
           content?: string
-          created_at?: string | null
+          created_at?: string
           due_date?: string | null
-          extracted_entities?: Json | null
-          extracted_topics?: Json | null
+          extracted_entities?: NonNullable<Json>
           id?: string
-          is_actionable?: boolean | null
-          item_type?: string | null
+          is_actionable?: boolean
+          item_type?: string
           organized_at?: string | null
-          priority?: number | null
+          priority?: number
           project_id?: string | null
           sentiment?: string | null
-          status?: string | null
-          updated_at?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inbox_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_counts"
+            referencedColumns: ["project_id"]
+          },
           {
             foreignKeyName: "inbox_items_project_id_fkey"
             columns: ["project_id"]
@@ -219,34 +265,34 @@ export type Database = {
       payment_transactions: {
         Row: {
           amount: number
-          created_at: string | null
+          created_at: string
           id: string
           paystack_transaction_id: number | null
           plan_type: string | null
           reference: string
-          status: string | null
+          status: string
           user_id: string
           verified_at: string | null
         }
         Insert: {
           amount: number
-          created_at?: string | null
+          created_at?: string
           id?: string
           paystack_transaction_id?: number | null
           plan_type?: string | null
           reference: string
-          status?: string | null
+          status?: string
           user_id: string
           verified_at?: string | null
         }
         Update: {
           amount?: number
-          created_at?: string | null
+          created_at?: string
           id?: string
           paystack_transaction_id?: number | null
           plan_type?: string | null
           reference?: string
-          status?: string | null
+          status?: string
           user_id?: string
           verified_at?: string | null
         }
@@ -263,83 +309,80 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          created_at: string | null
-          daily_plan_time: string | null
+          created_at: string
+          daily_plan_time: string
           email: string | null
           full_name: string | null
           id: string
-          timezone: string | null
-          updated_at: string | null
-          weekly_summary_day: number | null
+          preferences: NonNullable<Json>
+          timezone: string
+          updated_at: string
+          weekly_summary_day: number
         }
         Insert: {
           avatar_url?: string | null
-          created_at?: string | null
-          daily_plan_time?: string | null
+          created_at?: string
+          daily_plan_time?: string
           email?: string | null
           full_name?: string | null
           id: string
-          timezone?: string | null
-          updated_at?: string | null
-          weekly_summary_day?: number | null
+          preferences?: NonNullable<Json>
+          timezone?: string
+          updated_at?: string
+          weekly_summary_day?: number
         }
         Update: {
           avatar_url?: string | null
-          created_at?: string | null
-          daily_plan_time?: string | null
+          created_at?: string
+          daily_plan_time?: string
           email?: string | null
           full_name?: string | null
           id?: string
-          timezone?: string | null
-          updated_at?: string | null
-          weekly_summary_day?: number | null
+          preferences?: NonNullable<Json>
+          timezone?: string
+          updated_at?: string
+          weekly_summary_day?: number
         }
         Relationships: []
       }
       projects: {
         Row: {
           ai_confidence: number | null
-          color: string | null
-          completed_count: number | null
-          created_at: string | null
+          color: string
+          created_at: string
           description: string | null
-          icon: string | null
+          icon: string
           id: string
-          item_count: number | null
           name: string
-          status: string | null
-          suggested_by_ai: boolean | null
-          updated_at: string | null
+          status: string
+          suggested_by_ai: boolean
+          updated_at: string
           user_id: string
         }
         Insert: {
           ai_confidence?: number | null
-          color?: string | null
-          completed_count?: number | null
-          created_at?: string | null
+          color?: string
+          created_at?: string
           description?: string | null
-          icon?: string | null
+          icon?: string
           id?: string
-          item_count?: number | null
           name: string
-          status?: string | null
-          suggested_by_ai?: boolean | null
-          updated_at?: string | null
+          status?: string
+          suggested_by_ai?: boolean
+          updated_at?: string
           user_id: string
         }
         Update: {
           ai_confidence?: number | null
-          color?: string | null
-          completed_count?: number | null
-          created_at?: string | null
+          color?: string
+          created_at?: string
           description?: string | null
-          icon?: string | null
+          icon?: string
           id?: string
-          item_count?: number | null
           name?: string
-          status?: string | null
-          suggested_by_ai?: boolean | null
-          updated_at?: string | null
+          status?: string
+          suggested_by_ai?: boolean
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -404,48 +447,48 @@ export type Database = {
       }
       weekly_summaries: {
         Row: {
-          accomplishments: Json | null
-          created_at: string | null
+          accomplishments: NonNullable<Json>
+          created_at: string
           focus_score: number | null
           id: string
-          items_carried_over: number | null
-          items_completed: number | null
-          items_created: number | null
-          patterns: Json | null
+          items_carried_over: number
+          items_completed: number
+          items_created: number
+          patterns: NonNullable<Json>
           productivity_trend: string | null
-          suggestions: Json | null
+          suggestions: NonNullable<Json>
           summary_text: string | null
           user_id: string
           week_end: string
           week_start: string
         }
         Insert: {
-          accomplishments?: Json | null
-          created_at?: string | null
+          accomplishments?: NonNullable<Json>
+          created_at?: string
           focus_score?: number | null
           id?: string
-          items_carried_over?: number | null
-          items_completed?: number | null
-          items_created?: number | null
-          patterns?: Json | null
+          items_carried_over?: number
+          items_completed?: number
+          items_created?: number
+          patterns?: NonNullable<Json>
           productivity_trend?: string | null
-          suggestions?: Json | null
+          suggestions?: NonNullable<Json>
           summary_text?: string | null
           user_id: string
           week_end: string
           week_start: string
         }
         Update: {
-          accomplishments?: Json | null
-          created_at?: string | null
+          accomplishments?: NonNullable<Json>
+          created_at?: string
           focus_score?: number | null
           id?: string
-          items_carried_over?: number | null
-          items_completed?: number | null
-          items_created?: number | null
-          patterns?: Json | null
+          items_carried_over?: number
+          items_completed?: number
+          items_created?: number
+          patterns?: NonNullable<Json>
           productivity_trend?: string | null
-          suggestions?: Json | null
+          suggestions?: NonNullable<Json>
           summary_text?: string | null
           user_id?: string
           week_end?: string
@@ -463,12 +506,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      project_counts: {
+        Row: {
+          completed_count: number | null
+          item_count: number | null
+          project_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       ai_units_this_month: {
         Args: { p_now?: string; p_user_id: string }
         Returns: number
+      }
+      save_daily_plan: {
+        Args: {
+          p_energy_recommendation: string
+          p_items: Json
+          p_plan_date: string
+          p_reasoning: string
+        }
+        Returns: string
       }
     }
     Enums: {

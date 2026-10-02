@@ -45,6 +45,12 @@ Paystack.
 - **Scroll reveals share `revealViewport` from `src/lib/motion.ts`.** It starts
   the animation before the section enters view; per-component viewport settings
   reintroduce the "page fills in late" effect.
+- **Dates are the user's dates.** Use `todayIn()`, `weekIn()` and `startOfDayIn()` from
+  `src/lib/dates.ts` with the profile's timezone. Never `new Date().toISOString().split('T')[0]`:
+  that is UTC's date, which is wrong in Lagos for an hour every night.
+- **A plan step is done when its inbox item is done.** Plans are `daily_plans` plus
+  `daily_plan_items`; progress is counted, never stored. Write a plan with the
+  `save_daily_plan` RPC and read it with `loadDailyPlan()`.
 - Don't ship UI that doesn't work. A button with no handler, or a save that is a
   `setTimeout`, is worse than no button.
 - Keep marketing copy to claims the product can back up.

@@ -7,6 +7,9 @@ export type { Database, Json } from './database'
 export type Profile = Tables<'profiles'>
 export type InboxItem = Tables<'inbox_items'>
 export type Project = Tables<'projects'>
+/** A project with its counts from the `project_counts` view. */
+export type ProjectWithCounts = Project & { item_count: number; completed_count: number }
+export type DailyPlanItem = Tables<'daily_plan_items'>
 export type DailyPlan = Tables<'daily_plans'>
 export type WeeklySummary = Tables<'weekly_summaries'>
 export type PaymentTransaction = Tables<'payment_transactions'>
