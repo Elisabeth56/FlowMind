@@ -526,6 +526,16 @@ export type Database = {
         Args: { p_now?: string; p_user_id: string }
         Returns: number
       }
+      plan_candidates: {
+        Args: { p_limit?: number; p_today: string }
+        Returns: {
+          content: string
+          due_date: string
+          id: string
+          priority: number
+          project_name: string
+        }[]
+      }
       save_daily_plan: {
         Args: {
           p_energy_recommendation: string

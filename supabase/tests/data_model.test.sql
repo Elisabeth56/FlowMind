@@ -1,6 +1,6 @@
 -- Plans, projects and tags: the integrity the schema now guarantees.
 begin;
-select plan(11);
+select plan(13);
 
 select is(
   (select count(*) >= 3 from public.inbox_items where tags @> array['pitch']),
@@ -35,6 +35,17 @@ select ok(
 -- as the signed-in demo user --------------------------------------------------
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6","role":"authenticated"}';
+
+-- candidates for a plan are ranked by the database
+select results_eq(
+  $$select content from public.plan_candidates(current_date, 3)$$,
+  $$values ('Finish the pitch deck'), ('Call Ada about the invoice before Friday'), ('Review Kemi''s deck notes before the pitch')$$,
+  'what is due today comes first, then priority, then the nearest due date'
+);
+select is(
+  (select count(*)::int from public.plan_candidates(current_date) where content = 'Book the meeting room'),
+  0, 'completed items are not candidates'
+);
 
 -- progress is a count over the plan's steps
 create temp view progress as
