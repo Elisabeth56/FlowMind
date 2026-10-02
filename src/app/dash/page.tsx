@@ -68,25 +68,27 @@ export default function InboxPage() {
     try {
       const item = await addItem(content)
       setNewItemContent('')
-
-      // Auto-organize the new item
-      if (item) {
-        setOrganizingIds(prev => new Set(prev).add(item.id))
-        try {
-          await organize({ itemIds: [item.id] })
-          await refetch()
-        } finally {
-          setOrganizingIds(prev => {
-            const next = new Set(prev)
-            next.delete(item.id)
-            return next
-          })
-        }
-      }
+      // Saved. Organising runs on its own; the next capture does not wait for it.
+      if (item) void organizeItem(item.id)
     } catch (error) {
       console.error('Failed to add item:', error)
     } finally {
       setAdding(false)
+    }
+  }
+
+  // Also the retry for an item the AI could not organise
+  const organizeItem = async (id: string) => {
+    setOrganizingIds(prev => new Set(prev).add(id))
+    try {
+      await organize({ itemIds: [id] })
+      await refetch()
+    } finally {
+      setOrganizingIds(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
     }
   }
 
@@ -287,6 +289,15 @@ export default function InboxPage() {
                         
                         {/* Metadata */}
                         <div className="flex items-center gap-2 mt-3 flex-wrap">
+                          {item.ai_status === 'failed' && !isOrganizing && (
+                            <button
+                              onClick={() => organizeItem(item.id)}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-800 rounded-lg text-xs hover:bg-amber-100 transition-colors"
+                            >
+                              Couldn&apos;t organise this. Retry
+                            </button>
+                          )}
+
                           {/* Type badge */}
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg text-xs text-slate-600">
                             <TypeIcon className="w-3 h-3" />

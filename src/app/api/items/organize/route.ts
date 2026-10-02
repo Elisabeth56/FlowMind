@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { refuseAiCall } from '@/lib/billing/quota'
-import { cleanTags, organizeItems, type OrganizedItem } from '@/lib/ai/organize'
+import { newProjectNames, organizeItems, toItemUpdate, type OrganizedItem } from '@/lib/ai/organize'
 import { todayIn } from '@/lib/dates'
 
 const bodySchema = z.object({ itemIds: z.array(z.uuid()).min(1).max(50) })
@@ -42,20 +42,19 @@ export async function POST(request: NextRequest) {
       today: todayIn(profile?.timezone ?? 'UTC'),
     })
 
-    // Project names are unique per user whatever the case, so "Clients" and "clients" are one
-    const projectIds = new Map((projects ?? []).map((project) => [project.name.toLowerCase(), project.id]))
-    const newNames = new Map<string, string>()
-    for (const organized of results.values()) {
-      const name = organized?.suggested_project?.trim()
-      if (name && !projectIds.has(name.toLowerCase())) newNames.set(name.toLowerCase(), name)
-    }
-    if (newNames.size > 0) {
-      const { data: created } = await supabase
+    // Create the projects the model suggested that don't exist yet. Another request may
+    // create the same name at the same moment (the name is unique per user), so the
+    // insert is allowed to fail and the projects are read back either way.
+    const suggested = newProjectNames(results.values(), (projects ?? []).map((project) => project.name))
+    if (suggested.length > 0) {
+      await supabase
         .from('projects')
-        .insert([...newNames.values()].map((name) => ({ user_id: user.id, name, suggested_by_ai: true })))
-        .select('id, name')
-      for (const project of created ?? []) projectIds.set(project.name.toLowerCase(), project.id)
+        .insert(suggested.map((name) => ({ user_id: user.id, name, suggested_by_ai: true })))
     }
+    const { data: allProjects } = suggested.length > 0
+      ? await supabase.from('projects').select('id, name').eq('user_id', user.id)
+      : { data: projects }
+    const projectIds = new Map((allProjects ?? []).map((project) => [project.name.toLowerCase(), project.id]))
 
     const organizedAt = new Date().toISOString()
     const organizedItems: Record<string, OrganizedItem> = {}
@@ -66,25 +65,9 @@ export async function POST(request: NextRequest) {
           return supabase.from('inbox_items').update({ ai_status: 'failed' }).eq('id', id)
         }
         organizedItems[id] = organized
-        const projectId = organized.suggested_project
-          ? projectIds.get(organized.suggested_project.trim().toLowerCase())
-          : undefined
-        return supabase
-          .from('inbox_items')
-          .update({
-            item_type: organized.item_type,
-            is_actionable: organized.is_actionable,
-            priority: organized.priority,
-            sentiment: organized.sentiment,
-            extracted_entities: organized.entities,
-            tags: cleanTags(organized.tags),
-            due_date: organized.due_date,
-            ...(projectId ? { project_id: projectId } : {}),
-            status: 'organized',
-            ai_status: 'done',
-            organized_at: organizedAt,
-          })
-          .eq('id', id)
+        const projectId = projectIds.get(organized.suggested_project?.trim().toLowerCase() ?? '')
+        // One update files the item
+        return supabase.from('inbox_items').update(toItemUpdate(organized, projectId, organizedAt)).eq('id', id)
       })
     )
 
@@ -93,7 +76,7 @@ export async function POST(request: NextRequest) {
       organized: organizedItems,
       itemsProcessed: Object.keys(organizedItems).length,
       itemsFailed: results.size - Object.keys(organizedItems).length,
-      newProjectsSuggested: [...newNames.values()],
+      newProjectsSuggested: suggested,
       latencyMs: Date.now() - startTime,
     })
   } catch (error) {

@@ -54,7 +54,7 @@ export function useAI() {
     setError(null)
 
     try {
-      const response = await fetch('/api/organize', {
+      const response = await fetch('/api/items/organize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),

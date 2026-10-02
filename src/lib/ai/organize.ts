@@ -56,6 +56,43 @@ export async function organizeItems(
   return results
 }
 
+/**
+ * Project names the model suggested that the user does not have yet. Names are compared
+ * without case, so "clients" and "Clients" are one project; the first spelling wins.
+ */
+export function newProjectNames(
+  results: Iterable<OrganizedItem | null>,
+  existingNames: string[]
+): string[] {
+  const known = new Set(existingNames.map((name) => name.toLowerCase()))
+  const fresh: string[] = []
+  for (const organized of results) {
+    const name = organized?.suggested_project?.trim()
+    if (!name || known.has(name.toLowerCase())) continue
+    known.add(name.toLowerCase())
+    fresh.push(name)
+  }
+  return fresh
+}
+
+/** The single update that files an item: its kind, priority, date, tags and project. */
+export function toItemUpdate(organized: OrganizedItem, projectId: string | undefined, organizedAt: string) {
+  return {
+    item_type: organized.item_type,
+    is_actionable: organized.is_actionable,
+    priority: organized.priority,
+    sentiment: organized.sentiment,
+    extracted_entities: organized.entities,
+    tags: cleanTags(organized.tags),
+    due_date: organized.due_date,
+    // An item keeps the project it has when the model suggests none
+    ...(projectId ? { project_id: projectId } : {}),
+    status: 'organized',
+    ai_status: 'done',
+    organized_at: organizedAt,
+  }
+}
+
 /** Lowercase, trimmed, no blanks or repeats: the form tags are stored in. */
 export function cleanTags(tags: string[]): string[] {
   return [...new Set(tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))]
