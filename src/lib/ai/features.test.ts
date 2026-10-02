@@ -19,7 +19,7 @@ vi.mock('./index', () => ({
   collect: async () => 'ok',
 }))
 
-import { cleanTags, organizeItem } from './organize'
+import { cleanTags, newProjectNames, organizeItem, toItemUpdate } from './organize'
 import { askAboutDay, planDay } from './plan-day'
 import { summarizeWeek } from './weekly-summary'
 
@@ -81,5 +81,47 @@ describe('prompts render with what each feature provides', () => {
 describe('cleanTags', () => {
   it('lowercases, trims and removes blanks and repeats', () => {
     expect(cleanTags([' Pitch', 'pitch', '', 'Deck '])).toEqual(['pitch', 'deck'])
+  })
+})
+
+describe('filing organised items', () => {
+  const organized = (suggested_project: string | null) => ({
+    item_type: 'task' as const,
+    is_actionable: true,
+    priority: 3,
+    sentiment: 'neutral' as const,
+    entities: [{ type: 'person' as const, value: 'Ada' }],
+    tags: ['Invoice', 'ada'],
+    suggested_project,
+    due_date: '2026-10-09',
+    summary: 'Call Ada',
+  })
+
+  it('creates one project when two items suggest "clients" and "Clients"', () => {
+    expect(newProjectNames([organized('clients'), organized('Clients'), null], [])).toEqual(['clients'])
+  })
+
+  it('does not recreate a project the user already has, whatever the case', () => {
+    expect(newProjectNames([organized('CLIENTS'), organized('Home')], ['Clients'])).toEqual(['Home'])
+  })
+
+  it('files an item in one update: kind, priority, date, tags, project and status', () => {
+    expect(toItemUpdate(organized('Clients'), 'project-1', '2026-10-02T09:00:00.000Z')).toEqual({
+      item_type: 'task',
+      is_actionable: true,
+      priority: 3,
+      sentiment: 'neutral',
+      extracted_entities: [{ type: 'person', value: 'Ada' }],
+      tags: ['invoice', 'ada'],
+      due_date: '2026-10-09',
+      project_id: 'project-1',
+      status: 'organized',
+      ai_status: 'done',
+      organized_at: '2026-10-02T09:00:00.000Z',
+    })
+  })
+
+  it('leaves the project alone when the model suggests none', () => {
+    expect(toItemUpdate(organized(null), undefined, 'now')).not.toHaveProperty('project_id')
   })
 })
