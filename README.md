@@ -21,14 +21,18 @@ FlowMind is a SaaS productivity app where users can:
 
 ## AI providers
 
-Every model call goes through `src/lib/ai/index.ts`: Groq first, Gemini when Groq is
-rate-limited, down or slow, then a plain error. Prompts are files in
+Every model call goes through `src/lib/ai/index.ts`. It tries Groq's model for the job,
+then Groq's other model (free limits are per model), then Gemini if a key is set.
+
+When nothing answers, the app degrades instead of breaking: capture always saves, an
+item that could not be organised is marked for retry, and the daily plan is built by
+rule (due first, then priority) and says so. Prompts are files in
 `src/lib/ai/prompts/`, each with a version that is logged with every call in `ai_runs`.
 
 | | Fast (organise) | Smart (plan, summarise, ask) | Key |
 |---|---|---|---|
 | Groq (primary) | `openai/gpt-oss-20b` | `openai/gpt-oss-120b` | `GROQ_API_KEY` |
-| Gemini (fallback, optional) | `gemini-3.5-flash-lite` | `gemini-3.8-flash` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| Gemini (optional second provider, off by default) | `gemini-3.5-flash-lite` | `gemini-3.8-flash` | `GOOGLE_GENERATIVE_AI_API_KEY` |
 
 Free-tier notes, checked 2026-10-02:
 

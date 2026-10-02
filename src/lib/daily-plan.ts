@@ -43,6 +43,56 @@ export function toPlanSteps(
   return steps
 }
 
+const FALLBACK_STEPS = 5
+const FALLBACK_MINUTES = 30
+const FALLBACK_GAP = 15
+
+/**
+ * A plan made without a model, for when no AI provider answers: what is overdue or due
+ * today first, then by priority, in half-hour blocks from `startTime`. Less thoughtful
+ * than the model's plan, but the user still gets a day to work from.
+ */
+export function fallbackPlanSteps(
+  candidates: Array<{ id: string; priority: number; due_date: string | null }>,
+  today: string,
+  startTime: string
+): PlanStep[] {
+  const dueNow = (item: { due_date: string | null }) => item.due_date !== null && item.due_date <= today
+  const ordered = [...candidates].sort(
+    (a, b) =>
+      Number(dueNow(b)) - Number(dueNow(a)) ||
+      b.priority - a.priority ||
+      (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999')
+  )
+
+  const [hours, minutes] = startTime.split(':').map(Number)
+  return ordered.slice(0, FALLBACK_STEPS).map((item, index) => {
+    const startsAt = hours * 60 + minutes + index * (FALLBACK_MINUTES + FALLBACK_GAP)
+    return {
+      item_id: item.id,
+      // Steps that would run past midnight are left unscheduled
+      scheduled_time:
+        startsAt < 24 * 60
+          ? `${String(Math.floor(startsAt / 60)).padStart(2, '0')}:${String(startsAt % 60).padStart(2, '0')}`
+          : null,
+      duration_minutes: FALLBACK_MINUTES,
+      why: dueNow(item)
+        ? item.due_date === today ? 'Due today.' : 'Overdue.'
+        : item.priority >= 3 ? 'High priority.' : null,
+    }
+  })
+}
+
+/** The later of the user's preferred start and their clock now, rounded up to a quarter hour. */
+export function planStartTime(preferredStart: string, timeZone: string, now: Date = new Date()): string {
+  const clock = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone })
+  const [hours, minutes] = clock.split(':').map(Number)
+  const rounded = Math.min(Math.ceil((hours * 60 + minutes) / 15) * 15, 23 * 60 + 45)
+  const current = `${String(Math.floor(rounded / 60)).padStart(2, '0')}:${String(rounded % 60).padStart(2, '0')}`
+  const preferred = preferredStart.slice(0, 5)
+  return current > preferred ? current : preferred
+}
+
 /** The plan for one date with its steps and their items, in the shape the Today screen reads. */
 export async function loadDailyPlan(supabase: Client, userId: string, date: string) {
   const { data: plan, error } = await supabase

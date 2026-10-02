@@ -61,3 +61,5 @@ Built in #20. Two things differ from the text above:
 
 - **Models.** Groq retired `llama-3.1-8b-instant` and `llama-3.3-70b-versatile` from the free tier on 2026-08-16, so every AI call in the deployed app had been failing since then. The module uses Groq's recommended replacements, `openai/gpt-oss-20b` and `openai/gpt-oss-120b`, with `gemini-3.5-flash-lite` and `gemini-3.8-flash` as the fallback.
 - **Fallback trigger.** Any provider error moves to the next provider, not only 429, 5xx and timeouts: a revoked key or a retired model should not take the feature down while a second provider is configured. Every failed attempt is logged in `ai_runs`. A malformed answer is the exception: it is retried once on the same provider and then fails.
+- **Gemini is off.** The app runs on Groq alone; the Gemini path stays in the module behind an optional key. Instead of a second provider, a call falls back to Groq's other model (limits are per model), and when Groq is down entirely the features degrade: items are marked for retry and the daily plan is built by rule from due dates and priority.
+
