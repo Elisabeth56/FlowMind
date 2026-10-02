@@ -12,6 +12,8 @@ const publicSchema = z.object({
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   GROQ_API_KEY: z.string().min(1),
+  // Optional: without it there is no fallback provider when Groq is unavailable.
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   PAYSTACK_SECRET_KEY: z.string().min(1),
   // Optional: checkout answers 503 until the plans exist in Paystack.
   PAYSTACK_PRO_MONTHLY_PLAN_CODE: z.string().optional(),
