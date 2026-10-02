@@ -36,8 +36,11 @@ const TEMPERATURE: Record<Tier, number> = { fast: 0.1, smart: 0.3 }
  * model (limits are per model, so one can be exhausted while the other is not), then
  * Gemini if its key is set.
  */
-export function defaultTargets(tier: Tier): Target[] {
-  const env = serverEnv()
+export function defaultTargets(
+  tier: Tier,
+  // The evals pass their own keys so they can run without the rest of the app's env
+  env: { GROQ_API_KEY: string; GOOGLE_GENERATIVE_AI_API_KEY?: string } = serverEnv()
+): Target[] {
   const groq = createGroq({ apiKey: env.GROQ_API_KEY })
   const other: Tier = tier === 'fast' ? 'smart' : 'fast'
   const targets: Target[] = [tier, other].map((t) => ({
@@ -65,6 +68,9 @@ export class AiError extends Error {
     this.name = 'AiError'
   }
 }
+
+/** What a feature lets a caller override: used by tests and evals, never by routes. */
+export type CallOverrides = Pick<Call, 'targets' | 'record'>
 
 type Call = {
   prompt: PromptName

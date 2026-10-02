@@ -1,7 +1,7 @@
 // Daily plan: one structured call over the user's open items, on the larger model.
 import { z } from 'zod'
 import { safeTimeZone, todayIn } from '@/lib/dates'
-import { collect, generate, generateStream, stream } from './index'
+import { collect, generate, generateStream, stream, type CallOverrides } from './index'
 
 const dailyPlanSchema = z.object({
   reasoning: z.string(),
@@ -46,11 +46,13 @@ type PlanInput = {
   timeZone: string
   preferredStart: string
   completedToday: number
+  /** The moment being planned from. Defaults to now; the evals fix it. */
+  now?: Date
 }
 
 function planCall(input: PlanInput) {
   const zone = safeTimeZone(input.timeZone)
-  const now = new Date()
+  const now = input.now ?? new Date()
   return {
     prompt: 'daily-plan' as const,
     tier: 'smart' as const,
@@ -70,8 +72,8 @@ function planCall(input: PlanInput) {
 }
 
 /** The plan in one piece, with a retry if the model's answer is malformed. */
-export function planDay(input: PlanInput): Promise<PlannedDay> {
-  return generate(planCall(input))
+export function planDay(input: PlanInput, overrides: CallOverrides = {}): Promise<PlannedDay> {
+  return generate({ ...planCall(input), ...overrides })
 }
 
 /** The plan as it is written, for showing on screen while the model works. */
