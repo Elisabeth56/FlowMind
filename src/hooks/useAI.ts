@@ -5,9 +5,9 @@ import type { OrganizedItem } from '@/lib/ai/organize'
 
 export interface DailyPlanItem {
   item_id: string
-  scheduled_time: string
-  duration_minutes: number
-  notes: string
+  scheduled_time: string | null
+  duration_minutes: number | null
+  notes: string | null
   item: {
     id: string
     content: string
@@ -17,8 +17,9 @@ export interface DailyPlanItem {
 }
 
 export interface DailyPlan {
-  id: string
-  plan_date: string
+  /** Absent while the plan is still being written */
+  id?: string
+  plan_date?: string
   reasoning: string
   energy_recommendation: string
   plan_items: DailyPlanItem[]
@@ -40,6 +41,26 @@ export interface WeeklySummary {
   suggestions: Array<{ suggestion: string; priority: string; effort: string }>
   productivity_trend: 'improving' | 'stable' | 'declining'
   focus_score: number
+}
+
+type PlanEvent =
+  | { type: 'partial'; plan: DailyPlan }
+  | { type: 'done'; plan: DailyPlan | null; degraded: boolean }
+  | { type: 'error'; error: string }
+
+/** Reads a newline-delimited JSON response, calling `onEvent` for each line as it arrives. */
+async function readJsonLines(body: ReadableStream<Uint8Array>, onEvent: (event: PlanEvent) => void) {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffered = ''
+  for (;;) {
+    const { value, done } = await reader.read()
+    buffered += decoder.decode(value, { stream: !done })
+    const lines = buffered.split('\n')
+    buffered = lines.pop() ?? ''
+    for (const line of lines) if (line.trim()) onEvent(JSON.parse(line))
+    if (done) break
+  }
 }
 
 export function useAI() {
@@ -98,9 +119,10 @@ export function useAI() {
     }
   }, [])
 
-  // Generate (or regenerate) today's plan
+  // Generate (or regenerate) today's plan. The server streams it as JSON lines:
+  // `onPartial` gets the plan as the model writes it, the promise resolves to the saved plan.
   const generateDailyPlan = useCallback(async (
-    options?: { regenerate?: boolean }
+    options?: { regenerate?: boolean; onPartial?: (plan: DailyPlan) => void }
   ): Promise<DailyPlan | null> => {
     setLoading(true)
     setError(null)
@@ -114,13 +136,20 @@ export function useAI() {
         }),
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate plan')
+      // Refusals and an already-existing plan come back as plain JSON
+      if (!response.headers.get('Content-Type')?.includes('ndjson') || !response.body) {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Failed to generate plan')
+        return data.plan
       }
 
-      return data.plan
+      let saved: DailyPlan | null = null
+      await readJsonLines(response.body, (event) => {
+        if (event.type === 'partial') options?.onPartial?.(event.plan)
+        if (event.type === 'done') saved = event.plan
+        if (event.type === 'error') throw new Error(event.error)
+      })
+      return saved
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
       return null

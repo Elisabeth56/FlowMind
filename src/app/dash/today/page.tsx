@@ -35,6 +35,8 @@ export default function TodayPage() {
   const [askingAI, setAskingAI] = useState(false)
   const [loadingPlan, setLoadingPlan] = useState(true)
   const [generating, setGenerating] = useState(false)
+  // True once the first part of a plan being generated has arrived
+  const [writing, setWriting] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
   // Only read on mount — generating costs an AI call, so that stays an
@@ -55,11 +57,20 @@ export default function TodayPage() {
 
   const handleGenerate = async (regenerate = false) => {
     setGenerating(true)
+    setWriting(false)
     try {
-      const result = await generateDailyPlan({ regenerate })
+      // Show the plan as it is written, then swap in the saved one
+      const result = await generateDailyPlan({
+        regenerate,
+        onPartial: (partial) => {
+          setPlan(partial)
+          setWriting(true)
+        },
+      })
       if (result) setPlan(result)
     } finally {
       setGenerating(false)
+      setWriting(false)
     }
   }
 
@@ -168,7 +179,7 @@ export default function TodayPage() {
           )}
 
           {/* Plan Items */}
-          {loadingPlan || generating ? (
+          {loadingPlan || (generating && !writing) ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-azure-500 mx-auto mb-4" />
