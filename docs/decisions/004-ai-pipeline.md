@@ -54,3 +54,10 @@ Evals ship with the remodel: `evals/organize.jsonl` (~40 cases), `evals/daily-pl
 ## Revisit when
 
 A feature needs tools or multi-step reasoning the eval shows one call can't do, or a free tier's terms change.
+
+## Update 2026-10-02
+
+Built in #20. Two things differ from the text above:
+
+- **Models.** Groq retired `llama-3.1-8b-instant` and `llama-3.3-70b-versatile` from the free tier on 2026-08-16, so every AI call in the deployed app had been failing since then. The module uses Groq's recommended replacements, `openai/gpt-oss-20b` and `openai/gpt-oss-120b`, with `gemini-3.5-flash-lite` and `gemini-3.8-flash` as the fallback.
+- **Fallback trigger.** Any provider error moves to the next provider, not only 429, 5xx and timeouts: a revoked key or a retired model should not take the feature down while a second provider is configured. Every failed attempt is logged in `ai_runs`. A malformed answer is the exception: it is retried once on the same provider and then fails.

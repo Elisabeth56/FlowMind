@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "FlowMind - Your AI-Powered Second Brain",
   description:
     "An AI productivity OS for busy people. Dump notes, tasks, and ideas — let AI organize them into actionable plans. Powered by Groq + Mistral.",
-  keywords: ["productivity", "AI", "second brain", "task management", "Groq", "Mistral", "notes", "organization"],
+  keywords: ["productivity", "AI", "second brain", "task management", "Groq", "notes", "organization"],
   authors: [{ name: "FlowMind" }],
   openGraph: {
     title: "FlowMind - Your AI-Powered Second Brain",

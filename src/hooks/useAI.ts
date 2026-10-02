@@ -1,18 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-
-export interface OrganizedItem {
-  item_type: 'note' | 'task' | 'idea' | 'reminder' | 'link'
-  is_actionable: boolean
-  priority: number
-  sentiment: 'positive' | 'neutral' | 'negative' | 'urgent'
-  extracted_entities: Array<{ type: string; value: string }>
-  extracted_topics: string[]
-  suggested_project: string | null
-  due_date: string | null
-  summary: string
-}
+import type { OrganizedItem } from '@/lib/ai/organize'
 
 export interface DailyPlanItem {
   item_id: string
@@ -59,8 +48,8 @@ export function useAI() {
 
   // Organize a single item or batch
   const organize = useCallback(async (
-    input: { content: string } | { itemIds: string[] }
-  ): Promise<OrganizedItem | Record<string, OrganizedItem> | null> => {
+    input: { itemIds: string[] }
+  ): Promise<Record<string, OrganizedItem> | null> => {
     setLoading(true)
     setError(null)
 

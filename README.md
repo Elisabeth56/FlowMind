@@ -6,7 +6,7 @@ A modern, responsive landing page for FlowMind — an AI productivity OS that ac
 
 FlowMind is a SaaS productivity app where users can:
 - **Dump notes, tasks, and ideas** into a unified inbox
-- **Let AI (Groq + Mistral) auto-organize** them into projects, priorities, and action plans
+- **Let AI auto-organize** them into projects, priorities, and action plans
 - **Ask "What should I focus on today?"** and get a reasoned daily plan
 - **Get weekly AI-generated summaries** of what they accomplished vs. planned
 
@@ -18,6 +18,32 @@ FlowMind is a SaaS productivity app where users can:
 - **Motion 12** (formerly Framer Motion) for animations
 - **TypeScript 5.7**
 - **Lucide React** for icons
+
+## AI providers
+
+Every model call goes through `src/lib/ai/index.ts`: Groq first, Gemini when Groq is
+rate-limited, down or slow, then a plain error. Prompts are files in
+`src/lib/ai/prompts/`, each with a version that is logged with every call in `ai_runs`.
+
+| | Fast (organise) | Smart (plan, summarise, ask) | Key |
+|---|---|---|---|
+| Groq (primary) | `openai/gpt-oss-20b` | `openai/gpt-oss-120b` | `GROQ_API_KEY` |
+| Gemini (fallback, optional) | `gemini-3.5-flash-lite` | `gemini-3.8-flash` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+
+Free-tier notes, checked 2026-10-02:
+
+- Both providers set free limits per account and per model (requests and tokens per
+  minute and per day) and change them often. The current numbers are in each console:
+  [Groq limits](https://console.groq.com/settings/limits),
+  [Gemini limits](https://aistudio.google.com/rate-limit).
+- Groq removed `llama-3.1-8b-instant` and `llama-3.3-70b-versatile` from the free tier on
+  2026-08-16; the `gpt-oss` models are its recommended replacements.
+- Gemini 2.5 models are closed to new projects; 3.5 Flash-Lite and 3.8 Flash are current.
+- On Gemini's free tier Google may use requests to improve its products. Leave
+  `GOOGLE_GENERATIVE_AI_API_KEY` unset to keep every note on Groq, at the cost of no fallback.
+
+The app adds its own limits on top: 50 AI units a month on the free plan and 30 model
+calls a minute per user.
 
 ## Features
 

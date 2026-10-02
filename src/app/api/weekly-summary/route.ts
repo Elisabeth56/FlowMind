@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getQuota, quotaExceededBody, recordAiRun } from '@/lib/billing/quota'
-import { getWeeklySummaryChain, type WeeklySummary } from '@/lib/ai/chains/weekly-summary'
-import { MODELS, rateLimiter } from '@/lib/ai/groq'
+import { refuseAiCall } from '@/lib/billing/quota'
+import { aiErrorResponse } from '@/lib/ai/http'
+import { summarizeWeek } from '@/lib/ai/weekly-summary'
 import { addDays, startOfDayIn, weekIn } from '@/lib/dates'
 
 type Client = Awaited<ReturnType<typeof createClient>>
@@ -48,12 +48,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Checked only now: showing a summary that already exists costs nothing
-    const quota = await getQuota(supabase, user.id)
-    if (!quota.allowed) {
-      return NextResponse.json(quotaExceededBody(quota), { status: 429 })
-    }
+    const refusal = await refuseAiCall(supabase, user.id)
+    if (refusal) return NextResponse.json(refusal.body, { status: refusal.status })
 
-    await rateLimiter.acquire()
     const startTime = Date.now()
 
     // Get items created this week
@@ -122,8 +119,8 @@ export async function POST(request: NextRequest) {
       .eq('week_start', lastWeekStart)
       .single()
 
-    // Generate summary
-    const summary: WeeklySummary = await getWeeklySummaryChain().invoke({
+    const summary = await summarizeWeek({
+      userId: user.id,
       weekStart,
       weekEnd,
       itemsCreated: itemsCreated || 0,
@@ -132,16 +129,15 @@ export async function POST(request: NextRequest) {
       completedItems: (completedItems || []).map(item => ({
         content: item.content,
         project_name: (item.projects as unknown as { name: string } | null)?.name || null,
-        completed_at: item.completed_at!,
       })),
       pendingItems: (pendingItems || []).map(item => ({
         content: item.content,
         priority: item.priority,
-        created_at: item.created_at,
+        ageDays: Math.floor((Date.now() - new Date(item.created_at).getTime()) / 86_400_000),
       })),
       planAdherence,
       projectsTouched: Array.from(projectsTouched),
-      lastWeekSummary: lastWeekSummary 
+      lastWeekSummary: lastWeekSummary
         ? `Score: ${lastWeekSummary.focus_score}, Trend: ${lastWeekSummary.productivity_trend}. ${lastWeekSummary.summary_text?.slice(0, 200)}`
         : null,
     })
@@ -168,13 +164,6 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    await recordAiRun({
-      userId: user.id,
-      operation: 'weekly_summary',
-      model: MODELS.LLAMA_70B,
-      latencyMs,
-    })
-
     return NextResponse.json({
       success: true,
       summary: savedSummary,
@@ -184,17 +173,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Weekly summary API error:', error)
-    
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await recordAiRun({
-        userId: user.id,
-        operation: 'weekly_summary',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
+
+    const aiFailure = aiErrorResponse(error)
+    if (aiFailure) return aiFailure
 
     return NextResponse.json(
       { error: 'Failed to generate weekly summary' },

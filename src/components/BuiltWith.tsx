@@ -9,7 +9,7 @@ import { Brain, Gauge, Lock, ShieldCheck } from "lucide-react";
 // the app itself.
 const stack = [
   "Groq",
-  "LangChain",
+  "Vercel AI SDK",
   "Supabase",
   "Next.js",
   "Paystack",
@@ -26,7 +26,7 @@ const promises = [
     icon: Lock,
     title: "Your data stays yours",
     description:
-      "Notes live in your own row-level-secured Supabase tables. No training on your content.",
+      "Notes live in your own row-level-secured Supabase tables, readable only by your account.",
   },
   {
     icon: ShieldCheck,
