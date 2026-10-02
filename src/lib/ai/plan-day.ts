@@ -1,7 +1,7 @@
 // Daily plan: one structured call over the user's open items, on the larger model.
 import { z } from 'zod'
 import { safeTimeZone, todayIn } from '@/lib/dates'
-import { collect, generate, stream } from './index'
+import { collect, generate, generateStream, stream } from './index'
 
 const dailyPlanSchema = z.object({
   reasoning: z.string(),
@@ -39,19 +39,21 @@ function formatCandidates(items: PlanCandidate[]): string {
     .join('\n')
 }
 
-export function planDay(input: {
+type PlanInput = {
   userId: string
   items: PlanCandidate[]
   projects: string[]
   timeZone: string
   preferredStart: string
   completedToday: number
-}): Promise<PlannedDay> {
+}
+
+function planCall(input: PlanInput) {
   const zone = safeTimeZone(input.timeZone)
   const now = new Date()
-  return generate({
-    prompt: 'daily-plan',
-    tier: 'smart',
+  return {
+    prompt: 'daily-plan' as const,
+    tier: 'smart' as const,
     schema: dailyPlanSchema,
     variables: {
       // The user's date and clock, not the server's
@@ -63,8 +65,18 @@ export function planDay(input: {
       projects: input.projects.join(', ') || 'none yet',
       items: formatCandidates(input.items),
     },
-    run: { userId: input.userId, operation: 'daily_plan' },
-  })
+    run: { userId: input.userId, operation: 'daily_plan' as const },
+  }
+}
+
+/** The plan in one piece, with a retry if the model's answer is malformed. */
+export function planDay(input: PlanInput): Promise<PlannedDay> {
+  return generate(planCall(input))
+}
+
+/** The plan as it is written, for showing on screen while the model works. */
+export function planDayStream(input: PlanInput) {
+  return generateStream(planCall(input))
 }
 
 /** Answers a question about today's plan. */

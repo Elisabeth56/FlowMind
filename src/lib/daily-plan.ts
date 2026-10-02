@@ -83,6 +83,64 @@ export function fallbackPlanSteps(
   })
 }
 
+/**
+ * A half-written plan from the model, in the shape the Today screen reads, for showing
+ * while the rest arrives. Steps whose id is not (yet) a known item are left out.
+ */
+export function previewPlan(
+  partial: unknown,
+  items: Map<string, { id: string; content: string; priority: number }>
+) {
+  const plan = (partial ?? {}) as {
+    reasoning?: string
+    energy_recommendation?: string
+    plan_items?: Array<{ item_id?: string; scheduled_time?: string; duration_minutes?: number; why_now?: string } | undefined>
+  }
+  const seen = new Set<string>()
+  const steps = (plan.plan_items ?? []).flatMap((step) => {
+    const item = step?.item_id ? items.get(step.item_id) : undefined
+    if (!step || !item || seen.has(item.id)) return []
+    seen.add(item.id)
+    return [
+      {
+        item_id: item.id,
+        scheduled_time: normalizeTime(step.scheduled_time),
+        duration_minutes: step.duration_minutes ?? null,
+        notes: step.why_now ?? null,
+        item: { id: item.id, content: item.content, status: 'organized', priority: item.priority },
+      },
+    ]
+  })
+  return {
+    reasoning: plan.reasoning ?? '',
+    energy_recommendation: plan.energy_recommendation ?? '',
+    plan_items: steps,
+    items_total: steps.length,
+    items_completed: 0,
+    status: 'active' as const,
+  }
+}
+
+/**
+ * Regenerating must not undo the day so far: steps of the old plan that are already
+ * done stay, in their old order, ahead of the new steps.
+ */
+export function keepCompletedSteps(
+  existing: Array<{ item_id: string; scheduled_time: string | null; duration_minutes: number | null; notes: string | null; item: { status: string } }>,
+  steps: PlanStep[]
+): PlanStep[] {
+  const done = existing
+    .filter((step) => step.item.status === 'completed')
+    .map((step) => ({
+      item_id: step.item_id,
+      scheduled_time: step.scheduled_time,
+      duration_minutes: step.duration_minutes,
+      why: step.notes,
+    }))
+  const kept = new Set(done.map((step) => step.item_id))
+  return [...done, ...steps.filter((step) => !kept.has(step.item_id))]
+}
+
 /** The later of the user's preferred start and their clock now, rounded up to a quarter hour. */
 export function planStartTime(preferredStart: string, timeZone: string, now: Date = new Date()): string {
   const clock = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone })

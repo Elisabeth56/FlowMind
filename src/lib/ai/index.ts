@@ -2,7 +2,7 @@
 // zod-validated structured output and `stream()` for text. Both try Groq's model for
 // the job, then Groq's other model, then Gemini if a key is set; both have a timeout
 // and log one `ai_runs` row per attempt.
-import { generateObject, streamText, JSONParseError, NoObjectGeneratedError, TypeValidationError, type LanguageModel } from 'ai'
+import { generateObject, streamObject, streamText, JSONParseError, NoObjectGeneratedError, TypeValidationError, type LanguageModel } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import type { z } from 'zod'
@@ -142,6 +142,90 @@ export async function generate<Schema extends z.ZodType>(
   throw invalid
     ? new AiError('invalid_output', 'The model returned an answer we could not use')
     : new AiError('unavailable', 'No AI provider is available right now')
+}
+
+/**
+ * One structured call whose answer is shown while it is written. `partials` yields the
+ * object as it fills in; `object` resolves to the validated whole, or rejects with an
+ * AiError. Like `stream()`, it can switch model until the first content arrives.
+ */
+export async function generateStream<Schema extends z.ZodType>(
+  call: Call & { schema: Schema }
+): Promise<{ partials: AsyncIterable<unknown>; object: Promise<z.infer<Schema>> }> {
+  const { version, system, user } = renderPrompt(call.prompt, call.variables)
+  const targets = call.targets ?? defaultTargets(call.tier)
+  const record = call.record ?? recordAiRun
+
+  for (const target of targets) {
+    const startedAt = Date.now()
+    const log = { ...call.run, promptVersion: version, provider: target.provider, model: target.model }
+    const failed = (error: unknown) =>
+      record({ ...log, latencyMs: Date.now() - startedAt, success: false, error: describe(error) })
+
+    const result = streamObject({
+      model: target.languageModel,
+      schema: call.schema,
+      system,
+      prompt: user,
+      temperature: TEMPERATURE[call.tier],
+      maxRetries: 0,
+      abortSignal: AbortSignal.timeout(TIMEOUT_MS[call.tier]),
+      providerOptions: PROVIDER_OPTIONS,
+      onError: () => {},
+    })
+    // Logged once, when the whole answer has been validated (or has failed to)
+    const object = result.object.then(
+      async (value) => {
+        const usage = await result.usage
+        await record({
+          ...log,
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          latencyMs: Date.now() - startedAt,
+          success: true,
+        })
+        return value as z.infer<Schema>
+      },
+      async (error) => {
+        await failed(error)
+        throw isInvalidOutput(error)
+          ? new AiError('invalid_output', 'The model returned an answer we could not use')
+          : new AiError('unavailable', 'The answer was cut off')
+      }
+    )
+    // The caller may never await it (for example when this model is skipped below)
+    object.catch(() => {})
+
+    const parts = result.fullStream[Symbol.asyncIterator]()
+    const nextPartial = async (): Promise<{ value: unknown } | null> => {
+      for (;;) {
+        const { value: part, done } = await parts.next()
+        if (done) return null
+        if (part.type === 'error') throw part.error
+        if (part.type === 'object') return { value: part.object }
+      }
+    }
+
+    let first: { value: unknown } | null
+    try {
+      first = await nextPartial()
+    } catch {
+      continue // `object` has logged the failure; try the next model
+    }
+
+    return {
+      partials: (async function* () {
+        try {
+          for (let partial = first; partial !== null; partial = await nextPartial()) yield partial.value
+        } catch {
+          // The failure surfaces through `object`
+        }
+      })(),
+      object,
+    }
+  }
+
+  throw new AiError('unavailable', 'No AI provider is available right now')
 }
 
 /**
