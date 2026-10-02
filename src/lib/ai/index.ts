@@ -1,7 +1,7 @@
 // The only place the app talks to a model provider. Two calls: `generate()` for
-// zod-validated structured output and `stream()` for text. Both try Groq first and
-// fall back to Gemini when Groq is rate-limited, down or slow; both have a timeout
-// and log one `ai_runs` row per provider attempt.
+// zod-validated structured output and `stream()` for text. Both try Groq's model for
+// the job, then Groq's other model, then Gemini if a key is set; both have a timeout
+// and log one `ai_runs` row per attempt.
 import { generateObject, streamText, JSONParseError, NoObjectGeneratedError, TypeValidationError, type LanguageModel } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
@@ -31,16 +31,20 @@ const PROVIDER_OPTIONS = { groq: { strictJsonSchema: false, reasoningEffort: 'lo
 const TIMEOUT_MS: Record<Tier, number> = { fast: 12_000, smart: 25_000 }
 const TEMPERATURE: Record<Tier, number> = { fast: 0.1, smart: 0.3 }
 
-/** Providers in the order they are tried. Gemini joins only when its key is set. */
+/**
+ * Models in the order they are tried: the Groq model for the tier, then Groq's other
+ * model (limits are per model, so one can be exhausted while the other is not), then
+ * Gemini if its key is set.
+ */
 export function defaultTargets(tier: Tier): Target[] {
   const env = serverEnv()
-  const targets: Target[] = [
-    {
-      provider: 'groq',
-      model: MODELS.groq[tier],
-      languageModel: createGroq({ apiKey: env.GROQ_API_KEY })(MODELS.groq[tier]),
-    },
-  ]
+  const groq = createGroq({ apiKey: env.GROQ_API_KEY })
+  const other: Tier = tier === 'fast' ? 'smart' : 'fast'
+  const targets: Target[] = [tier, other].map((t) => ({
+    provider: 'groq',
+    model: MODELS.groq[t],
+    languageModel: groq(MODELS.groq[t]),
+  }))
   if (env.GOOGLE_GENERATIVE_AI_API_KEY) {
     targets.push({
       provider: 'google',

@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { refuseAiCall } from '@/lib/billing/quota'
 import { aiErrorResponse } from '@/lib/ai/http'
 import { askAboutDay, planDay } from '@/lib/ai/plan-day'
-import { loadDailyPlan, toPlanSteps } from '@/lib/daily-plan'
-import { startOfDayIn, todayIn } from '@/lib/dates'
+import { AiError } from '@/lib/ai'
+import { fallbackPlanSteps, loadDailyPlan, planStartTime, toPlanSteps, type PlanStep } from '@/lib/daily-plan'
+import { safeTimeZone, startOfDayIn, todayIn } from '@/lib/dates'
 import type { Json } from '@/types/models'
 
 async function userToday(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
@@ -118,30 +119,50 @@ export async function POST(request: NextRequest) {
       project_name: (item.projects as unknown as { name: string } | null)?.name || null,
     }))
 
-    const plan = await planDay({
-      userId: user.id,
-      items: candidates,
-      projects: projects?.map(p => p.name) || [],
-      timeZone: profile.timezone,
-      preferredStart: profile.daily_plan_time,
-      completedToday: completedToday || 0,
-    })
+    // If no model answers, plan by rule instead of leaving the user without a day
+    let degraded = false
+    let plan: { reasoning: string; energy_recommendation: string; steps: PlanStep[] }
+    try {
+      const planned = await planDay({
+        userId: user.id,
+        items: candidates,
+        projects: projects?.map(p => p.name) || [],
+        timeZone: profile.timezone,
+        preferredStart: profile.daily_plan_time,
+        completedToday: completedToday || 0,
+      })
+      plan = {
+        reasoning: planned.reasoning,
+        energy_recommendation: planned.energy_recommendation,
+        // The model may only schedule items we offered
+        steps: toPlanSteps(planned.plan_items, candidates.map((item) => item.id)),
+      }
+    } catch (error) {
+      if (!(error instanceof AiError) || error.kind !== 'unavailable') throw error
+      degraded = true
+      plan = {
+        reasoning:
+          'The AI is unavailable right now, so this plan is ordered by due date and priority. Regenerate it later for a reasoned one.',
+        energy_recommendation: '',
+        steps: fallbackPlanSteps(candidates, today, planStartTime(profile.daily_plan_time, safeTimeZone(profile.timezone))),
+      }
+    }
 
     const latencyMs = Date.now() - startTime
 
-    // Plan and steps are written together; the model may only schedule items we offered
-    const steps = toPlanSteps(plan.plan_items, candidates.map((item) => item.id))
+    // Plan and steps are written together
     const { error: saveError } = await supabase.rpc('save_daily_plan', {
       p_plan_date: today,
       p_reasoning: plan.reasoning,
       p_energy_recommendation: plan.energy_recommendation,
-      p_items: steps as unknown as Json,
+      p_items: plan.steps as unknown as Json,
     })
     if (saveError) throw new Error(`Could not save plan: ${saveError.message}`)
 
     return NextResponse.json({
       success: true,
       plan: await loadDailyPlan(supabase, user.id, today),
+      degraded,
       latencyMs,
     })
 
