@@ -3,7 +3,7 @@ import { APICallError } from 'ai'
 import { MockLanguageModelV4, simulateReadableStream } from 'ai/test'
 import { z } from 'zod'
 import type { AiRunRecord } from '@/lib/billing/quota'
-import { AiError, collect, generate, stream, type Target } from './index'
+import { AiError, collect, generate, generateStream, stream, type Target } from './index'
 import { fill, parsePrompt } from './prompt'
 
 const usage = {
@@ -151,6 +151,58 @@ describe('stream', () => {
       ['groq', false],
       ['google', true],
     ])
+  })
+})
+
+describe('generateStream', () => {
+  const jsonChunks = (...texts: string[]) => async () => ({
+    stream: simulateReadableStream({
+      chunks: [
+        { type: 'text-start' as const, id: '1' },
+        ...texts.map((delta) => ({ type: 'text-delta' as const, id: '1', delta })),
+        { type: 'text-end' as const, id: '1' },
+        { type: 'finish' as const, finishReason, usage },
+      ],
+    }),
+  })
+
+  it('yields the object as it fills in, then the validated whole', async () => {
+    const { runs, base } = setup()
+    const result = await generateStream({
+      ...base,
+      schema,
+      targets: [target('groq', undefined, jsonChunks('{"answer":"Start ', 'with the deck"}'))],
+    })
+
+    const partials: unknown[] = []
+    for await (const partial of result.partials) partials.push(partial)
+
+    expect(partials.at(-1)).toEqual({ answer: 'Start with the deck' })
+    expect(partials.length).toBeGreaterThan(1)
+    expect(await result.object).toEqual({ answer: 'Start with the deck' })
+    expect(runs).toEqual([expect.objectContaining({ provider: 'groq', success: true })])
+  })
+
+  it('switches model when the first fails before any content', async () => {
+    const { base } = setup()
+    const result = await generateStream({
+      ...base,
+      schema,
+      targets: [target('groq', undefined, failing(429)), target('google', undefined, jsonChunks('{"answer":"ok"}'))],
+    })
+    expect(await result.object).toEqual({ answer: 'ok' })
+  })
+
+  it('rejects with invalid_output when the finished object does not match the schema', async () => {
+    const { runs, base } = setup()
+    const result = await generateStream({
+      ...base,
+      schema,
+      targets: [target('groq', undefined, jsonChunks('{"wrong":', '1}'))],
+    })
+    for await (const _ of result.partials) void _
+    await expect(result.object).rejects.toMatchObject({ kind: 'invalid_output' })
+    expect(runs.map((run) => run.success)).toEqual([false])
   })
 })
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fallbackPlanSteps, normalizeTime, planStartTime, toPlanSteps } from './daily-plan'
+import { fallbackPlanSteps, keepCompletedSteps, normalizeTime, planStartTime, previewPlan, toPlanSteps } from './daily-plan'
 
 describe('normalizeTime', () => {
   it('pads and trims what the model and the database give back', () => {
@@ -86,5 +86,55 @@ describe('planStartTime', () => {
   it('starts from now, on the next quarter hour, once the preferred time has passed', () => {
     // 14:07 in Lagos
     expect(planStartTime('08:30:00', 'Africa/Lagos', new Date('2026-10-02T13:07:00Z'))).toBe('14:15')
+  })
+})
+
+describe('keepCompletedSteps', () => {
+  const old = (item_id: string, status: string) => ({
+    item_id,
+    scheduled_time: '08:30',
+    duration_minutes: 10,
+    notes: 'old reason',
+    item: { status },
+  })
+  const fresh = (item_id: string) => ({ item_id, scheduled_time: '14:00', duration_minutes: 30, why: 'new reason' })
+
+  it('keeps what is already done ahead of the regenerated steps', () => {
+    const steps = keepCompletedSteps([old('room', 'completed'), old('deck', 'in_progress')], [fresh('deck'), fresh('call')])
+    expect(steps.map((step) => step.item_id)).toEqual(['room', 'deck', 'call'])
+    expect(steps[0]).toEqual({ item_id: 'room', scheduled_time: '08:30', duration_minutes: 10, why: 'old reason' })
+    expect(steps[1].why).toBe('new reason')
+  })
+
+  it('does not list a completed item twice if the model schedules it again', () => {
+    expect(keepCompletedSteps([old('room', 'completed')], [fresh('room')])).toHaveLength(1)
+  })
+})
+
+describe('previewPlan', () => {
+  const items = new Map([['a', { id: 'a', content: 'Finish the deck', priority: 3 }]])
+
+  it('shows the reasoning before any step exists', () => {
+    expect(previewPlan({ reasoning: 'The deck is due' }, items)).toMatchObject({
+      reasoning: 'The deck is due',
+      plan_items: [],
+      items_total: 0,
+    })
+  })
+
+  it('shows a step once its id is a real item, and never an invented one', () => {
+    const preview = previewPlan(
+      { reasoning: 'r', plan_items: [{ item_id: 'a', scheduled_time: '9:00' }, { item_id: 'made-up' }, { item_id: 'a' }, undefined] },
+      items
+    )
+    expect(preview.plan_items).toEqual([
+      {
+        item_id: 'a',
+        scheduled_time: '09:00',
+        duration_minutes: null,
+        notes: null,
+        item: { id: 'a', content: 'Finish the deck', status: 'organized', priority: 3 },
+      },
+    ])
   })
 })
