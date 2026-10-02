@@ -31,3 +31,6 @@ yarn-error.log*
 
 # misc
 coverage/
+# eval runs; only the baseline is kept
+evals/results/*.json
+!evals/results/baseline.json

@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
-    "db:types": "supabase gen types typescript --local > src/types/database.ts"
+    "db:types": "supabase gen types typescript --local > src/types/database.ts",
+    "eval": "vitest run --config evals/vitest.config.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.87",

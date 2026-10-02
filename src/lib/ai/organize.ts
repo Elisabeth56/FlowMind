@@ -1,6 +1,6 @@
 // Organise: one structured call per captured item, on the small fast model.
 import { z } from 'zod'
-import { generate } from './index'
+import { generate, type CallOverrides } from './index'
 
 const organizedItemSchema = z.object({
   item_type: z.enum(['note', 'task', 'idea', 'reminder', 'link']),
@@ -26,8 +26,13 @@ export type OrganizedItem = z.infer<typeof organizedItemSchema>
 
 type Context = { userId: string; existingProjects: string[]; today: string }
 
-export function organizeItem(content: string, context: Context): Promise<OrganizedItem> {
+export function organizeItem(
+  content: string,
+  context: Context,
+  overrides: CallOverrides = {}
+): Promise<OrganizedItem> {
   return generate({
+    ...overrides,
     prompt: 'organize',
     tier: 'fast',
     schema: organizedItemSchema,
