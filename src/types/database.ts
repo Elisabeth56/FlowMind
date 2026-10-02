@@ -455,15 +455,16 @@ export type Database = {
         Row: {
           accomplishments: NonNullable<Json>
           created_at: string
-          focus_score: number | null
           id: string
           items_carried_over: number
           items_completed: number
           items_created: number
-          patterns: NonNullable<Json>
+          keep: string | null
+          plan_completion_rate: number | null
           productivity_trend: string | null
-          suggestions: NonNullable<Json>
+          project_counts: NonNullable<Json>
           summary_text: string | null
+          try_next: string | null
           user_id: string
           week_end: string
           week_start: string
@@ -471,15 +472,16 @@ export type Database = {
         Insert: {
           accomplishments?: NonNullable<Json>
           created_at?: string
-          focus_score?: number | null
           id?: string
           items_carried_over?: number
           items_completed?: number
           items_created?: number
-          patterns?: NonNullable<Json>
+          keep?: string | null
+          plan_completion_rate?: number | null
           productivity_trend?: string | null
-          suggestions?: NonNullable<Json>
+          project_counts?: NonNullable<Json>
           summary_text?: string | null
+          try_next?: string | null
           user_id: string
           week_end: string
           week_start: string
@@ -487,15 +489,16 @@ export type Database = {
         Update: {
           accomplishments?: NonNullable<Json>
           created_at?: string
-          focus_score?: number | null
           id?: string
           items_carried_over?: number
           items_completed?: number
           items_created?: number
-          patterns?: NonNullable<Json>
+          keep?: string | null
+          plan_completion_rate?: number | null
           productivity_trend?: string | null
-          suggestions?: NonNullable<Json>
+          project_counts?: NonNullable<Json>
           summary_text?: string | null
+          try_next?: string | null
           user_id?: string
           week_end?: string
           week_start?: string
@@ -544,6 +547,17 @@ export type Database = {
           p_reasoning: string
         }
         Returns: string
+      }
+      week_stats: {
+        Args: { p_week_end: string; p_week_start: string }
+        Returns: {
+          items_carried_over: number
+          items_completed: number
+          items_created: number
+          plan_steps: number
+          plan_steps_done: number
+          projects: Json
+        }[]
       }
     }
     Enums: {
