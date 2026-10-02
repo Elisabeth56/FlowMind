@@ -35,7 +35,7 @@ export interface DailyPlan {
   plan_items: DailyPlanItem[]
   items_total: number
   items_completed: number
-  status: 'active' | 'completed' | 'skipped'
+  status: 'active' | 'completed'
 }
 
 export interface WeeklySummary {

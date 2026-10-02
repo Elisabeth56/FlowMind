@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { mergePreferences, type Preferences } from '@/lib/preferences'
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -51,6 +52,7 @@ export async function PATCH(request: Request) {
       timezone?: string
       daily_plan_time?: string
       weekly_summary_day?: number
+      preferences?: Preferences
     } = {}
 
     if (typeof body.full_name === 'string') {
@@ -87,6 +89,19 @@ export async function PATCH(request: Request) {
         )
       }
       updates.weekly_summary_day = body.weekly_summary_day
+    }
+
+    if (body.preferences !== undefined) {
+      const { data: current } = await supabase
+        .from('profiles')
+        .select('preferences')
+        .eq('id', user.id)
+        .single()
+      try {
+        updates.preferences = mergePreferences(current?.preferences, body.preferences)
+      } catch {
+        return NextResponse.json({ error: 'Invalid preferences' }, { status: 400 })
+      }
     }
 
     if (Object.keys(updates).length === 0) {

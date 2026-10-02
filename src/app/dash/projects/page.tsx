@@ -281,7 +281,7 @@ export default function ProjectsPage() {
                       initial={{ width: 0 }}
                       animate={{
                         width: project.item_count
-                          ? `${((project.completed_count ?? 0) / project.item_count) * 100}%`
+                          ? `${(project.completed_count / project.item_count) * 100}%`
                           : '0%',
                       }}
                       transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}

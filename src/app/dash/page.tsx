@@ -308,13 +308,11 @@ export default function InboxPage() {
                             </span>
                           )}
 
-                          {/* Topics */}
-                          {Array.isArray(item.extracted_topics) && item.extracted_topics.slice(0, 2).map((topic, i) => (
-                            typeof topic === 'string' && (
-                              <span key={i} className="px-2 py-1 bg-azure-50 text-azure-700 rounded-lg text-xs">
-                                {topic}
-                              </span>
-                            )
+                          {/* Tags */}
+                          {item.tags.slice(0, 2).map((tag) => (
+                            <span key={tag} className="px-2 py-1 bg-azure-50 text-azure-700 rounded-lg text-xs">
+                              {tag}
+                            </span>
                           ))}
 
                           {/* Status indicator */}
