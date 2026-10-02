@@ -1,158 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { getQuota, quotaExceededBody, recordAiRun } from '@/lib/billing/quota'
-import { getOrganizeChain, organizeItems, type OrganizedItem } from '@/lib/ai/chains/organize'
-import { MODELS, rateLimiter } from '@/lib/ai/groq'
+import { refuseAiCall } from '@/lib/billing/quota'
+import { cleanTags, organizeItems, type OrganizedItem } from '@/lib/ai/organize'
+import { todayIn } from '@/lib/dates'
 
+const bodySchema = z.object({ itemIds: z.array(z.uuid()).min(1).max(50) })
+
+// POST - organise existing inbox items: type, priority, tags, due date, project
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
-    // Check authentication
+
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get request body
-    const body = await request.json()
-    const { itemIds, content } = body
-
-    // What this request costs against the free quota: one unit per item
-    const cost = Array.isArray(itemIds) && !content ? Math.max(1, itemIds.length) : 1
-    const quota = await getQuota(supabase, user.id, cost)
-    if (!quota.allowed) {
-      return NextResponse.json(quotaExceededBody(quota), { status: 429 })
+    const body = bodySchema.safeParse(await request.json().catch(() => null))
+    if (!body.success) {
+      return NextResponse.json({ error: 'Provide itemIds: 1 to 50 item ids' }, { status: 400 })
     }
 
-    // Get existing projects for context
-    const { data: projects } = await supabase
-      .from('projects')
-      .select('name')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
+    const [{ data: items }, { data: projects }, { data: profile }] = await Promise.all([
+      supabase.from('inbox_items').select('id, content').in('id', body.data.itemIds).eq('user_id', user.id),
+      supabase.from('projects').select('id, name').eq('user_id', user.id).eq('status', 'active'),
+      supabase.from('profiles').select('timezone').eq('id', user.id).single(),
+    ])
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: 'No items found' }, { status: 404 })
+    }
 
-    const existingProjects = projects?.map(p => p.name) || []
-
-    // Rate limit
-    await rateLimiter.acquire()
+    // One unit of quota per item
+    const refusal = await refuseAiCall(supabase, user.id, items.length)
+    if (refusal) return NextResponse.json(refusal.body, { status: refusal.status })
 
     const startTime = Date.now()
-    let result: OrganizedItem | Map<string, OrganizedItem>
-    let itemCount = 1
-
-    // Single item or batch
-    if (content) {
-      // Single new item - organize it
-      result = await getOrganizeChain().invoke({ content, existingProjects })
-    } else if (itemIds && Array.isArray(itemIds)) {
-      // Batch organize existing items
-      const { data: items } = await supabase
-        .from('inbox_items')
-        .select('id, content')
-        .in('id', itemIds)
-        .eq('user_id', user.id)
-
-      if (!items || items.length === 0) {
-        return NextResponse.json({ error: 'No items found' }, { status: 404 })
-      }
-
-      itemCount = items.length
-      result = await organizeItems(items, existingProjects)
-    } else {
-      return NextResponse.json({ error: 'Provide either content or itemIds' }, { status: 400 })
-    }
-
-    const latencyMs = Date.now() - startTime
-
-    await recordAiRun({
+    const results = await organizeItems(items, {
       userId: user.id,
-      operation: 'organize',
-      units: itemCount,
-      model: MODELS.LLAMA_8B,
-      latencyMs,
+      existingProjects: (projects ?? []).map((project) => project.name),
+      today: todayIn(profile?.timezone ?? 'UTC'),
     })
 
-    // If batch, update the items in the database
-    if (result instanceof Map) {
-      const updates = Array.from(result.entries()).map(([id, organized]) => ({
-        id,
-        item_type: organized.item_type,
-        is_actionable: organized.is_actionable,
-        priority: organized.priority,
-        sentiment: organized.sentiment,
-        extracted_entities: organized.extracted_entities,
-        tags: [...new Set(organized.extracted_topics.map((topic) => topic.trim().toLowerCase()).filter(Boolean))],
-        ai_status: 'done',
-        due_date: organized.due_date,
-        status: 'organized' as const,
-        organized_at: new Date().toISOString(),
-      }))
-
-      // Update each item
-      for (const update of updates) {
-        await supabase
-          .from('inbox_items')
-          .update(update)
-          .eq('id', update.id)
-      }
-
-      // Create suggested projects if they don't exist
-      // Project names are unique per user whatever the case, so "Clients" and "clients" are one
-      const known = new Set(existingProjects.map((name) => name.toLowerCase()))
-      const suggestedProjects = new Set<string>()
-      result.forEach(org => {
-        const name = org.suggested_project?.trim()
-        if (name && !known.has(name.toLowerCase())) {
-          known.add(name.toLowerCase())
-          suggestedProjects.add(name)
-        }
-      })
-
-      if (suggestedProjects.size > 0) {
-        const newProjects = Array.from(suggestedProjects).map(name => ({
-          user_id: user.id,
-          name,
-          suggested_by_ai: true,
-          ai_confidence: 0.8,
-        }))
-        
-        await supabase.from('projects').insert(newProjects)
-      }
-
-      return NextResponse.json({
-        success: true,
-        organized: Object.fromEntries(result),
-        itemsProcessed: result.size,
-        newProjectsSuggested: Array.from(suggestedProjects),
-        latencyMs,
-      })
+    // Project names are unique per user whatever the case, so "Clients" and "clients" are one
+    const projectIds = new Map((projects ?? []).map((project) => [project.name.toLowerCase(), project.id]))
+    const newNames = new Map<string, string>()
+    for (const organized of results.values()) {
+      const name = organized?.suggested_project?.trim()
+      if (name && !projectIds.has(name.toLowerCase())) newNames.set(name.toLowerCase(), name)
+    }
+    if (newNames.size > 0) {
+      const { data: created } = await supabase
+        .from('projects')
+        .insert([...newNames.values()].map((name) => ({ user_id: user.id, name, suggested_by_ai: true })))
+        .select('id, name')
+      for (const project of created ?? []) projectIds.set(project.name.toLowerCase(), project.id)
     }
 
-    // Single item result
+    const organizedAt = new Date().toISOString()
+    const organizedItems: Record<string, OrganizedItem> = {}
+    await Promise.all(
+      [...results].map(([id, organized]) => {
+        // The model could not handle this one: say so on the item, so the inbox can offer a retry
+        if (!organized) {
+          return supabase.from('inbox_items').update({ ai_status: 'failed' }).eq('id', id)
+        }
+        organizedItems[id] = organized
+        const projectId = organized.suggested_project
+          ? projectIds.get(organized.suggested_project.trim().toLowerCase())
+          : undefined
+        return supabase
+          .from('inbox_items')
+          .update({
+            item_type: organized.item_type,
+            is_actionable: organized.is_actionable,
+            priority: organized.priority,
+            sentiment: organized.sentiment,
+            extracted_entities: organized.entities,
+            tags: cleanTags(organized.tags),
+            due_date: organized.due_date,
+            ...(projectId ? { project_id: projectId } : {}),
+            status: 'organized',
+            ai_status: 'done',
+            organized_at: organizedAt,
+          })
+          .eq('id', id)
+      })
+    )
+
     return NextResponse.json({
       success: true,
-      organized: result,
-      latencyMs,
+      organized: organizedItems,
+      itemsProcessed: Object.keys(organizedItems).length,
+      itemsFailed: results.size - Object.keys(organizedItems).length,
+      newProjectsSuggested: [...newNames.values()],
+      latencyMs: Date.now() - startTime,
     })
-
   } catch (error) {
     console.error('Organize API error:', error)
-    
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await recordAiRun({
-        userId: user.id,
-        operation: 'organize',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to organize items' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to organize items' }, { status: 500 })
   }
 }

@@ -24,6 +24,8 @@ export type Database = {
           model: string | null
           operation: string
           output_tokens: number | null
+          prompt_version: string | null
+          provider: string | null
           success: boolean
           units: number
           user_id: string
@@ -37,6 +39,8 @@ export type Database = {
           model?: string | null
           operation: string
           output_tokens?: number | null
+          prompt_version?: string | null
+          provider?: string | null
           success?: boolean
           units?: number
           user_id: string
@@ -50,6 +54,8 @@ export type Database = {
           model?: string | null
           operation?: string
           output_tokens?: number | null
+          prompt_version?: string | null
+          provider?: string | null
           success?: boolean
           units?: number
           user_id?: string

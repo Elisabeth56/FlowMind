@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // Prompt files are read from disk at request time, so they must ship with the API routes
+  outputFileTracingIncludes: {
+    '/api/**': ['./src/lib/ai/prompts/**'],
+  },
+
   // Server Actions
   experimental: {
     serverActions: {

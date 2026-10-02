@@ -15,8 +15,8 @@ git config user.email "nnamanielisabeth@gmail.com"
 
 ## Stack
 
-Next.js 15 (App Router) · React 19 · Tailwind v4 · Supabase · LangChain on Groq ·
-Paystack.
+Next.js 15 (App Router) · React 19 · Tailwind v4 · Supabase · Vercel AI SDK (Groq,
+Gemini fallback) · Paystack.
 
 ## Layout
 
@@ -25,7 +25,7 @@ Paystack.
 - `src/components/` — marketing-site components. In-app UI lives beside its route.
 - `src/hooks/` — client data hooks (`useAuth`, `useInboxItems`, `useProjects`,
   `useAI`, `useSubscription`).
-- `src/lib/` — `env.ts` (validated env), `ai/` (chains + Groq), `supabase/`, `paystack/`, `plans.ts`.
+- `src/lib/` — `env.ts` (validated env), `ai/` (model client, features, prompts), `supabase/`, `paystack/`, `plans.ts`.
 - `src/types/database.ts` — generated from the migrations (`npm run db:types`); never edit
   by hand. App-level row names (`Profile`, `InboxItem`…) live in `src/types/models.ts`.
 - `supabase/` — `migrations/` (the schema, in order), `seed.sql` (demo account and a
@@ -39,9 +39,12 @@ Paystack.
 - **Pricing lives in `src/lib/plans.ts`.** The marketing page, the in-app billing
   screen and the Paystack checkout route all read from it. Never hardcode an
   amount anywhere else.
-- **Never construct a Groq client or LangChain chain at module scope.** The SDK
-  throws without `GROQ_API_KEY`, and `next build` imports every route module, so
-  eager construction fails the build. Use `getModel()` and `lazyChain()`.
+- **All model calls go through `src/lib/ai/index.ts`** (`generate()` for zod-validated
+  output, `stream()` for text): Groq first, Gemini as fallback, a timeout, and an `ai_runs`
+  row per attempt. Each feature is one file in `src/lib/ai/` with a schema and a prompt in
+  `src/lib/ai/prompts/*.md`. Change a prompt, bump its `version`. Call `refuseAiCall()`
+  before any model call in a route. Model ids live in one table in the module; check they
+  are still served before changing them.
 - **Scroll reveals share `revealViewport` from `src/lib/motion.ts`.** It starts
   the animation before the section enters view; per-component viewport settings
   reintroduce the "page fills in late" effect.

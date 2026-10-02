@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getQuota, quotaExceededBody, recordAiRun } from '@/lib/billing/quota'
-import { getDailyPlanChain, getAnswerQuestionChain, type DailyPlan } from '@/lib/ai/chains/daily-plan'
-import { MODELS, rateLimiter } from '@/lib/ai/groq'
+import { refuseAiCall } from '@/lib/billing/quota'
+import { aiErrorResponse } from '@/lib/ai/http'
+import { askAboutDay, planDay } from '@/lib/ai/plan-day'
 import { loadDailyPlan, toPlanSteps } from '@/lib/daily-plan'
 import { startOfDayIn, todayIn } from '@/lib/dates'
 import type { Json } from '@/types/models'
@@ -36,12 +36,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    const quota = await getQuota(supabase, user.id)
-    if (!quota.allowed) {
-      return NextResponse.json(quotaExceededBody(quota), { status: 429 })
-    }
-
-    await rateLimiter.acquire()
     const startTime = Date.now()
 
     // The user's own date: a server in UTC is a day behind Lagos for an hour every night
@@ -55,14 +49,10 @@ export async function POST(request: NextRequest) {
         ? `Focus: ${todayPlan.reasoning}\nItems planned: ${todayPlan.items_total}\nCompleted: ${todayPlan.items_completed}`
         : 'No plan generated for today yet.'
 
-      const answer = await getAnswerQuestionChain().invoke({ planSummary, question })
+      const refusal = await refuseAiCall(supabase, user.id)
+      if (refusal) return NextResponse.json(refusal.body, { status: refusal.status })
 
-      await recordAiRun({
-        userId: user.id,
-        operation: 'ask',
-        model: MODELS.LLAMA_70B,
-        latencyMs: Date.now() - startTime,
-      })
+      const answer = await askAboutDay({ userId: user.id, today, planSummary, question })
 
       return NextResponse.json({
         success: true,
@@ -82,6 +72,10 @@ export async function POST(request: NextRequest) {
         cached: true,
       })
     }
+
+    // Checked only now: showing a plan that already exists costs nothing
+    const refusal = await refuseAiCall(supabase, user.id)
+    if (refusal) return NextResponse.json(refusal.body, { status: refusal.status })
 
     // Get pending items
     const { data: pendingItems } = await supabase
@@ -116,21 +110,19 @@ export async function POST(request: NextRequest) {
       .eq('status', 'completed')
       .gte('completed_at', startOfDayIn(profile.timezone, today).toISOString())
 
-    // Format items for the chain
-    const formattedItems = (pendingItems || []).map(item => ({
+    const candidates = (pendingItems || []).map(item => ({
       id: item.id,
       content: item.content,
       priority: item.priority,
       due_date: item.due_date,
       project_name: (item.projects as unknown as { name: string } | null)?.name || null,
-      is_actionable: item.is_actionable,
     }))
 
-    // Generate the plan
-    const plan: DailyPlan = await getDailyPlanChain().invoke({
-      items: formattedItems,
+    const plan = await planDay({
+      userId: user.id,
+      items: candidates,
       projects: projects?.map(p => p.name) || [],
-      timezone: profile.timezone,
+      timeZone: profile.timezone,
       preferredStart: profile.daily_plan_time,
       completedToday: completedToday || 0,
     })
@@ -138,7 +130,7 @@ export async function POST(request: NextRequest) {
     const latencyMs = Date.now() - startTime
 
     // Plan and steps are written together; the model may only schedule items we offered
-    const steps = toPlanSteps(plan.plan_items, formattedItems.map((item) => item.id))
+    const steps = toPlanSteps(plan.plan_items, candidates.map((item) => item.id))
     const { error: saveError } = await supabase.rpc('save_daily_plan', {
       p_plan_date: today,
       p_reasoning: plan.reasoning,
@@ -146,13 +138,6 @@ export async function POST(request: NextRequest) {
       p_items: steps as unknown as Json,
     })
     if (saveError) throw new Error(`Could not save plan: ${saveError.message}`)
-
-    await recordAiRun({
-      userId: user.id,
-      operation: 'daily_plan',
-      model: MODELS.LLAMA_70B,
-      latencyMs,
-    })
 
     return NextResponse.json({
       success: true,
@@ -162,17 +147,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Daily plan API error:', error)
-    
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await recordAiRun({
-        userId: user.id,
-        operation: 'daily_plan',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
+
+    const aiFailure = aiErrorResponse(error)
+    if (aiFailure) return aiFailure
 
     return NextResponse.json(
       { error: 'Failed to generate daily plan' },
