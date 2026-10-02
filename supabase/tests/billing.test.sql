@@ -32,7 +32,7 @@ select throws_ok(
 
 -- trigger functions are not callable through the API -------------------------
 select ok(not has_function_privilege('anon', 'public.handle_new_user()', 'execute'), 'anon cannot call handle_new_user');
-select ok(not has_function_privilege('authenticated', 'public.update_project_counts()', 'execute'), 'users cannot call update_project_counts');
+select ok(not has_function_privilege('authenticated', 'public.update_updated_at()', 'execute'), 'users cannot call update_updated_at');
 
 insert into public.subscriptions (user_id, tier) values ('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', 'free');
 

@@ -216,6 +216,13 @@ export type Database = {
             foreignKeyName: "inbox_items_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_counts"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "inbox_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
