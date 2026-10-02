@@ -53,7 +53,7 @@ describe('prompts render with what each feature provides', () => {
     expect(prompt.system).toContain('they like to start at 08:30')
   })
 
-  it('weekly summary is given the completion rate instead of computing it', async () => {
+  it('weekly summary is given every number instead of computing any', async () => {
     await summarizeWeek({
       userId: 'u',
       weekStart: '2026-09-27',
@@ -61,14 +61,18 @@ describe('prompts render with what each feature provides', () => {
       itemsCreated: 6,
       itemsCompleted: 5,
       itemsCarriedOver: 4,
+      completionRate: 50,
+      planCompletionRate: 67,
+      trend: 'improving (5 completed, 3 last week)',
+      projects: [{ name: 'Home', completed: 3 }],
       completedItems: [{ content: 'Paid the bill', project_name: 'Home' }],
       pendingItems: [{ content: 'Renew domain', priority: 1, ageDays: 9 }],
-      planAdherence: '3 plans, 70% completed',
-      projectsTouched: ['Home'],
-      lastWeekSummary: null,
     })
     const prompt = rendered()
+    expect(prompt.version).toBe('weekly-summary-3')
     expect(prompt.user).toContain('Completion rate: 50%')
+    expect(prompt.user).toContain('Daily plans: 67% of planned steps done')
+    expect(prompt.user).toContain('Completed per project: Home 3')
     expect(prompt.user).toContain('- Renew domain (priority low, 9 days old)')
   })
 

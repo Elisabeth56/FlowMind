@@ -31,15 +31,20 @@ export function addDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-/** The Sunday-to-Saturday week containing today in `timeZone`, moved by `weekOffset` weeks. */
+/**
+ * The seven-day week containing today in `timeZone`, moved by `weekOffset` weeks.
+ * `startsOn` is the weekday the user's week begins (0 = Sunday … 6 = Saturday).
+ */
 export function weekIn(
   timeZone: string,
   now: Date = new Date(),
-  weekOffset = 0
+  weekOffset = 0,
+  startsOn = 0
 ): { start: string; end: string } {
   const today = todayIn(timeZone, now)
   const dayOfWeek = new Date(`${today}T00:00:00Z`).getUTCDay()
-  const start = addDays(today, weekOffset * 7 - dayOfWeek)
+  const daysIntoWeek = (dayOfWeek - startsOn + 7) % 7
+  const start = addDays(today, weekOffset * 7 - daysIntoWeek)
   return { start, end: addDays(start, 6) }
 }
 

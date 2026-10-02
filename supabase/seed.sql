@@ -70,11 +70,13 @@ where i.user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6';
 
 -- last week's reflection
 insert into public.weekly_summaries (user_id, week_start, week_end, items_created, items_completed, items_carried_over,
-  summary_text, accomplishments, suggestions)
+  plan_completion_rate, productivity_trend, project_counts, summary_text, accomplishments, keep, try_next)
 values ('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', current_date - 13, current_date - 7, 21, 15, 4,
+  74, 'improving', '[{"name":"Clients","completed":7},{"name":"Pitch prep","completed":5},{"name":"Home","completed":3}]',
   'Mornings carried the week: every deep-work block before 11 got done. Friday is where it slipped, with four admin tasks planned and one finished.',
   '["Shipped the client site fixes","Drafted the pitch outline"]',
-  '[{"suggestion":"Two 20-minute admin slots on Tuesday and Wednesday instead of one Friday pile","priority":"high","effort":"quick"}]');
+  'Deep work before 11. Every morning block you planned got done.',
+  'Two 20-minute admin slots on Tuesday and Wednesday instead of one Friday pile.');
 
 -- AI usage this month, so the billing screen and Insights have something real to show
 insert into public.ai_runs (user_id, operation, units, provider, model, prompt_version, input_tokens, output_tokens, latency_ms, created_at) values

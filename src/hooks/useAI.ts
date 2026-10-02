@@ -37,10 +37,12 @@ export interface WeeklySummary {
   items_carried_over: number
   summary_text: string
   accomplishments: string[]
-  patterns: Array<{ pattern: string; type: string; evidence: string }>
-  suggestions: Array<{ suggestion: string; priority: string; effort: string }>
-  productivity_trend: 'improving' | 'stable' | 'declining'
-  focus_score: number
+  /** Share of planned steps done; null when the week had no daily plans */
+  plan_completion_rate: number | null
+  project_counts: Array<{ name: string; completed: number }>
+  productivity_trend: 'improving' | 'stable' | 'declining' | null
+  keep: string | null
+  try_next: string | null
 }
 
 type PlanEvent =
@@ -237,10 +239,10 @@ export function useAI() {
     }
   }, [])
 
-  // Generate weekly summary
+  // Generate weekly summary. `empty` means the week had nothing in it to reflect on.
   const getWeeklySummary = useCallback(async (
     weekOffset = 0
-  ): Promise<WeeklySummary | null> => {
+  ): Promise<WeeklySummary | 'empty' | null> => {
     setLoading(true)
     setError(null)
 
@@ -257,6 +259,7 @@ export function useAI() {
         throw new Error(data.error || 'Failed to generate summary')
       }
 
+      if (data.empty) return 'empty'
       return data.summary
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'

@@ -44,12 +44,15 @@ export default function InsightsPage() {
   const [loadingSummary, setLoadingSummary] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
+  // The server found nothing captured, completed or planned in this week
+  const [emptyWeek, setEmptyWeek] = useState(false)
 
   // Read what already exists; generating costs an AI call, so that stays
   // behind the explicit button.
   useEffect(() => {
     let cancelled = false
     setLoadingSummary(true)
+    setEmptyWeek(false)
 
     Promise.all([loadWeeklySummary(weekOffset), getPastSummaries(5)])
       .then(([current, past]) => {
@@ -72,7 +75,9 @@ export default function InsightsPage() {
     setGenerating(true)
     try {
       const result = await getWeeklySummary(weekOffset)
-      if (result) {
+      if (result === 'empty') {
+        setEmptyWeek(true)
+      } else if (result) {
         setSummary(result)
         setPastSummaries(await getPastSummaries(5))
       }
@@ -91,7 +96,12 @@ export default function InsightsPage() {
   // right week instead of assuming summaries exist for every week in between.
   const offsetForWeekStart = (weekStart: string) => {
     // Same week the server computes: Sunday to Saturday in the profile's timezone
-    const { start: currentWeekStart } = weekIn(profile?.timezone ?? 'UTC')
+    const { start: currentWeekStart } = weekIn(
+      profile?.timezone ?? 'UTC',
+      new Date(),
+      0,
+      profile?.weekly_summary_day ?? 0
+    )
     const msPerWeek = 7 * 24 * 60 * 60 * 1000
     const diff = new Date(weekStart).getTime() - new Date(currentWeekStart).getTime()
     return Math.round(diff / msPerWeek)
@@ -168,11 +178,15 @@ export default function InsightsPage() {
           <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <BarChart3 className="w-8 h-8 text-emerald-600" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">No summary yet</h3>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">
+            {emptyWeek ? 'Nothing to reflect on' : 'No summary yet'}
+          </h3>
           <p className="text-slate-500 mb-6">
-            Complete some tasks to generate your weekly insights.
+            {emptyWeek
+              ? 'Nothing was captured, completed or planned in this week, so there is no summary to write.'
+              : 'Generate a reflection on what you captured, completed and planned this week.'}
           </p>
-          <motion.button
+          {!emptyWeek && <motion.button
             onClick={handleGenerate}
             className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white font-medium rounded-xl hover:bg-emerald-600 transition-colors"
             whileHover={{ scale: 1.02 }}
@@ -180,7 +194,7 @@ export default function InsightsPage() {
           >
             <Sparkles className="w-5 h-5" />
             Generate Summary
-          </motion.button>
+          </motion.button>}
         </motion.div>
       ) : (
         <div className="space-y-6">
@@ -195,7 +209,12 @@ export default function InsightsPage() {
               { label: 'Created', value: summary.items_created, icon: Calendar, color: 'azure' },
               { label: 'Completed', value: summary.items_completed, icon: CheckCircle2, color: 'emerald' },
               { label: 'Carried Over', value: summary.items_carried_over, icon: Clock, color: 'amber' },
-              { label: 'Focus Score', value: `${summary.focus_score || 0}%`, icon: Target, color: 'violet' },
+              {
+                label: 'Planned steps done',
+                value: summary.plan_completion_rate === null ? 'No plans' : `${summary.plan_completion_rate}%`,
+                icon: Target,
+                color: 'violet',
+              },
             ].map((stat, i) => (
               <motion.div
                 key={stat.label}
@@ -279,7 +298,7 @@ export default function InsightsPage() {
               </div>
             </motion.div>
 
-            {/* Suggestions */}
+            {/* One thing to keep, one to try */}
             <motion.div
               className="bg-white rounded-2xl border border-slate-200 shadow-soft overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
@@ -288,31 +307,27 @@ export default function InsightsPage() {
             >
               <div className="p-4 border-b border-slate-100 flex items-center gap-2">
                 <Lightbulb className="w-5 h-5 text-violet-500" />
-                <span className="font-semibold text-slate-900">Suggestions</span>
+                <span className="font-semibold text-slate-900">For next week</span>
               </div>
-              <div className="p-4 space-y-3">
-                {Array.isArray(summary.suggestions) && summary.suggestions.length > 0 ? (
-                  summary.suggestions.map((item, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                        item.priority === 'high' ? 'bg-red-100 text-red-600' :
-                        item.priority === 'medium' ? 'bg-amber-100 text-amber-600' :
-                        'bg-slate-100 text-slate-600'
-                      }`}>
-                        {item.priority}
-                      </span>
-                      <span className="text-sm text-slate-700">{item.suggestion}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">No suggestions yet</p>
+              <div className="p-4 space-y-4">
+                {summary.keep && (
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-1">Keep</p>
+                    <p className="text-sm text-slate-700">{summary.keep}</p>
+                  </div>
+                )}
+                {summary.try_next && (
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-1">Try</p>
+                    <p className="text-sm text-slate-700">{summary.try_next}</p>
+                  </div>
                 )}
               </div>
             </motion.div>
           </div>
 
-          {/* Patterns */}
-          {Array.isArray(summary.patterns) && summary.patterns.length > 0 && (
+          {/* Completed per project, counted by the database */}
+          {summary.project_counts.length > 0 && (
             <motion.div
               className="bg-white rounded-2xl border border-slate-200 shadow-soft overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
@@ -321,28 +336,13 @@ export default function InsightsPage() {
             >
               <div className="p-4 border-b border-slate-100 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-azure-500" />
-                <span className="font-semibold text-slate-900">Patterns Detected</span>
+                <span className="font-semibold text-slate-900">Completed by project</span>
               </div>
-              <div className="p-4 space-y-3">
-                {summary.patterns.map((pattern, i) => (
-                  <div
-                    key={i}
-                    className={`p-3 rounded-xl ${
-                      pattern.type === 'positive' ? 'bg-green-50 border border-green-100' :
-                      pattern.type === 'negative' ? 'bg-red-50 border border-red-100' :
-                      'bg-slate-50 border border-slate-100'
-                    }`}
-                  >
-                    <p className={`text-sm font-medium ${
-                      pattern.type === 'positive' ? 'text-green-700' :
-                      pattern.type === 'negative' ? 'text-red-700' :
-                      'text-slate-700'
-                    }`}>
-                      {pattern.pattern}
-                    </p>
-                    {pattern.evidence && (
-                      <p className="text-xs text-slate-500 mt-1">{pattern.evidence}</p>
-                    )}
+              <div className="p-4 space-y-2">
+                {summary.project_counts.map((project) => (
+                  <div key={project.name} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-700">{project.name}</span>
+                    <span className="font-medium text-slate-900">{project.completed}</span>
                   </div>
                 ))}
               </div>
@@ -378,7 +378,7 @@ export default function InsightsPage() {
                         })}
                       </p>
                       <p className="text-sm text-slate-500">
-                        {past.items_completed} completed • Score: {past.focus_score}%
+                        {past.items_completed} completed{past.plan_completion_rate !== null && ` • ${past.plan_completion_rate}% of planned steps`}
                       </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-400" />

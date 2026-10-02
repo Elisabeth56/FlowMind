@@ -31,6 +31,13 @@ describe('weekIn', () => {
     expect(weekIn('Africa/Lagos', thursday, -1)).toEqual({ start: '2026-09-20', end: '2026-09-26' })
   })
 
+  it('starts on the day the user chose', () => {
+    // Monday start: Thursday 1 October belongs to the week of Monday 28 September
+    expect(weekIn('Africa/Lagos', thursday, 0, 1)).toEqual({ start: '2026-09-28', end: '2026-10-04' })
+    // Friday start: the week began last Friday
+    expect(weekIn('Africa/Lagos', thursday, 0, 5)).toEqual({ start: '2026-09-25', end: '2026-10-01' })
+  })
+
   it('starts the new week when Sunday begins for the user, not for UTC', () => {
     // Saturday 23:30 UTC is already Sunday 00:30 in Lagos
     expect(weekIn('Africa/Lagos', new Date('2026-10-03T23:30:00Z')).start).toBe('2026-10-04')
