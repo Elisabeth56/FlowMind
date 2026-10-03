@@ -55,7 +55,7 @@ describe('withCitations', () => {
     expect(withCitations('The pitch is Friday at 2pm.', [1, 3])).toBe('The pitch is Friday at 2pm [1][3].')
   })
   it('lists a repeated source once', () => {
-    expect(withCitations('Keep it to ten slides', [2, 2])).toBe('Keep it to ten slides [2]')
+    expect(withCitations('Keep it to ten slides', [2, 2])).toBe('Keep it to ten slides [2].')
   })
   it('leaves a claim with no sources as it is', () => {
     expect(withCitations('I could not find that in your notes.', [])).toBe('I could not find that in your notes.')

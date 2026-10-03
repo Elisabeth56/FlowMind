@@ -45,13 +45,13 @@ export function dropUnknownCitations(answer: string, sourceCount: number): strin
     .trim()
 }
 
-/** A sentence followed by its sources as [n] markers, placed before the full stop: "Due Friday [2]." */
+/** A sentence followed by its sources as [n] markers, placed before the full stop: "Due Friday [2]." A missing full stop is added. */
 export function withCitations(text: string, sources: number[]): string {
   const markers = [...new Set(sources)].map((n) => `[${n}]`).join('')
   const sentence = text.trim()
-  if (!markers) return sentence
-  const end = sentence.match(/[.!?]$/)
-  return end ? `${sentence.slice(0, -1)} ${markers}${end[0]}` : `${sentence} ${markers}`
+  const end = sentence.match(/[.!?]$/)?.[0] ?? '.'
+  const words = sentence.replace(/[.!?]$/, '')
+  return markers ? `${words} ${markers}${end}` : `${words}${end}`
 }
 
 export type AnswerPart = { text: string } | { cite: number }

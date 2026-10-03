@@ -174,15 +174,18 @@ it('ask: retrieval', async () => {
       console.log(`${(last.answerable ? last.cites_expected : !last.found) ? 'pass' : 'FAIL'}  ${c.question}  ${last.answer ?? ''}`)
       await new Promise((resolve) => setTimeout(resolve, PAUSE_MS))
     }
-    const can = answerResults.filter((a) => a.answerable)
-    const cannot = answerResults.filter((a) => !a.answerable)
+    // A case the provider refused (rate limit) says nothing about the answers; it is counted apart
+    const answered = answerResults.filter((a) => !('error' in a))
+    const can = answered.filter((a) => a.answerable)
+    const cannot = answered.filter((a) => !a.answerable)
     answers = {
+      answered_cases: answered.length,
+      errors: answerResults.length - answered.length,
       // answerable: found, and the note that holds the answer is among the citations
       answered_citing_the_right_note: mean(can.map((a) => (a.found && a.cites_expected ? 1 : 0))),
       answerable_but_said_not_found: mean(can.map((a) => (a.found ? 0 : 1))),
       // unanswerable: says it could not find it
       unanswerable_said_not_found: mean(cannot.map((a) => (a.found ? 0 : 1))),
-      errors: answerResults.filter((a) => 'error' in a).length,
     }
   } else {
     console.log('GROQ_API_KEY is not set: skipping the answer step')
