@@ -45,6 +45,24 @@ export interface WeeklySummary {
   try_next: string | null
 }
 
+/** A week as Insights shows it: computed numbers, the chart, and the reflection if one is written. */
+export interface WeekView {
+  week: { start: string; end: string }
+  stats: {
+    items_created: number
+    items_completed: number
+    items_carried_over: number
+    plan_steps: number
+    plan_steps_done: number
+    plan_completion_rate: number | null
+    completed_last_week: number | null
+    projects: Array<{ name: string; completed: number }>
+    empty: boolean
+  }
+  days: Array<{ day: string; planned: number; done: number }>
+  summary: WeeklySummary | null
+}
+
 type PlanEvent =
   | { type: 'partial'; plan: DailyPlan }
   | { type: 'done'; plan: DailyPlan | null; degraded: boolean }
@@ -188,27 +206,17 @@ export function useAI() {
     }
   }, [])
 
-  // Read an existing weekly summary (no AI call)
-  const loadWeeklySummary = useCallback(async (
-    weekOffset = 0
-  ): Promise<WeeklySummary | null> => {
-    setLoading(true)
+  // Read a week: its numbers and, if written, its reflection (no AI call)
+  const loadWeek = useCallback(async (weekOffset = 0): Promise<WeekView | null> => {
     setError(null)
-
     try {
       const response = await fetch(`/api/weekly-summary?weekOffset=${weekOffset}`)
       const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to load summary')
-      }
-
-      return data.summary
+      if (!response.ok) throw new Error(data.error || 'Could not load this week')
+      return { week: data.week, stats: data.stats, days: data.days, summary: data.summary }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
       return null
-    } finally {
-      setLoading(false)
     }
   }, [])
 
@@ -243,25 +251,6 @@ export function useAI() {
     }
   }, [])
 
-  // Get past summaries
-  const getPastSummaries = useCallback(async (
-    limit = 4
-  ): Promise<WeeklySummary[]> => {
-    try {
-      const response = await fetch(`/api/weekly-summary?limit=${limit}`)
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get summaries')
-      }
-
-      return data.summaries || []
-    } catch (err) {
-      console.error('Failed to get past summaries:', err)
-      return []
-    }
-  }, [])
-
   return {
     loading,
     error,
@@ -269,8 +258,7 @@ export function useAI() {
     loadDailyPlan,
     generateDailyPlan,
     askAboutDay,
-    loadWeeklySummary,
+    loadWeek,
     getWeeklySummary,
-    getPastSummaries,
   }
 }

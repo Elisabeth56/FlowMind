@@ -169,16 +169,34 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid weekOffset' }, { status: 400 })
       }
 
-      const { start: weekStart } = await userWeek(supabase, user.id, weekOffset)
+      const { start: weekStart, end: weekEnd } = await userWeek(supabase, user.id, weekOffset)
 
-      const { data: summary } = await supabase
-        .from('weekly_summaries')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('week_start', weekStart)
-        .maybeSingle()
+      // The numbers are always the live ones; the reflection is read if it has been written
+      const [stats, lastWeek, { data: days, error: daysError }, { data: summary }] = await Promise.all([
+        weekStats(supabase, weekStart, weekEnd),
+        weekStats(supabase, addDays(weekStart, -7), addDays(weekEnd, -7)),
+        supabase.rpc('week_days', { p_week_start: weekStart, p_week_end: weekEnd }),
+        supabase
+          .from('weekly_summaries')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('week_start', weekStart)
+          .maybeSingle(),
+      ])
+      if (daysError) throw new Error(`Could not compute the week's days: ${daysError.message}`)
 
-      return NextResponse.json({ success: true, summary: summary ?? null })
+      return NextResponse.json({
+        success: true,
+        week: { start: weekStart, end: weekEnd },
+        stats: {
+          ...stats,
+          plan_completion_rate: planCompletionRate(stats.plan_steps, stats.plan_steps_done),
+          completed_last_week: isEmptyWeek(lastWeek) ? null : lastWeek.items_completed,
+          empty: isEmptyWeek(stats),
+        },
+        days: days ?? [],
+        summary: summary ?? null,
+      })
     }
 
     // Get recent summaries
