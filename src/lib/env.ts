@@ -18,6 +18,8 @@ const serverSchema = z.object({
   // Optional: checkout answers 503 until the plans exist in Paystack.
   PAYSTACK_PRO_MONTHLY_PLAN_CODE: z.string().optional(),
   PAYSTACK_PRO_YEARLY_PLAN_CODE: z.string().optional(),
+  // Optional: the nightly demo reset answers 401 until it is set (Vercel sends it to cron routes).
+  CRON_SECRET: z.string().min(16).optional(),
 })
 
 export type PublicEnv = z.infer<typeof publicSchema>

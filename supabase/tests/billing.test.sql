@@ -34,7 +34,8 @@ select throws_ok(
 select ok(not has_function_privilege('anon', 'public.handle_new_user()', 'execute'), 'anon cannot call handle_new_user');
 select ok(not has_function_privilege('authenticated', 'public.update_updated_at()', 'execute'), 'users cannot call update_updated_at');
 
-insert into public.subscriptions (user_id, tier) values ('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', 'free');
+-- the seeded demo user is on Pro; these checks are about a free user's row
+update public.subscriptions set tier = 'free' where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6';
 
 -- as the signed-in demo user --------------------------------------------------
 set local role authenticated;

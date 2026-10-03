@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { DEMO_REFUSAL, isDemo } from '@/lib/demo'
 import { disableSubscription, getSubscription } from '@/lib/paystack/client'
 
 // DELETE - remove the account and everything in it. The auth user is deleted with the
@@ -13,6 +14,8 @@ export async function DELETE(request: Request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    if (isDemo(user.id)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
 
     // The typed confirmation is checked here too, not only in the form
     const { confirm } = await request.json().catch(() => ({}))

@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button, Chip, Segmented } from '@/components/ui'
 import { useSubscription } from '@/hooks/useSubscription'
+import { useApp } from '../../AppProvider'
 import {
   FREE_FEATURES,
   PLAN_IDS,
@@ -29,6 +30,8 @@ const PERIODS = [
 function Billing() {
   const searchParams = useSearchParams()
   const { subscription, status, limits, loading, error, checkout, cancel, reactivate, isPro, isActive } = useSubscription()
+
+  const { isDemo } = useApp()
 
   const [period, setPeriod] = useState<BillingPeriod>('monthly')
   const [busy, setBusy] = useState(false)
@@ -82,7 +85,7 @@ function Billing() {
             {status === 'non_renewing' && <Chip tone="apricot">Ends {nextPayment ?? 'this period'}</Chip>}
             {status === 'past_due' && <Chip state="overdue">Payment overdue</Chip>}
           </div>
-          {isPro && isActive && !confirmingCancel && (
+          {isPro && isActive && !confirmingCancel && !isDemo && (
             <Button variant="danger" size="sm" onClick={() => setConfirmingCancel(true)}>
               Cancel subscription
             </Button>
@@ -94,6 +97,7 @@ function Billing() {
           )}
         </div>
 
+        {isDemo && <p className="text-small text-ink-2">The demo is on Pro so every feature can be tried. Nothing is charged.</p>}
         {isPro && isActive && nextPayment && <p className="text-small text-ink-2">Next payment on {nextPayment}.</p>}
 
         {confirmingCancel && (

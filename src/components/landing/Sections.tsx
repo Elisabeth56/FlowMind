@@ -1,3 +1,4 @@
+import { DemoButton } from '@/components/auth/DemoButton'
 import Image from 'next/image'
 import { ButtonLink, Chip, cn } from '@/components/ui'
 import { FREE_TIER_AI_CALLS, PRO_YEARLY_TOTAL, YEARLY_DISCOUNT_PERCENT, proMonthlyPrice } from '@/lib/plans'
@@ -73,11 +74,12 @@ export function Hero() {
             Start for free
             <Arrow />
           </ButtonLink>
-          <ButtonLink href="#how" size="lg" variant="secondary">
-            See it work
-          </ButtonLink>
+          <DemoButton size="lg" />
         </div>
-        <p className="text-small text-ink-3">Free for {FREE_TIER_AI_CALLS} AI actions a month. No card needed.</p>
+        <p className="text-small text-ink-3">
+          Free for {FREE_TIER_AI_CALLS} AI actions a month. No card needed. The demo opens a shared account with a
+          week of sample notes, no sign-up.
+        </p>
       </div>
       <HeroStage />
     </section>

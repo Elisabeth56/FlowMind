@@ -6,6 +6,7 @@ import {
   enableSubscription,
 } from '@/lib/paystack/client'
 import { isPro, quotaFor } from '@/lib/billing/entitlement'
+import { DEMO_REFUSAL, isDemo } from '@/lib/demo'
 
 // GET - the user's plan, Paystack subscription and AI usage this month
 export async function GET() {
@@ -68,6 +69,8 @@ export async function POST(request: Request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    if (isDemo(user.id)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
 
     const { action } = await request.json()
     if (action !== 'cancel' && action !== 'reactivate') {

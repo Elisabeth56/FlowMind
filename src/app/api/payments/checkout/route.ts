@@ -9,6 +9,7 @@ import {
 } from '@/lib/paystack/client'
 import { PRO_PRICE_KOBO, type PaidPlanId } from '@/lib/plans'
 import { publicEnv, serverEnv } from '@/lib/env'
+import { DEMO_REFUSAL, isDemo } from '@/lib/demo'
 
 // Read per request: plan codes are optional, and module scope runs during `next build`.
 function planCode(plan: PaidPlanId): string | undefined {
@@ -30,6 +31,8 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    if (isDemo(user.id)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
 
     const body = await request.json()
     const { plan = 'pro_monthly' } = body
