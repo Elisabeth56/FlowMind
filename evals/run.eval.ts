@@ -19,7 +19,9 @@ import { accuracy, percentile, scoreOrganize, scorePlan, type OrganizeExpectatio
 const TODAY = '2026-10-01'
 const NOW = new Date('2026-10-01T07:00:00Z') // 08:00 in Lagos
 const PROJECTS = ['Clients', 'Pitch prep', 'Home', 'Reading']
-const PAUSE_MS = Number(process.env.EVAL_PAUSE_MS ?? 2200)
+// Slow enough to stay under the free tier's tokens-per-minute limit, so every case is
+// answered by the model it is meant to measure rather than by a fallback
+const PAUSE_MS = Number(process.env.EVAL_PAUSE_MS ?? 4500)
 
 const dir = path.join(process.cwd(), 'evals')
 const readCases = <T>(file: string): T[] =>
@@ -34,6 +36,8 @@ type CaseResult = {
   name: string
   checks: Record<string, boolean>
   answer?: unknown
+  /** The model that gave the answer */
+  model?: string
   error?: string
   latencyMs: number
   tokens: number
@@ -59,6 +63,7 @@ async function measure(
     name,
     checks,
     answer,
+    model: runs.find((r) => r.success)?.model,
     error,
     latencyMs: Date.now() - startedAt,
     tokens: runs.reduce((sum, r) => sum + (r.inputTokens ?? 0) + (r.outputTokens ?? 0), 0),
@@ -73,6 +78,13 @@ function summarize(results: CaseResult[]) {
   return {
     cases: results.length,
     accuracy: accuracy(results.map((r) => r.checks)),
+    // How many cases each model answered; more than one means the fallback was used
+    answered_by: Object.fromEntries(
+      [...new Set(results.map((r) => r.model ?? 'none'))].map((model) => [
+        model,
+        results.filter((r) => (r.model ?? 'none') === model).length,
+      ])
+    ),
     latency_ms: { p50: percentile(latencies, 50), p95: percentile(latencies, 95) },
     tokens_per_case: Math.round(results.reduce((sum, r) => sum + r.tokens, 0) / results.length),
   }
@@ -158,7 +170,7 @@ it('evals', async () => {
       )
     )
     console.log(
-      `latency p50 ${report[name].latency_ms.p50}ms, p95 ${report[name].latency_ms.p95}ms; ${report[name].tokens_per_case} tokens per case`
+      `answered by ${JSON.stringify(report[name].answered_by)}; latency p50 ${report[name].latency_ms.p50}ms, p95 ${report[name].latency_ms.p95}ms; ${report[name].tokens_per_case} tokens per case`
     )
   }
   console.log(`\nSaved ${path.relative(process.cwd(), file)}`)

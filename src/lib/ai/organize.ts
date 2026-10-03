@@ -1,5 +1,6 @@
 // Organise: one structured call per captured item, on the small fast model.
 import { z } from 'zod'
+import { addDays } from '@/lib/dates'
 import { generate, type CallOverrides } from './index'
 
 const organizedItemSchema = z.object({
@@ -24,6 +25,19 @@ const organizedItemSchema = z.object({
 
 export type OrganizedItem = z.infer<typeof organizedItemSchema>
 
+/**
+ * The next two weeks, one line per day. Small models get date arithmetic wrong
+ * ("by Monday" came back as a Sunday), so they are given the dates to look up.
+ */
+export function calendar(today: string): string {
+  return Array.from({ length: 15 }, (_, offset) => {
+    const date = addDays(today, offset)
+    const weekday = new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
+    const label = offset === 0 ? ' (today)' : offset === 1 ? ' (tomorrow)' : offset >= 7 ? ' (next week)' : ''
+    return `${weekday} ${date}${label}`
+  }).join('\n')
+}
+
 type Context = { userId: string; existingProjects: string[]; today: string }
 
 export function organizeItem(
@@ -38,7 +52,7 @@ export function organizeItem(
     schema: organizedItemSchema,
     variables: {
       today: context.today,
-      weekday: new Date(`${context.today}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }),
+      calendar: calendar(context.today),
       existing_projects: context.existingProjects.join(', ') || 'none yet',
       content,
     },
