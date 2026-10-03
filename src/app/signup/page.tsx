@@ -372,18 +372,6 @@ export default function SignUpPage() {
               )}
             </div>
 
-            {/* Terms */}
-            <p className="text-xs text-slate-500">
-              By creating an account, you agree to our{' '}
-              <Link href="/terms" className="text-azure-600 hover:underline">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="text-azure-600 hover:underline">
-                Privacy Policy
-              </Link>
-            </p>
-
             {/* Submit */}
             <motion.button
               type="submit"

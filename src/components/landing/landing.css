@@ -1,0 +1,178 @@
+/* The landing page's motion. Everything here is scoped to `.lp` (the page root), so
+   these short class names cannot leak into the app; layout and colour are Tailwind
+   utilities in the components.
+
+   The hero stage is laid out on a fixed 600 x 450 grid that matches hero-tray.webp
+   (4:3, never cropped). --u is one grid unit, so the slips land in the same place in
+   the tray at every width. Angles and positions are recorded in docs/design.md.
+   A few colours are literal on purpose: they are matched to the tray render. */
+
+.lp {
+  .chip{display:inline-block;font-size:12px;line-height:1.5;letter-spacing:.01em;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .ai{background:var(--fm-accent-tint);color:var(--fm-accent)}.n{background:var(--fm-surface-sunk);color:var(--fm-ink-2)}.due{color:var(--fm-warning)}.apr{background:var(--fm-apricot-tint);color:var(--fm-apricot-ink)}
+  .photo img{transition:transform 1.2s var(--ease-settle)}.photo:hover img{transform:scale(1.04)}
+  .photo{position:relative;border-radius:28px;overflow:hidden;display:flex;align-items:flex-end;padding:20px;box-sizing:border-box}
+  .dots{background-image:radial-gradient(rgba(41,40,38,.10) 1px,transparent 1px);background-size:18px 18px}
+
+  /* nav */
+  .navpill{position:sticky;top:16px;z-index:5;margin:16px auto 0;width:min(1040px,calc(100% - 32px));box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--fm-surface);border-radius:999px;padding:8px 8px 8px 20px;box-shadow:var(--fm-shadow-soft)}
+
+  /* hero motion: words go blur to sharp, the underline draws itself */
+  .w{display:inline-block;animation:lp-blurin .9s var(--ease-settle) both}
+  .ul{stroke-dasharray:260;stroke-dashoffset:260;animation:lp-draw .9s .9s var(--ease-settle) forwards}
+
+  /* signature hero. Everything inside .stage is laid out on a 600 x 450 grid that matches the
+     tray render exactly (4:3, never cropped), so the slips land in the same spot at any width.
+     --u is one grid unit: the stage's width divided by 600. */
+  .stage-wrap{container-type:inline-size}
+  .stage{--u:calc(100cqw / 600);position:relative;aspect-ratio:4/3;border-radius:28px;overflow:hidden;background:#EFEBE3;perspective:calc(4000 * var(--u));perspective-origin:50% 66%}
+  .stage>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .cap{position:absolute;left:calc(28*var(--u));right:calc(28*var(--u));top:calc(24*var(--u));height:calc(48*var(--u));display:flex;align-items:center;gap:calc(10*var(--u));background:var(--fm-surface);border-radius:999px;padding:0 calc(7*var(--u)) 0 calc(18*var(--u));box-shadow:var(--fm-shadow-soft);font-size:calc(15*var(--u))}
+  .tape{position:absolute;top:calc(12*var(--u));right:calc(36*var(--u));transform:rotate(4deg);background:var(--fm-apricot);color:var(--fm-ink);font-size:calc(12*var(--u));font-weight:500;padding:calc(4*var(--u)) calc(11*var(--u));border-radius:calc(5*var(--u));box-shadow:0 1px 2px rgba(41,40,38,.08)}
+  .ty-wrap{display:grid;flex:1;min-width:0;color:var(--fm-ink)}
+  .ty-ph{grid-area:1/1;color:var(--fm-ink-3);animation:lp-ph 10s infinite steps(1)}
+  .typing1,.typing2,.typing3{grid-area:1/1;white-space:nowrap}
+  .typing1{animation:lp-type1 10s infinite linear}.typing2{animation:lp-type2 10s infinite linear}.typing3{animation:lp-type3 10s infinite linear}
+  .caret{width:2px;height:calc(20*var(--u));border-radius:2px;background:var(--fm-accent);animation:lp-blink 1s steps(1) infinite}
+  .enter{width:calc(34*var(--u));height:calc(34*var(--u));border-radius:999px;background:var(--fm-accent);color:var(--fm-bg);display:grid;place-items:center;flex:none;animation:lp-press 10s infinite}
+  .enter svg{width:calc(15*var(--u));height:calc(15*var(--u))}
+  /* cards: 400 x 46 units, top-left at (100, 0); every position below is a translate from there */
+  .st{position:absolute;top:0;left:calc(100*var(--u));width:calc(400*var(--u));height:calc(46*var(--u));box-sizing:border-box;padding:0 calc(14*var(--u)) 0 calc(16*var(--u));border-radius:calc(14*var(--u));background:var(--fm-surface);color:var(--fm-ink);font-size:calc(15*var(--u));display:flex;justify-content:space-between;gap:calc(10*var(--u));align-items:center;white-space:nowrap;box-shadow:var(--fm-shadow-soft);transform-origin:50% 50%;transform-style:preserve-3d;animation-duration:10s;animation-iteration-count:infinite;animation-timing-function:var(--ease-settle)}
+  .st .chip{font-size:calc(12*var(--u));padding:calc(2*var(--u)) calc(9*var(--u))}
+  .st .tags{display:flex;gap:calc(6*var(--u))}
+  .s1{animation-name:lp-p1}.s2{animation-name:lp-p2}.s3{animation-name:lp-p3}
+  .s1>.lines,.s1>.tags{animation:lp-ink1 10s infinite}.s2>.lines,.s2>.tags{animation:lp-ink2 10s infinite}.s3>.lines,.s3>.tags{animation:lp-ink3 10s infinite}
+  .st>.lines,.st>.tags{min-width:0;overflow:hidden}
+  /* typed in the bar -> dropped on the pile -> tidied (title + chips) -> laid flat in the tray.
+     Tray floor centre in the render: (312, 318), tilted -4deg; slips stack 5 units apart. */
+  /* slips already filed earlier: the stack the new notes land on. The tray floor in the render is
+     tilted 70.0deg away from the viewer and turned -33.0deg; slips use the same angles so their edges run along the walls. */
+  .pf{position:absolute;top:0;left:calc(100*var(--u));width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u));transform-style:preserve-3d;box-shadow:0 0 0 1px rgba(41,40,38,.06)}
+  .pf0{background:#E9E4DA;transform:translate(calc(155.0*var(--u)),calc(268.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg)}.pf1{background:#F4F1EA;transform:translate(calc(155.0*var(--u)),calc(264.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg)}.pf2{background:#C9D9EA;transform:translate(calc(155.0*var(--u)),calc(260.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg)}
+  /* paper edges: thin faces standing on the two sides that face the viewer */
+  .edge{position:absolute;left:0;right:0;bottom:0;height:calc(4*var(--u));background:rgba(41,40,38,.2);transform-origin:bottom;transform:rotateX(-90deg)}
+  .edge2{position:absolute;left:0;top:0;bottom:0;width:calc(4*var(--u));background:rgba(41,40,38,.12);transform-origin:left;transform:rotateY(90deg)}
+  /* text and chips fade as each card becomes a plain slip */
+  .raw,.done{grid-area:1/1}
+  .lines{display:grid}
+  .raw{animation:lp-raw 10s infinite}.done{animation:lp-done 10s infinite}
+  .cp{animation:lp-chip 10s infinite cubic-bezier(.34,1.56,.64,1)}
+  .cp.d1{animation-delay:.15s}.cp.d2{animation-delay:.3s}
+  .filed{position:absolute;left:0;right:0;top:calc(214*var(--u));margin:0;display:flex;justify-content:center;align-items:center;gap:calc(7*var(--u));font-size:calc(13*var(--u));color:var(--fm-ink-2);animation:lp-filed 10s infinite var(--ease-settle)}
+  .filed .chip{font-size:calc(12*var(--u));padding:calc(2*var(--u)) calc(9*var(--u))}
+  .tick-badge{display:inline-grid;place-items:center;width:calc(22*var(--u));height:calc(22*var(--u));border-radius:99px;background:var(--fm-accent);animation:lp-badge 10s infinite cubic-bezier(.34,1.56,.64,1)}
+  .tick-badge svg{width:calc(12*var(--u));height:calc(12*var(--u))}
+
+  /* how it works */
+  .steps{position:relative;list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+  .step{display:flex;flex-direction:column;gap:16px}
+  .badge{width:72px;height:72px;border-radius:22px;display:grid;place-items:center;font-family:var(--font-numeral);font-size:36px;line-height:1;flex:none}
+  .step-body{display:flex;flex-direction:column;gap:10px}
+  .step-body h3{margin:0;font-size:20px;font-weight:500;letter-spacing:-.01em}
+  .step-body p{margin:0;font-size:16px;line-height:1.5;color:var(--fm-ink-2);max-width:34ch}
+  .mini{margin-top:6px}
+  .mini-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .mini-pill{display:inline-flex;align-items:center;gap:6px;background:var(--fm-surface);border-radius:999px;padding:8px 14px;font-size:14px;color:var(--fm-ink);box-shadow:var(--fm-shadow-soft)}
+  .mini-caret{width:2px;height:16px;border-radius:2px;background:var(--fm-accent);animation:lp-blink 1s steps(1) infinite}
+  .mini-plan{display:inline-flex;align-items:center;gap:12px;background:var(--fm-surface);border-radius:14px;padding:10px 14px;font-size:14px;box-shadow:inset 0 0 0 1.5px var(--fm-accent)}
+  .mini-time{font-family:var(--font-numeral);font-size:22px;line-height:1}
+  @media (max-width:760px){
+    /* phones: a vertical timeline, badge on the left, a dashed apricot line drawing down as you scroll */
+    .steps{grid-template-columns:minmax(0,1fr);gap:0}
+    .steps::before{content:"";position:absolute;left:27px;top:28px;bottom:120px;width:2px;background:repeating-linear-gradient(to bottom,var(--fm-apricot) 0 6px,transparent 6px 14px);transform-origin:top}
+    .step{display:grid;grid-template-columns:56px minmax(0,1fr);column-gap:18px;align-items:start;padding-bottom:40px;position:relative}
+    .step:last-child{padding-bottom:0}
+    .badge{width:56px;height:56px;border-radius:18px;font-size:28px;position:relative;z-index:1;box-shadow:0 0 0 6px var(--fm-bg)}
+    .step-body{padding-top:4px}
+    .step-body h3{font-size:18px}
+  }
+  @supports (animation-timeline: view()){
+    .step .badge{animation:lp-badge-in linear both;animation-timeline:view();animation-range:entry 10% entry 90%}
+    .step .mini{animation:lp-rise linear both;animation-timeline:view();animation-range:entry 30% entry 100%}
+    @media (max-width:760px){
+      .steps::before{animation:lp-line-grow linear both;animation-timeline:view();animation-range:entry 20% cover 50%}
+      .step.rv{animation-name:lp-slide-in}
+    }
+  }
+
+  /* quiet reveals on scroll */
+  @supports (animation-timeline: view()){
+    .rv{animation:lp-rise linear both;animation-timeline:view();animation-range:entry 0% entry 40%}
+    .draw-on{stroke-dasharray:900;stroke-dashoffset:900;animation:lp-drawon linear both;animation-timeline:view();animation-range:entry 10% entry 90%}
+    .bar-fill{animation:lp-fill linear both;animation-timeline:view();animation-range:entry 20% entry 100%}
+    .tick{animation:lp-tick linear both;animation-timeline:view();animation-range:entry 30% entry 100%}
+    .stream{animation:lp-stream linear both;animation-timeline:view();animation-range:entry 10% entry 100%}
+    .pop{animation:lp-pop linear both;animation-timeline:view();animation-range:entry 40% entry 100%}
+    .count{animation:lp-count linear both;animation-timeline:view();animation-range:entry 10% entry 100%}
+    .navpill{animation:lp-lift linear both;animation-timeline:scroll();animation-range:0 120px}
+  }
+  .count{counter-reset:n var(--n)}.count::after{content:counter(n)}
+
+  /* with reduced motion every effect shows its end state: the slips rest in the tray */
+  @media (prefers-reduced-motion:reduce){
+    .w,.ul,.st,.raw,.done,.cp,.filed,.rv,.draw-on,.bar-fill,.tick,.stream,.pop,.count,.typing1,.typing2,.typing3,.caret,.enter,.tick-badge,.ty-ph,.step .badge,.step .mini,.steps::before,.mini-caret{animation:none !important}
+    .st>.lines,.st>.tags{animation:none !important;opacity:0}
+    .ul,.draw-on{stroke-dashoffset:0}.raw,.typing1,.typing2,.typing3{opacity:0}.done,.cp,.filed,.tick-badge{opacity:1}
+    .s1{transform:translate(calc(155.0*var(--u)),calc(256.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
+    .s2{transform:translate(calc(155.0*var(--u)),calc(252.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u));background:var(--fm-accent-tint)}
+    .s3{transform:translate(calc(155.0*var(--u)),calc(248.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u));background:var(--fm-apricot)}
+    .count{--n:var(--to)}
+  }
+}
+
+/* Keyframes cannot be nested, so they are prefixed instead */
+@keyframes lp-blurin{from{opacity:0;filter:blur(10px);transform:translateY(10px)}to{opacity:1;filter:none;transform:none}}
+@keyframes lp-draw{to{stroke-dashoffset:0}}
+@keyframes lp-ph{0%,2%{opacity:1}3%,44%{opacity:0}45%,100%{opacity:1}}
+@keyframes lp-type1{0%,2%{opacity:1;clip-path:inset(0 100% 0 0)}9%{clip-path:inset(0 0 0 0);opacity:1}11%,100%{opacity:0;clip-path:inset(0 0 0 0)}}
+@keyframes lp-type2{0%,15%{opacity:0;clip-path:inset(0 100% 0 0)}16%{opacity:1}23%{clip-path:inset(0 0 0 0);opacity:1}25%,100%{opacity:0;clip-path:inset(0 0 0 0)}}
+@keyframes lp-type3{0%,29%{opacity:0;clip-path:inset(0 100% 0 0)}30%{opacity:1}37%{clip-path:inset(0 0 0 0);opacity:1}39%,100%{opacity:0;clip-path:inset(0 0 0 0)}}
+@keyframes lp-blink{50%{opacity:0}}
+@keyframes lp-press{0%,9.5%,12%,23.5%,26%,37.5%,40%,100%{transform:scale(1)}10.5%,24.5%,38.5%{transform:scale(.86);background:color-mix(in srgb, var(--fm-accent) 82%, black)}}
+@keyframes lp-p1{
+  0%,10%{opacity:0;transform:translate(0,calc(25*var(--u))) scale(.9);width:calc(400*var(--u));height:calc(46*var(--u));border-radius:calc(14*var(--u))}
+  11%{opacity:1;transform:translate(0,calc(25*var(--u))) scale(.9)}
+  15%{transform:translate(calc(-26*var(--u)),calc(108*var(--u))) rotate(-10deg) scale(1.02)}
+  17%{transform:translate(calc(-26*var(--u)),calc(96*var(--u))) rotate(-6deg)}
+  19%,57%{opacity:1;transform:translate(calc(-26*var(--u)),calc(100*var(--u))) rotate(-7deg);background-color:var(--fm-surface);width:calc(400*var(--u));height:calc(46*var(--u));border-radius:calc(14*var(--u))}
+  63%{transform:translate(calc(155.0*var(--u)),calc(242.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);background-color:var(--fm-surface);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
+  66%,88%{opacity:1;transform:translate(calc(155.0*var(--u)),calc(256.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);background-color:var(--fm-surface);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
+  94%,100%{opacity:0;transform:translate(calc(155.0*var(--u)),calc(256.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);background-color:var(--fm-surface);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}}
+@keyframes lp-p2{
+  0%,24%{opacity:0;transform:translate(0,calc(25*var(--u))) scale(.9);width:calc(400*var(--u));height:calc(46*var(--u));border-radius:calc(14*var(--u))}
+  25%{opacity:1;transform:translate(0,calc(25*var(--u))) scale(.9)}
+  29%{transform:translate(calc(42*var(--u)),calc(130*var(--u))) rotate(9deg) scale(1.02)}
+  31%{transform:translate(calc(42*var(--u)),calc(118*var(--u))) rotate(5deg)}
+  33%,60%{opacity:1;transform:translate(calc(42*var(--u)),calc(122*var(--u))) rotate(6deg);background-color:var(--fm-surface);width:calc(400*var(--u));height:calc(46*var(--u));border-radius:calc(14*var(--u))}
+  66%{transform:translate(calc(155.0*var(--u)),calc(238.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);background-color:var(--fm-accent-tint);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
+  69%,88%{opacity:1;transform:translate(calc(155.0*var(--u)),calc(252.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);background-color:var(--fm-accent-tint);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
+  94%,100%{opacity:0;transform:translate(calc(155.0*var(--u)),calc(252.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);background-color:var(--fm-accent-tint);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}}
+@keyframes lp-p3{
+  0%,38%{opacity:0;transform:translate(0,calc(25*var(--u))) scale(.9);width:calc(400*var(--u));height:calc(46*var(--u));border-radius:calc(14*var(--u))}
+  39%{opacity:1;transform:translate(0,calc(25*var(--u))) scale(.9)}
+  43%{transform:translate(calc(10*var(--u)),calc(150*var(--u))) rotate(-5deg) scale(1.02)}
+  45%{transform:translate(calc(10*var(--u)),calc(138*var(--u))) rotate(-2deg)}
+  47%,63%{opacity:1;transform:translate(calc(10*var(--u)),calc(142*var(--u))) rotate(-3deg);background-color:var(--fm-surface);width:calc(400*var(--u));height:calc(46*var(--u));border-radius:calc(14*var(--u))}
+  69%{transform:translate(calc(155.0*var(--u)),calc(234.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);background-color:var(--fm-apricot);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
+  72%,88%{opacity:1;transform:translate(calc(155.0*var(--u)),calc(248.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);background-color:var(--fm-apricot);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
+  94%,100%{opacity:0;transform:translate(calc(155.0*var(--u)),calc(248.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);background-color:var(--fm-apricot);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}}
+@keyframes lp-ink1{0%,58%{opacity:1}62%,96%{opacity:0}100%{opacity:1}}
+@keyframes lp-ink2{0%,61%{opacity:1}65%,96%{opacity:0}100%{opacity:1}}
+@keyframes lp-ink3{0%,64%{opacity:1}68%,96%{opacity:0}100%{opacity:1}}
+@keyframes lp-raw{0%,47%{opacity:1}50%,100%{opacity:0}}
+@keyframes lp-done{0%,48%{opacity:0}51%,100%{opacity:1}}
+@keyframes lp-chip{0%,50%{opacity:0;transform:scale(.6)}55%,100%{opacity:1;transform:none}}
+@keyframes lp-filed{0%,72%{opacity:0;transform:translateY(8px)}76%,88%{opacity:1;transform:none}94%,100%{opacity:0}}
+@keyframes lp-badge{0%,74%{opacity:0;transform:scale(.4) rotate(-20deg)}79%,88%{opacity:1;transform:rotate(6deg)}94%,100%{opacity:0}}
+@keyframes lp-badge-in{from{transform:scale(.6) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes lp-line-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes lp-slide-in{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@keyframes lp-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes lp-drawon{to{stroke-dashoffset:0}}
+@keyframes lp-fill{from{width:0}}
+@keyframes lp-tick{from{background:transparent;border-color:var(--fm-ink-4)}to{background:var(--fm-accent);border-color:var(--fm-accent)}}
+@keyframes lp-stream{from{clip-path:inset(0 100% 100% 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes lp-pop{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes lp-lift{from{box-shadow:0 0 0 rgba(41,40,38,0);padding-top:12px;padding-bottom:12px}to{box-shadow:0 1px 2px rgba(41,40,38,.04),0 8px 24px rgba(41,40,38,.08)}}
+@property --n{syntax:"<integer>";inherits:false;initial-value:0}
+@keyframes lp-count{from{--n:0}to{--n:var(--to)}}

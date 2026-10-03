@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { GeistSans } from "geist/font/sans";
+import { publicEnv } from "@/lib/env";
 import "./globals.css";
 
 // Both fonts ship with the app: no request to a font host at build or run time.
@@ -11,24 +12,28 @@ const instrumentSerif = localFont({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: { default: "FlowMind", template: "%s · FlowMind" },
-  description:
-    "Drop in notes, tasks and ideas. FlowMind files them into projects, plans your day and tells you what can wait.",
-  keywords: ["productivity", "second brain", "task management", "notes", "daily plan"],
-  authors: [{ name: "Elisabeth Nnamani" }],
-  openGraph: {
-    title: "FlowMind",
-    description: "Put it down. FlowMind files it, plans your day and tells you what can wait.",
-    type: "website",
-    locale: "en_US",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "FlowMind",
-    description: "Put it down. FlowMind files it, plans your day and tells you what can wait.",
-  },
-};
+// A function, so the app URL is read through env.ts at request time, not at import
+export function generateMetadata(): Metadata {
+  return {
+    metadataBase: new URL(publicEnv().NEXT_PUBLIC_APP_URL),
+    title: { default: "FlowMind", template: "%s · FlowMind" },
+    description:
+      "Drop in notes, tasks and ideas. FlowMind files them into projects, plans your day and tells you what can wait.",
+    keywords: ["productivity", "second brain", "task management", "notes", "daily plan"],
+    authors: [{ name: "Elisabeth Nnamani" }],
+    openGraph: {
+      title: "FlowMind",
+      description: "Put it down. FlowMind files it, plans your day and tells you what can wait.",
+      type: "website",
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "FlowMind",
+      description: "Put it down. FlowMind files it, plans your day and tells you what can wait.",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",

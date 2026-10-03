@@ -43,18 +43,12 @@ export const YEARLY_DISCOUNT_PERCENT = Math.round(
 )
 
 export const FREE_FEATURES = [
-  `${FREE_TIER_AI_CALLS} AI calls per month`,
-  'Unified inbox capture',
-  'AI organization into projects',
+  `${FREE_TIER_AI_CALLS} AI actions a month`,
+  'Inbox and capture',
+  'Items filed into projects',
   'Daily plans',
-  'Weekly summaries',
+  'Weekly reflections',
 ] as const
 
-export const PRO_FEATURES = [
-  'Unlimited AI calls',
-  'Advanced organization & entity extraction',
-  'Priority AI queue',
-  'Unlimited projects',
-  'Export your data',
-  'Priority support',
-] as const
+// Only what Pro actually changes
+export const PRO_FEATURES = ['Everything in Free', 'Unlimited AI actions', 'Ask your notes'] as const
