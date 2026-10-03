@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "regions": ["dub1"],
-  "crons": [{ "path": "/api/cron/demo-reset", "schedule": "0 3 * * *" }],
+  "crons": [{ "path": "/api/cron/demo-cleanup", "schedule": "0 3 * * *" }],
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30

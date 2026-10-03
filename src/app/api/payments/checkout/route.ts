@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (isDemo(user.id)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
+    if (isDemo(user)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
 
     const body = await request.json()
     const { plan = 'pro_monthly' } = body

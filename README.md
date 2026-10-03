@@ -34,21 +34,17 @@ keyword search.
 
 ## Demo setup
 
-"Try the demo" signs a visitor into one shared account with a seeded week. Two values in
-Vercel make it work on a deployment:
+"Try the demo" gives each visitor an account of their own, filled with a seeded week, and
+signs them in. Nobody sees anyone else's demo. It needs nothing beyond the service role
+key the app already uses.
 
-1. `CRON_SECRET`: any long random string. Vercel sends it to the nightly job in `vercel.json`.
-2. `SUPABASE_SERVICE_ROLE_KEY`, which the app already needs.
+Demo accounts are deleted a day after they are made by a nightly job
+(`/api/cron/demo-cleanup`, 03:00 UTC, in `vercel.json`). For that job to run, set
+`CRON_SECRET` in Vercel to any long random string; Vercel sends it to the job. The same
+nightly query keeps a free Supabase project from pausing for inactivity.
 
-The job (`/api/cron/demo-reset`, 03:00 UTC) creates the demo user the first time it runs
-and puts its data back every night after that. To fill the demo straight away instead of
-waiting for the first night:
-
-```
-curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cron/demo-reset
-```
-
-The same nightly query keeps a free Supabase project from pausing for inactivity.
+Limits, in `src/lib/demo.ts`: 30 AI actions per demo account and 600 across all of them
+per day (they share the model key), and at most 300 demo accounts at a time.
 
 ## Auth setup
 

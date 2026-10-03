@@ -75,10 +75,11 @@ Gemini fallback) · Paystack.
   `match_items()` is the only search. The answer's `[n]` markers are placed by code from the
   model's structured claims (`src/lib/ask.ts`). After touching retrieval or the prompt, run
   the Ask eval (push a branch named `evals/ask-<something>`).
-- **The demo is one shared account** (`src/lib/demo.ts`). Its data is defined once, in
-  `reset_demo()`, which the seed calls and a nightly cron re-runs. A route that changes the
-  account itself (password, deletion, billing) refuses the demo with `isDemo()`. Change the
-  demo's content in a new migration that replaces `reset_demo()`, and keep `evals/ask.jsonl` in step.
+- **Each demo visitor gets a private account** (`src/lib/demo.ts`, `/auth/demo`), marked
+  `{"demo": true}` in app metadata, filled by `seed_demo()` and deleted after a day by the
+  nightly cleanup. `seed_demo()` is also what the local seed calls, so the demo's content has
+  one definition: change it in a new migration, and keep `evals/ask.jsonl` in step. Routes
+  that change an account itself (password, deletion, billing) refuse demos with `isDemo(user)`.
 - Don't ship UI that doesn't work. A button with no handler, or a save that is a
   `setTimeout`, is worse than no button.
 - Keep marketing copy to claims the product can back up.

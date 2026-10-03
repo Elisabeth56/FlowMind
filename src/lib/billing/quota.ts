@@ -4,7 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/models'
-import { DEMO_DAILY_AI_UNITS, isDemo } from '@/lib/demo'
+import { demoAiRefusal, isDemo } from '@/lib/demo'
 import { quotaFor, type Quota, type SubscriptionState } from './entitlement'
 
 type Client = SupabaseClient<Database>
@@ -38,19 +38,19 @@ type Refusal = { status: 429; body: { error: string; limit?: number | null; used
 
 /** The one check every AI route makes before calling a model. Null means go ahead. */
 export async function refuseAiCall(supabase: Client, userId: string, cost = 1): Promise<Refusal | null> {
-  if (isDemo(userId)) {
-    // Everyone trying the demo shares one account and one model key
-    const { data: runs, error } = await supabase
-      .from('ai_runs')
-      .select('units')
-      .eq('user_id', userId)
-      .eq('success', true)
-      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-    if (error) throw new Error(`Could not read AI usage: ${error.message}`)
-    const used = (runs ?? []).reduce((sum, run) => sum + run.units, 0)
-    if (used + cost > DEMO_DAILY_AI_UNITS) {
-      return { status: 429, body: { error: 'The demo has used its AI actions for today. Create a free account to keep going.' } }
-    }
+  // The route has already checked who this is with the auth server; the session is read
+  // here only for the demo mark in its app metadata.
+  const { data: { session } } = await supabase.auth.getSession()
+  if (isDemo(session?.user)) {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const [own, all] = await Promise.all([
+      supabase.from('ai_runs').select('units').eq('user_id', userId).eq('success', true).gte('created_at', since),
+      createAdminClient().rpc('demo_usage').single(),
+    ])
+    if (own.error || all.error) throw new Error('Could not read demo AI usage')
+    const usedByAccount = own.data.reduce((sum, run) => sum + run.units, 0)
+    const refusal = demoAiRefusal(usedByAccount, all.data.ai_units_today, cost)
+    if (refusal) return { status: 429, body: { error: refusal } }
   }
 
   const quota = await getQuota(supabase, userId, cost)

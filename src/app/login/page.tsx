@@ -73,7 +73,7 @@ function Login() {
         New here? <Link href="/signup">Create an account</Link>
       </AuthFooter>
       <div className="flex items-center justify-between gap-3 rounded-row bg-bg px-4 py-3">
-        <span className="text-small text-ink-2">Just looking? Open a shared account with sample notes.</span>
+        <span className="text-small text-ink-2">Just looking? Open your own copy of an account with sample notes.</span>
         <DemoButton size="sm" className="shrink-0" />
       </div>
     </AuthShell>

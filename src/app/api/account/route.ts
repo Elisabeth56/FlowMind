@@ -15,7 +15,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (isDemo(user.id)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
+    if (isDemo(user)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
 
     // The typed confirmation is checked here too, not only in the form
     const { confirm } = await request.json().catch(() => ({}))
