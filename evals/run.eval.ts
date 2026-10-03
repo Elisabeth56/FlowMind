@@ -38,6 +38,8 @@ type CaseResult = {
   answer?: unknown
   /** The model that gave the answer */
   model?: string
+  /** Model calls made, including a retry after a malformed answer */
+  calls: number
   error?: string
   latencyMs: number
   tokens: number
@@ -64,6 +66,7 @@ async function measure(
     checks,
     answer,
     model: runs.find((r) => r.success)?.model,
+    calls: runs.length,
     error,
     latencyMs: Date.now() - startedAt,
     tokens: runs.reduce((sum, r) => sum + (r.inputTokens ?? 0) + (r.outputTokens ?? 0), 0),
@@ -86,6 +89,7 @@ function summarize(results: CaseResult[]) {
       ])
     ),
     latency_ms: { p50: percentile(latencies, 50), p95: percentile(latencies, 95) },
+    calls_per_case: Math.round((results.reduce((sum, r) => sum + r.calls, 0) / results.length) * 100) / 100,
     tokens_per_case: Math.round(results.reduce((sum, r) => sum + r.tokens, 0) / results.length),
   }
 }

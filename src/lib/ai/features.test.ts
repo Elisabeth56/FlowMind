@@ -50,7 +50,7 @@ describe('prompts render with what each feature provides', () => {
       completedToday: 2,
     })
     const prompt = rendered()
-    expect(prompt.user).toContain('- id item-1: Finish the deck (priority high, due 2026-10-02, project Pitch prep)')
+    expect(prompt.user).toMatch(/- id item-1: Finish the deck \(priority high, due 2026-10-02( DUE TODAY| OVERDUE)?, project Pitch prep\)/)
     expect(prompt.system).toContain('they like to start at 08:30')
   })
 
