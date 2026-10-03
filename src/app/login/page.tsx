@@ -6,10 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import * as motion from 'motion/react-client'
 import { Brain, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { login, loginWithGoogle } from '@/app/auth/actions'
-
-const AUTH_ERRORS: Record<string, string> = {
-  auth_failed: 'We could not complete that sign-in. Please try again.',
-}
+import { LOGIN_NOTICES } from '@/lib/auth'
 
 function LoginPageContent() {
   const searchParams = useSearchParams()
@@ -20,10 +17,10 @@ function LoginPageContent() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Surface failures handed back by the OAuth callback
+  // Failures handed back by the Google callback or an expired email link
   useEffect(() => {
     const code = searchParams.get('error')
-    if (code) setError(AUTH_ERRORS[code] ?? 'Something went wrong. Please try again.')
+    if (code) setError(LOGIN_NOTICES[code] ?? LOGIN_NOTICES.auth_failed)
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +31,9 @@ function LoginPageContent() {
     const formData = new FormData()
     formData.append('email', email)
     formData.append('password', password)
-    
+    // The page the middleware sent them here from
+    formData.append('next', searchParams.get('redirect') ?? '')
+
     const result = await login(formData)
     
     // If we get here, it means there was an error
@@ -48,9 +47,14 @@ function LoginPageContent() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
     try {
-      await loginWithGoogle()
+      // On success this redirects to Google and never returns
+      const result = await loginWithGoogle()
+      if (result?.error) {
+        setError(result.error)
+        setGoogleLoading(false)
+      }
     } catch {
-      setError('Failed to sign in with Google')
+      setError(LOGIN_NOTICES.auth_failed)
       setGoogleLoading(false)
     }
   }
