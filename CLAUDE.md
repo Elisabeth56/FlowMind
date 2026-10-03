@@ -22,7 +22,8 @@ Gemini fallback) · Paystack.
 
 - `src/app/` — routes. `/` is the marketing site, `/dash/*` the signed-in app,
   `/api/*` the route handlers.
-- `src/components/` — marketing-site components. In-app UI lives beside its route.
+- `src/components/` — marketing-site components; `src/components/ui/` — the design
+  system's base components. In-app UI lives beside its route.
 - `src/hooks/` — client data hooks (`useAuth`, `useInboxItems`, `useProjects`,
   `useAI`, `useSubscription`).
 - `src/lib/` — `env.ts` (validated env), `ai/` (model client, features, prompts), `supabase/`, `paystack/`, `plans.ts`.
@@ -45,6 +46,10 @@ Gemini fallback) · Paystack.
   `src/lib/ai/prompts/*.md`. Change a prompt, bump its `version`. Call `refuseAiCall()`
   before any model call in a route. Model ids live in one table in the module; check they
   are still served before changing them.
+- **UI is built on the design tokens** (`docs/design.md`): `bg-surface`, `text-ink-2`,
+  `rounded-card`, `text-h2` and the components in `src/components/ui/`. No hex colours,
+  default Tailwind palette names or new one-off buttons in screens. The azure/slate/violet
+  classes in older screens are a bridge and must not be used in new code.
 - **Scroll reveals share `revealViewport` from `src/lib/motion.ts`.** It starts
   the animation before the section enters view; per-component viewport settings
   reintroduce the "page fills in late" effect.

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Brain } from 'lucide-react'
+import { Logo } from '@/components/ui/Mark'
 
 /** The frame shared by the small auth pages: logo, a heading, one form. */
 export function AuthShell({
@@ -14,13 +14,8 @@ export function AuthShell({
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
-        <Link href="/" className="flex items-center gap-2 mb-12">
-          <div className="w-10 h-10 bg-gradient-to-br from-azure-500 to-azure-600 rounded-xl flex items-center justify-center shadow-lg shadow-azure-500/20">
-            <Brain className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-bold text-slate-900">
-            flow<span className="text-azure-500">mind</span>
-          </span>
+        <Link href="/" className="mb-12 inline-flex">
+          <Logo />
         </Link>
 
         <h1 className="text-3xl font-bold text-slate-900 mb-2">{title}</h1>

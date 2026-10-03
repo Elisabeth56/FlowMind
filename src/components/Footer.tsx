@@ -1,9 +1,10 @@
 "use client";
 
+import { Mark } from '@/components/ui/Mark'
 import * as motion from "motion/react-client";
 import { revealViewport } from "@/lib/motion";
 import Link from "next/link";
-import { Brain, Github, Mail } from "lucide-react";
+import { Github, Mail } from "lucide-react";
 
 // Only destinations that actually exist — the previous list linked a dozen
 // pages (Blog, Changelog, Careers, API...) that were never built.
@@ -65,8 +66,8 @@ export default function Footer() {
           >
             {/* Logo */}
             <div className="flex items-center gap-2 text-2xl font-bold text-white mb-6">
-              <Brain className="w-8 h-8 text-azure-400" />
-              <span>flow<span className="text-azure-400">mind</span></span>
+              <Mark size={32} />
+              <span className="font-medium tracking-[-0.01em]">FlowMind</span>
             </div>
 
             <p className="text-slate-400 max-w-sm mb-8 leading-relaxed">

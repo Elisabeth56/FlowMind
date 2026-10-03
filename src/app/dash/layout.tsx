@@ -1,5 +1,6 @@
 'use client'
 
+import { Mark } from '@/components/ui/Mark'
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -7,7 +8,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import * as motion from 'motion/react-client'
 import { AnimatePresence } from 'motion/react'
 import {
-  Brain,
   Inbox,
   Calendar,
   FolderKanban,
@@ -62,9 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="p-4 flex items-center justify-between border-b border-slate-100">
           <Link href="/dash" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-azure-500 to-azure-600 rounded-xl flex items-center justify-center shadow-lg shadow-azure-500/20">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
+            <Mark size={36} />
             {!collapsed && (
               <motion.span
                 className="text-xl font-bold text-slate-900"
@@ -72,7 +70,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.1 }}
               >
-                flow<span className="text-azure-500">mind</span>
+                FlowMind
               </motion.span>
             )}
           </Link>
