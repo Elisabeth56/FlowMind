@@ -124,7 +124,8 @@ language sql stable set search_path = '' as $$
   full join keyword k using (item_id)
   join public.inbox_items i on i.id = coalesce(s.item_id, k.item_id)
   left join public.projects p on p.id = i.project_id
-  order by score desc, i.created_at desc
+  -- on a tie the closer meaning wins: a shared word is weaker evidence than a near embedding
+  order by score desc, s.similarity desc nulls last, i.created_at desc
   limit least(greatest(p_limit, 1), 30)
 $$;
 revoke execute on function public.match_items(text, extensions.vector, integer) from public, anon;

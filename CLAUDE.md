@@ -70,6 +70,11 @@ Gemini fallback) · Paystack.
 - **The model never produces a number.** Counts, rates and trends come from SQL
   (`week_stats()`, `plan_candidates()`) and `src/lib/weekly.ts`, are passed into the prompt,
   and are stored from the computed values, not from the model's answer.
+- **Ask your notes retrieves before it writes** (`docs/decisions/005`). Items are embedded by
+  the `embed` Edge Function (`supabase/functions/embed`, gte-small) into `item_embeddings`;
+  `match_items()` is the only search. The answer's `[n]` markers are placed by code from the
+  model's structured claims (`src/lib/ask.ts`). After touching retrieval or the prompt, run
+  the Ask eval (push a branch named `evals/ask-<something>`).
 - Don't ship UI that doesn't work. A button with no handler, or a save that is a
   `setTimeout`, is worse than no button.
 - Keep marketing copy to claims the product can back up.

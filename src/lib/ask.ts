@@ -15,8 +15,10 @@ export type Match = {
   score: number
 }
 
-// gte-small scores unrelated short texts around 0.75 to 0.80; below this the nearest
-// note is about something else. Set from the retrieval eval (evals/results/ask-baseline.json).
+// A cheap first check, not the judge. gte-small scores even unrelated short texts near 0.8,
+// and a question about something missing still shares words with other notes, so this only
+// stops the clearly off-topic quarter of unanswerable questions (evals/results/ask-baseline.json).
+// For the rest the model is given the sources and says whether they answer the question.
 export const MIN_SIMILARITY = 0.8
 
 /** True when at least one match shares a word with the question or is close in meaning. */

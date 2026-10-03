@@ -19,6 +19,19 @@ FlowMind is a SaaS productivity app where users can:
 - **TypeScript 5.7**
 - **Lucide React** for icons
 
+## Ask your notes setup
+
+Search and answers need one Edge Function, deployed once per Supabase project:
+
+```
+supabase functions deploy embed
+```
+
+It embeds items and questions with gte-small, the model built into Supabase's edge
+runtime, so it needs no key. Items are embedded the first time the Ask screen is opened
+and again after they are edited. If the function is not deployed, Ask falls back to
+keyword search.
+
 ## Auth setup
 
 Sign-up, sign-in, Google and password reset run on Supabase Auth. Three things are set

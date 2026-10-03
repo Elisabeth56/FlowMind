@@ -44,3 +44,44 @@ What the first runs changed:
 
 Latency varies between runs on the free tier: the same organise cases took 1.9 s at the
 median in the run before this one.
+
+## Ask your notes
+
+```
+supabase start && supabase functions serve
+eval "$(supabase status -o env)"
+SUPABASE_URL=$API_URL SUPABASE_ANON_KEY=$ANON_KEY SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY npm run eval:ask
+```
+
+Runs against a local Supabase with the seed (it refuses any other URL, because it resets
+the demo user's password). `ask.jsonl` holds 40 questions about the seeded notes: 32 with
+the note that answers them, 8 whose answer is in no note. Retrieval needs no model; with
+`GROQ_API_KEY` set the answer step is measured too. In CI, push a branch named
+`evals/ask-<something>`.
+
+### Baseline (2026-10-03, 48 items)
+
+| | Hybrid | Embeddings only | Keywords only |
+|---|---|---|---|
+| Recall@8 | 1.00 | 1.00 | 0.84 |
+| MRR | see `results/ask-baseline.json` | | |
+
+| Answer step (`openai/gpt-oss-120b`, prompt `ask-notes-2`) | Result |
+|---|---|
+| Answerable: answered, citing the note that holds the answer | 32 of 32 |
+| Unanswerable: said it could not find it | 8 of 8 |
+| Unanswerable stopped before any model call | 2 of 8 |
+| Search latency (embed the question + `match_items`) | p50 about 0.1 s, on the CI runner |
+
+What the first runs changed:
+
+- Every answer was right and none carried a citation: the model ignored "cite as [n]" in
+  free text. The answer is now a list of claims with source numbers, and code places the markers.
+- A similarity threshold cannot tell "not in your notes" from "in your notes" with this
+  model: unanswerable questions scored up to 0.88, answerable ones as low as 0.82. The
+  model decides, from the sources, and the eval checks that it does.
+- Half the answer calls failed when this job ran beside the model evals on the same
+  free-tier key. The two now run one after the other.
+
+This is a small set over one seeded account. It shows the pipeline works end to end; it
+does not show how retrieval holds up at thousands of notes.
