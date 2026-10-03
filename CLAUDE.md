@@ -27,6 +27,9 @@ Gemini fallback) · Paystack.
   beside its route.
 - `src/middleware.ts` — refreshes the session and guards `/dash`. It must live in `src/`:
   at the repo root Next ignores it without any warning.
+- `src/app/dash/AppProvider.tsx` — what every app screen shares (items, projects, usage,
+  capture, undo toast, palette); screens read it with `useApp()`. `shell/` is the sidebar,
+  tab bar, command palette and toast.
 - `src/hooks/` — client data hooks (`useAuth`, `useInboxItems`, `useProjects`,
   `useAI`, `useSubscription`).
 - `src/lib/` — `env.ts` (validated env), `ai/` (model client, features, prompts), `supabase/`, `paystack/`, `plans.ts`.
