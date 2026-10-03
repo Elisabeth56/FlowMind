@@ -15,7 +15,10 @@
   .dots{background-image:radial-gradient(rgba(41,40,38,.10) 1px,transparent 1px);background-size:18px 18px}
 
   /* nav */
-  .navpill{position:sticky;top:16px;z-index:5;margin:16px auto 0;width:min(1040px,calc(100% - 32px));box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--fm-surface);border-radius:999px;padding:8px 8px 8px 20px;box-shadow:var(--fm-shadow-soft)}
+  .navpill{position:sticky;top:16px;z-index:5;margin:16px auto 0;width:min(1040px,calc(100% - 32px));box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--fm-surface);border-radius:999px;padding:8px 8px 8px 20px}
+  /* The lifted shadow is its own layer, so scrolling fades it in without repainting or
+     resizing the bar (animating padding moved the whole page by 8px as it scrolled) */
+  .navpill::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;box-shadow:0 1px 2px rgba(41,40,38,.04),0 8px 24px rgba(41,40,38,.08)}
 
   /* hero motion: words go blur to sharp, the underline draws itself */
   .w{display:inline-block;animation:lp-blurin .9s var(--ease-settle) both}
@@ -99,18 +102,18 @@
   @supports (animation-timeline: view()){
     .rv{animation:lp-rise linear both;animation-timeline:view();animation-range:entry 0% entry 40%}
     .draw-on{stroke-dasharray:900;stroke-dashoffset:900;animation:lp-drawon linear both;animation-timeline:view();animation-range:entry 10% entry 90%}
-    .bar-fill{animation:lp-fill linear both;animation-timeline:view();animation-range:entry 20% entry 100%}
+    .bar-fill{transform-origin:left;animation:lp-fill linear both;animation-timeline:view();animation-range:entry 20% entry 100%}
     .tick{animation:lp-tick linear both;animation-timeline:view();animation-range:entry 30% entry 100%}
     .stream{animation:lp-stream linear both;animation-timeline:view();animation-range:entry 10% entry 100%}
     .pop{animation:lp-pop linear both;animation-timeline:view();animation-range:entry 40% entry 100%}
     .count{animation:lp-count linear both;animation-timeline:view();animation-range:entry 10% entry 100%}
-    .navpill{animation:lp-lift linear both;animation-timeline:scroll();animation-range:0 120px}
+    .navpill::after{animation:lp-lift linear both;animation-timeline:scroll();animation-range:0 120px}
   }
   .count{counter-reset:n var(--n)}.count::after{content:counter(n)}
 
   /* with reduced motion every effect shows its end state: the slips rest in the tray */
   @media (prefers-reduced-motion:reduce){
-    .w,.ul,.st,.raw,.done,.cp,.filed,.rv,.draw-on,.bar-fill,.tick,.stream,.pop,.count,.typing1,.typing2,.typing3,.caret,.enter,.tick-badge,.ty-ph,.step .badge,.step .mini,.steps::before,.mini-caret{animation:none !important}
+    .w,.ul,.st,.raw,.done,.cp,.filed,.rv,.draw-on,.bar-fill,.navpill::after,.tick,.stream,.pop,.count,.typing1,.typing2,.typing3,.caret,.enter,.tick-badge,.ty-ph,.step .badge,.step .mini,.steps::before,.mini-caret{animation:none !important}
     .st>.lines,.st>.tags{animation:none !important;opacity:0}
     .ul,.draw-on{stroke-dashoffset:0}.raw,.typing1,.typing2,.typing3{opacity:0}.done,.cp,.filed,.tick-badge{opacity:1}
     .s1{transform:translate(calc(155.0*var(--u)),calc(256.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
@@ -169,10 +172,10 @@
 @keyframes lp-slide-in{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
 @keyframes lp-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @keyframes lp-drawon{to{stroke-dashoffset:0}}
-@keyframes lp-fill{from{width:0}}
+@keyframes lp-fill{from{transform:scaleX(0)}}
 @keyframes lp-tick{from{background:transparent;border-color:var(--fm-ink-4)}to{background:var(--fm-accent);border-color:var(--fm-accent)}}
 @keyframes lp-stream{from{clip-path:inset(0 100% 100% 0)}to{clip-path:inset(0 0 0 0)}}
 @keyframes lp-pop{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:none}}
-@keyframes lp-lift{from{box-shadow:0 0 0 rgba(41,40,38,0);padding-top:12px;padding-bottom:12px}to{box-shadow:0 1px 2px rgba(41,40,38,.04),0 8px 24px rgba(41,40,38,.08)}}
+@keyframes lp-lift{from{opacity:0}to{opacity:1}}
 @property --n{syntax:"<integer>";inherits:false;initial-value:0}
 @keyframes lp-count{from{--n:0}to{--n:var(--to)}}
