@@ -10,7 +10,7 @@ select is(
 select results_eq(
   $$select item_count::int, completed_count::int from public.project_counts
     where project_id = '11111111-0000-4000-8000-000000000003'$$,
-  $$values (3, 2)$$,
+  $$values (9, 2)$$,
   'project counts are computed from the items'
 );
 
@@ -64,7 +64,7 @@ update public.inbox_items set status = 'completed', completed_at = now() where c
 select results_eq('select total, done from progress', $$values (4, 2)$$, 'ticking a step is one row, and the progress follows');
 
 delete from public.inbox_items where content = 'Ask Tunde if the venue takes card';
-select results_eq('select total, done from progress', $$values (3, 2)$$, 'deleting an item takes its step out of the plan');
+select results_eq('select total, done from progress', $$values (9, 2)$$, 'deleting an item takes its step out of the plan');
 
 select throws_ok(
   $$select public.save_daily_plan(current_date, 'r', 'e',

@@ -9,13 +9,15 @@
 //   supabase start && supabase functions serve
 //   eval "$(supabase status -o env)" && SUPABASE_URL=$API_URL SUPABASE_ANON_KEY=$ANON_KEY \
 //     SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY npm run eval:ask
-// No model is called. Saves evals/results/ask-<timestamp>.json; the committed
+// Retrieval calls no model. With GROQ_API_KEY set, the answer step is measured too. Saves evals/results/ask-<timestamp>.json; the committed
 // reference run is evals/results/ask-baseline.json.
 import { randomBytes } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { expect, it } from 'vitest'
+import { defaultTargets } from '@/lib/ai'
+import { answerFromNotes } from '@/lib/ai/ask-notes'
 import { MIN_SIMILARITY, foundSomething, type Match } from '@/lib/ask'
 import { mean, percentile, recallAtK, reciprocalRank } from './score'
 
@@ -23,7 +25,18 @@ const DEMO_USER = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6'
 const DEMO_EMAIL = 'demo@elisabethnnamani.dev'
 const K = 8
 
+const KEYWORD_WEIGHTS = [1, 0.75, 0.5, 0.25, 0]
+const PAUSE_MS = Number(process.env.EVAL_PAUSE_MS ?? 4500)
+
 type Case = { question: string; expect: string[] }
+
+/** Reciprocal rank fusion of two ranked id lists, as match_items() does it in SQL. */
+function fuse(semantic: string[], keyword: string[], keywordWeight: number): string[] {
+  const score = new Map<string, number>()
+  semantic.forEach((id, i) => score.set(id, (score.get(id) ?? 0) + 1 / (60 + i + 1)))
+  keyword.forEach((id, i) => score.set(id, (score.get(id) ?? 0) + keywordWeight / (60 + i + 1)))
+  return [...score.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id)
+}
 
 it('ask: retrieval', async () => {
   const { SUPABASE_URL: url, SUPABASE_ANON_KEY: anonKey, SUPABASE_SERVICE_ROLE_KEY: serviceKey } = process.env
@@ -55,11 +68,11 @@ it('ask: retrieval', async () => {
     .filter(Boolean)
     .map((line) => JSON.parse(line))
 
-  const search = async (query: string, embedding: number[] | null): Promise<Match[]> => {
+  const search = async (query: string, embedding: number[] | null, limit = K): Promise<Match[]> => {
     const { data, error } = await supabase.rpc('match_items', {
       p_query: query,
       p_embedding: embedding ? JSON.stringify(embedding) : undefined,
-      p_limit: K,
+      p_limit: limit,
     })
     if (error) throw new Error(`match_items failed: ${error.message}`)
     return data as Match[]
@@ -78,8 +91,9 @@ it('ask: retrieval', async () => {
     if (error) throw new Error(`Could not embed the question: ${error.message}`)
     const hybrid = await search(c.question, embedded.embedding)
     const latencyMs = Date.now() - startedAt
-    const keyword = await search(c.question, null)
-    const semantic = await search('', embedded.embedding)
+    // Each half alone, as deep as the SQL function reads before fusing
+    const keyword = await search(c.question, null, 30)
+    const semantic = await search('', embedded.embedding, 30)
 
     const ids = (matches: Match[]) => matches.map((match) => match.id)
     const result = {
@@ -93,6 +107,11 @@ it('ask: retrieval', async () => {
       keyword_hits: keyword.length,
       top: hybrid[0]?.content ?? null,
       latencyMs,
+      // The same fusion as match_items(), replayed with other keyword weights
+      rr_by_keyword_weight: Object.fromEntries(
+        KEYWORD_WEIGHTS.map((weight) => [weight, reciprocalRank(fuse(ids(semantic), ids(keyword), weight), expected)])
+      ),
+      matches: hybrid,
     }
     results.push(result)
     const ok = result.answerable ? result.recall.hybrid === 1 : !result.found
@@ -108,6 +127,10 @@ it('ask: retrieval', async () => {
     recall_at_8: Object.fromEntries(modes.map((mode) => [mode, mean(answerable.map((r) => r.recall[mode]))])),
     mrr: Object.fromEntries(modes.map((mode) => [mode, mean(answerable.map((r) => r.rr[mode]))])),
     // Unanswerable questions stopped before any model call, and answerable ones wrongly stopped
+    // What MRR would be if match_items() gave the keyword half this weight (1 is equal weight)
+    mrr_by_keyword_weight: Object.fromEntries(
+      KEYWORD_WEIGHTS.map((weight) => [weight, mean(answerable.map((r) => r.rr_by_keyword_weight[weight]))])
+    ),
     not_found_without_a_model: mean(unanswerable.map((r) => (r.found ? 0 : 1))),
     answerable_wrongly_stopped: mean(answerable.map((r) => (r.found ? 0 : 1))),
     min_similarity: MIN_SIMILARITY,
@@ -117,12 +140,60 @@ it('ask: retrieval', async () => {
     },
     search_latency_ms: { p50: percentile(results.map((r) => r.latencyMs), 50), p95: percentile(results.map((r) => r.latencyMs), 95) },
   }
+  // The answer step, when a model key is present: does it cite the right note, and does
+  // it say "not found" when the notes do not hold the answer?
+  let answers: Record<string, unknown> | undefined
+  const answerResults = []
+  const key = process.env.GROQ_API_KEY
+  if (key) {
+    const targets = defaultTargets('smart', { GROQ_API_KEY: key, GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY })
+    for (const [i, c] of cases.entries()) {
+      const r = results[i]
+      if (!r.found) {
+        answerResults.push({ question: c.question, answerable: r.answerable, found: false, stopped_before_model: true, cites_expected: false, answer: null })
+        continue
+      }
+      const expectedNumbers = c.expect.map((snippet) => r.matches.findIndex((match) => match.content.includes(snippet)) + 1)
+      try {
+        const written = await answerFromNotes(
+          { userId: 'eval', question: c.question, matches: r.matches, today: '2026-10-03', timeZone: 'Africa/Lagos' },
+          { targets, record: async () => {} }
+        )
+        answerResults.push({
+          question: c.question,
+          answerable: r.answerable,
+          found: written.found,
+          stopped_before_model: false,
+          cites_expected: expectedNumbers.length > 0 && expectedNumbers.every((n) => written.cited.includes(n)),
+          answer: written.answer,
+        })
+      } catch (e) {
+        answerResults.push({ question: c.question, answerable: r.answerable, found: false, stopped_before_model: false, cites_expected: false, answer: null, error: String(e) })
+      }
+      const last = answerResults[answerResults.length - 1]
+      console.log(`${(last.answerable ? last.cites_expected : !last.found) ? 'pass' : 'FAIL'}  ${c.question}  ${last.answer ?? ''}`)
+      await new Promise((resolve) => setTimeout(resolve, PAUSE_MS))
+    }
+    const can = answerResults.filter((a) => a.answerable)
+    const cannot = answerResults.filter((a) => !a.answerable)
+    answers = {
+      // answerable: found, and the note that holds the answer is among the citations
+      answered_citing_the_right_note: mean(can.map((a) => (a.found && a.cites_expected ? 1 : 0))),
+      answerable_but_said_not_found: mean(can.map((a) => (a.found ? 0 : 1))),
+      // unanswerable: says it could not find it
+      unanswerable_said_not_found: mean(cannot.map((a) => (a.found ? 0 : 1))),
+      errors: answerResults.filter((a) => 'error' in a).length,
+    }
+  } else {
+    console.log('GROQ_API_KEY is not set: skipping the answer step')
+  }
+  Object.assign(summary, { answers })
   console.log(JSON.stringify(summary, null, 2))
 
   const out = path.join(process.cwd(), 'evals', 'results')
   mkdirSync(out, { recursive: true })
   const file = path.join(out, `ask-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
-  writeFileSync(file, JSON.stringify({ summary, results }, null, 2))
+  writeFileSync(file, JSON.stringify({ summary, results: results.map((r) => ({ ...r, matches: undefined })), answers: answerResults }, null, 2))
   console.log(`saved ${path.relative(process.cwd(), file)}`)
 
   expect(results.length).toBe(cases.length)

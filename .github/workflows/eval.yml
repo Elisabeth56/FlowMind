@@ -38,7 +38,8 @@ jobs:
           name: eval-results
           path: evals/results/*.json
 
-  # Retrieval for Ask your notes, on a local Supabase with the seed: no model, no secrets.
+  # Ask your notes on a local Supabase with the seed: retrieval (no model), then the
+  # answer step when the Groq key is available.
   retrieval:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -64,6 +65,8 @@ jobs:
           done
           echo "embed answered $code"
       - name: Run
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           eval "$(supabase status -o env)"
           SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
@@ -76,7 +79,7 @@ jobs:
           [ -n "$file" ] || { echo "::error::No results file was written"; exit 0; }
           node -e '
             const text = JSON.stringify(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")))
-            for (let i = 0, n = 0; i < text.length && n < 12; i += 3000, n++)
+            for (let i = 0, n = 0; i < text.length && n < 16; i += 3000, n++)
               console.log(`::notice title=ask-${String(n).padStart(2, "0")}::${text.slice(i, i + 3000).replace(/%/g, "%25")}`)
           ' "$file"
       - uses: actions/upload-artifact@v4

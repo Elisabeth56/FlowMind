@@ -95,7 +95,8 @@ returns table (
 language sql stable set search_path = '' as $$
   with question as (
     -- any of the question's words, not all of them: questions are full of words the note lacks
-    select replace(plainto_tsquery('english', coalesce(p_query, ''))::text, '&', '|')::tsquery as terms
+    select case when btrim(coalesce(p_query, '')) = '' then null
+      else replace(plainto_tsquery('english', p_query)::text, '&', '|')::tsquery end as terms
   ),
   semantic as (
     select e.item_id,
