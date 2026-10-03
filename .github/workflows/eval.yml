@@ -1,8 +1,11 @@
 name: Evals
 
-# Run by hand from the Actions tab. Calls the real models, so it is not part of CI.
+# Calls the real models, so it is not part of CI. Run it from the Actions tab, or
+# push any branch named evals/<something> to start it from a branch.
 on:
   workflow_dispatch:
+  push:
+    branches: ['evals/**']
 
 jobs:
   eval:
@@ -18,6 +21,17 @@ jobs:
       - run: npm run eval
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      # The saved run, also as notices on the job so it can be read without downloading
+      - name: Report
+        if: always()
+        run: |
+          file=$(ls -t evals/results/2*.json 2>/dev/null | head -1)
+          [ -n "$file" ] || { echo "::error::No results file was written"; exit 0; }
+          node -e '
+            const text = JSON.stringify(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")))
+            for (let i = 0, n = 0; i < text.length && n < 10; i += 3000, n++)
+              console.log(`::notice title=eval-${String(n).padStart(2, "0")}::${text.slice(i, i + 3000).replace(/%/g, "%25")}`)
+          ' "$file"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

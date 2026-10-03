@@ -19,7 +19,9 @@ import { accuracy, percentile, scoreOrganize, scorePlan, type OrganizeExpectatio
 const TODAY = '2026-10-01'
 const NOW = new Date('2026-10-01T07:00:00Z') // 08:00 in Lagos
 const PROJECTS = ['Clients', 'Pitch prep', 'Home', 'Reading']
-const PAUSE_MS = Number(process.env.EVAL_PAUSE_MS ?? 2200)
+// Slow enough to stay under the free tier's tokens-per-minute limit, so every case is
+// answered by the model it is meant to measure rather than by a fallback
+const PAUSE_MS = Number(process.env.EVAL_PAUSE_MS ?? 4500)
 
 const dir = path.join(process.cwd(), 'evals')
 const readCases = <T>(file: string): T[] =>
@@ -30,16 +32,31 @@ const readCases = <T>(file: string): T[] =>
 
 const pause = () => new Promise((resolve) => setTimeout(resolve, PAUSE_MS))
 
-type CaseResult = { name: string; checks: Record<string, boolean>; error?: string; latencyMs: number; tokens: number }
+type CaseResult = {
+  name: string
+  checks: Record<string, boolean>
+  answer?: unknown
+  /** The model that gave the answer */
+  model?: string
+  /** Model calls made, including a retry after a malformed answer */
+  calls: number
+  error?: string
+  latencyMs: number
+  tokens: number
+}
 
 /** Runs one case, collecting what the AI module would have written to ai_runs. */
-async function measure(name: string, run: (record: (r: AiRunRecord) => Promise<void>) => Promise<Record<string, boolean>>) {
+async function measure(
+  name: string,
+  run: (record: (r: AiRunRecord) => Promise<void>) => Promise<{ checks: Record<string, boolean>; answer: unknown }>
+) {
   const runs: AiRunRecord[] = []
   const startedAt = Date.now()
   let checks: Record<string, boolean> = {}
+  let answer: unknown
   let error: string | undefined
   try {
-    checks = await run(async (r) => void runs.push(r))
+    ;({ checks, answer } = await run(async (r) => void runs.push(r)))
   } catch (e) {
     error = e instanceof Error ? e.message : String(e)
     checks = { answered: false }
@@ -47,6 +64,9 @@ async function measure(name: string, run: (record: (r: AiRunRecord) => Promise<v
   const result: CaseResult = {
     name,
     checks,
+    answer,
+    model: runs.find((r) => r.success)?.model,
+    calls: runs.length,
     error,
     latencyMs: Date.now() - startedAt,
     tokens: runs.reduce((sum, r) => sum + (r.inputTokens ?? 0) + (r.outputTokens ?? 0), 0),
@@ -61,7 +81,15 @@ function summarize(results: CaseResult[]) {
   return {
     cases: results.length,
     accuracy: accuracy(results.map((r) => r.checks)),
+    // How many cases each model answered; more than one means the fallback was used
+    answered_by: Object.fromEntries(
+      [...new Set(results.map((r) => r.model ?? 'none'))].map((model) => [
+        model,
+        results.filter((r) => (r.model ?? 'none') === model).length,
+      ])
+    ),
     latency_ms: { p50: percentile(latencies, 50), p95: percentile(latencies, 95) },
+    calls_per_case: Math.round((results.reduce((sum, r) => sum + r.calls, 0) / results.length) * 100) / 100,
     tokens_per_case: Math.round(results.reduce((sum, r) => sum + r.tokens, 0) / results.length),
   }
 }
@@ -75,16 +103,14 @@ it('evals', async () => {
   const organize: CaseResult[] = []
   for (const c of readCases<{ input: string; expect: OrganizeExpectation }>('organize.jsonl')) {
     organize.push(
-      await measure(c.input.slice(0, 60), async (record) =>
-        scoreOrganize(
-          await organizeItem(
-            c.input,
-            { userId: 'eval', existingProjects: PROJECTS, today: TODAY },
-            { targets: defaultTargets('fast', keys), record }
-          ),
-          c.expect
+      await measure(c.input.slice(0, 60), async (record) => {
+        const answer = await organizeItem(
+          c.input,
+          { userId: 'eval', existingProjects: PROJECTS, today: TODAY },
+          { targets: defaultTargets('fast', keys), record }
         )
-      )
+        return { checks: scoreOrganize(answer, c.expect), answer }
+      })
     )
     await pause()
   }
@@ -105,16 +131,13 @@ it('evals', async () => {
       project_name: item.project,
     }))
     plan.push(
-      await measure(c.name, async (record) =>
-        scorePlan(
-          await planDay(
-            { userId: 'eval', items, projects: PROJECTS, timeZone: 'Africa/Lagos', preferredStart: '08:30', completedToday: 0, now: NOW },
-            { targets: defaultTargets('smart', keys), record }
-          ),
-          items.map((item) => item.id),
-          c.expect
+      await measure(c.name, async (record) => {
+        const answer = await planDay(
+          { userId: 'eval', items, projects: PROJECTS, timeZone: 'Africa/Lagos', preferredStart: '08:30', completedToday: 0, now: NOW },
+          { targets: defaultTargets('smart', keys), record }
         )
-      )
+        return { checks: scorePlan(answer, items.map((item) => item.id), c.expect), answer }
+      })
     )
     await pause()
   }
@@ -125,7 +148,8 @@ it('evals', async () => {
     daily_plan: summarize(plan),
     failures: [...organize, ...plan]
       .filter((r) => Object.values(r.checks).includes(false))
-      .map((r) => ({ name: r.name, failed: Object.keys(r.checks).filter((k) => !r.checks[k]), error: r.error })),
+      // The answer is kept for failed cases only, so a failure can be read from the file
+      .map((r) => ({ name: r.name, failed: Object.keys(r.checks).filter((k) => !r.checks[k]), answer: r.answer, error: r.error })),
   }
 
   mkdirSync(path.join(dir, 'results'), { recursive: true })
@@ -150,7 +174,7 @@ it('evals', async () => {
       )
     )
     console.log(
-      `latency p50 ${report[name].latency_ms.p50}ms, p95 ${report[name].latency_ms.p95}ms; ${report[name].tokens_per_case} tokens per case`
+      `answered by ${JSON.stringify(report[name].answered_by)}; latency p50 ${report[name].latency_ms.p50}ms, p95 ${report[name].latency_ms.p95}ms; ${report[name].tokens_per_case} tokens per case`
     )
   }
   console.log(`\nSaved ${path.relative(process.cwd(), file)}`)

@@ -1,0 +1,93 @@
+{
+  "ran_at": "2026-10-03T16:19:46.958Z",
+  "organize": {
+    "cases": 40,
+    "accuracy": {
+      "kind": 100,
+      "due_date": 100,
+      "project": 92,
+      "actionable": 100,
+      "priority": 100,
+      "injection": 100
+    },
+    "answered_by": {
+      "openai/gpt-oss-20b": 40
+    },
+    "latency_ms": {
+      "p50": 599,
+      "p95": 1546
+    },
+    "calls_per_case": 1,
+    "tokens_per_case": 1189
+  },
+  "daily_plan": {
+    "cases": 15,
+    "accuracy": {
+      "valid_ids": 100,
+      "step_count": 100,
+      "total_time": 100,
+      "time_order": 100,
+      "includes_due": 100,
+      "first": 100,
+      "ordering": 100
+    },
+    "answered_by": {
+      "openai/gpt-oss-120b": 15
+    },
+    "latency_ms": {
+      "p50": 1359,
+      "p95": 3108
+    },
+    "calls_per_case": 1,
+    "tokens_per_case": 996
+  },
+  "failures": [
+    {
+      "name": "notes from the call with Kemi: pricing slide before team, ad",
+      "failed": [
+        "project"
+      ],
+      "answer": {
+        "item_type": "note",
+        "is_actionable": false,
+        "priority": 0,
+        "sentiment": "neutral",
+        "entities": [
+          {
+            "type": "person",
+            "value": "Kemi"
+          }
+        ],
+        "tags": [
+          "call",
+          "pricing",
+          "quote"
+        ],
+        "suggested_project": "Clients",
+        "due_date": null,
+        "summary": "notes from the call with Kemi: pricing slide before team, add one customer quote up front"
+      }
+    },
+    {
+      "name": "Shape Up says appetite comes before estimates",
+      "failed": [
+        "project"
+      ],
+      "answer": {
+        "item_type": "note",
+        "is_actionable": false,
+        "priority": 0,
+        "sentiment": "neutral",
+        "entities": [],
+        "tags": [
+          "shape",
+          "appetite",
+          "estimates"
+        ],
+        "suggested_project": null,
+        "due_date": null,
+        "summary": "Shape Up says appetite comes before estimates"
+      }
+    }
+  ]
+}

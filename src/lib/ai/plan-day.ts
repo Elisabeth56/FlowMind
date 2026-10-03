@@ -28,11 +28,13 @@ export type PlanCandidate = {
 
 const PRIORITY = ['none', 'low', 'medium', 'high']
 
-function formatCandidates(items: PlanCandidate[]): string {
+// Whether something is overdue is decided here, not left to the model to work out
+function formatCandidates(items: PlanCandidate[], today: string): string {
   if (items.length === 0) return 'No open items'
   return items
     .map((item) => {
-      const due = item.due_date ? `, due ${item.due_date}` : ''
+      const urgency = !item.due_date || item.due_date > today ? '' : item.due_date === today ? ' DUE TODAY' : ' OVERDUE'
+      const due = item.due_date ? `, due ${item.due_date}${urgency}` : ''
       const project = item.project_name ? `, project ${item.project_name}` : ''
       return `- id ${item.id}: ${item.content} (priority ${PRIORITY[item.priority] ?? 'none'}${due}${project})`
     })
@@ -65,7 +67,7 @@ function planCall(input: PlanInput) {
       preferred_start: input.preferredStart.slice(0, 5),
       completed_today: input.completedToday,
       projects: input.projects.join(', ') || 'none yet',
-      items: formatCandidates(input.items),
+      items: formatCandidates(input.items, todayIn(zone, now)),
     },
     run: { userId: input.userId, operation: 'daily_plan' as const },
   }

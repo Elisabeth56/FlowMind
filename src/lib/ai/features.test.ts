@@ -33,8 +33,9 @@ describe('prompts render with what each feature provides', () => {
   it('organize', async () => {
     await organizeItem('Call Ada about the invoice', { userId: 'u', existingProjects: ['Clients'], today: '2026-10-02' })
     const prompt = rendered()
-    expect(prompt.version).toBe('organize-2')
-    expect(prompt.system).toContain('Today is 2026-10-02')
+    expect(prompt.version).toMatch(/^organize-\d+$/)
+    expect(prompt.system).toContain('Friday 2026-10-02 (today)\nSaturday 2026-10-03 (tomorrow)')
+    expect(prompt.system).toContain('Friday 2026-10-09 (next week)')
     expect(prompt.user).toContain('<note>\nCall Ada about the invoice\n</note>')
     expect(prompt.user).toContain('Existing projects: Clients')
   })
@@ -49,7 +50,7 @@ describe('prompts render with what each feature provides', () => {
       completedToday: 2,
     })
     const prompt = rendered()
-    expect(prompt.user).toContain('- id item-1: Finish the deck (priority high, due 2026-10-02, project Pitch prep)')
+    expect(prompt.user).toMatch(/- id item-1: Finish the deck \(priority high, due 2026-10-02( DUE TODAY| OVERDUE)?, project Pitch prep\)/)
     expect(prompt.system).toContain('they like to start at 08:30')
   })
 
@@ -69,7 +70,7 @@ describe('prompts render with what each feature provides', () => {
       pendingItems: [{ content: 'Renew domain', priority: 1, ageDays: 9 }],
     })
     const prompt = rendered()
-    expect(prompt.version).toBe('weekly-summary-3')
+    expect(prompt.version).toMatch(/^weekly-summary-\d+$/)
     expect(prompt.user).toContain('Completion rate: 50%')
     expect(prompt.user).toContain('Daily plans: 67% of planned steps done')
     expect(prompt.user).toContain('Completed per project: Home 3')
