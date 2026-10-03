@@ -10,6 +10,8 @@ type PlanStepProps = {
   content: string
   /** One line on why it is here */
   why?: string | null
+  /** Chips under the step, such as its project */
+  meta?: React.ReactNode
   done: boolean
   /** The next step to do. There is only ever one. */
   current?: boolean
@@ -17,7 +19,7 @@ type PlanStepProps = {
 }
 
 /** One row of today's plan: time in serif numerals, the task, and one line on why now. */
-export function PlanStep({ time, minutes, content, why, done, current = false, onToggle }: PlanStepProps) {
+export function PlanStep({ time, minutes, content, why, meta, done, current = false, onToggle }: PlanStepProps) {
   return (
     <div
       className={cn(
@@ -39,6 +41,7 @@ export function PlanStep({ time, minutes, content, why, done, current = false, o
           )}
         </div>
         {why && <p className="mt-1 text-small text-ink-3">{why}</p>}
+        {meta && !done && <div className="mt-2 flex flex-wrap gap-1.5">{meta}</div>}
       </div>
 
       <Checkbox checked={done} onChange={onToggle} label={`Mark "${content}" as done`} />

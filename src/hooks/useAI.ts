@@ -160,33 +160,6 @@ export function useAI() {
     }
   }, [])
 
-  // Tick a planned item off (or back on)
-  const setPlanItemCompleted = useCallback(async (
-    itemId: string,
-    completed: boolean
-  ): Promise<DailyPlan | null> => {
-    setError(null)
-
-    try {
-      const response = await fetch('/api/daily-plan', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId, completed }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update plan')
-      }
-
-      return data.plan
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return null
-    }
-  }, [])
-
   // Ask a question about the day
   const askAboutDay = useCallback(async (question: string): Promise<string | null> => {
     setLoading(true)
@@ -295,7 +268,6 @@ export function useAI() {
     organize,
     loadDailyPlan,
     generateDailyPlan,
-    setPlanItemCompleted,
     askAboutDay,
     loadWeeklySummary,
     getWeeklySummary,

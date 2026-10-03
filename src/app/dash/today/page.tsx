@@ -1,409 +1,264 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import * as motion from 'motion/react-client'
-import {
-  Sparkles,
-  Sun,
-  Coffee,
-  Moon,
-  CheckCircle2,
-  Circle,
-  Clock,
-  Zap,
-  RefreshCw,
-  MessageSquare,
-  Send,
-  Loader2,
-  Target,
-  TrendingUp,
-  AlertCircle,
-} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { Button, Chip, PlanStep, ProjectDot, cn, projectTone } from '@/components/ui'
 import { useAI, type DailyPlan } from '@/hooks/useAI'
+import { dueLabel, isOpen } from '@/lib/items'
+import { useApp } from '../AppProvider'
+
+function formatMinutes(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return hours === 0 ? `${rest}m` : rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
+}
 
 export default function TodayPage() {
-  const {
-    loadDailyPlan,
-    generateDailyPlan,
-    setPlanItemCompleted,
-    askAboutDay,
-    error,
-  } = useAI()
-  const [plan, setPlan] = useState<DailyPlan | null>(null)
-  const [question, setQuestion] = useState('')
-  const [answer, setAnswer] = useState('')
-  const [askingAI, setAskingAI] = useState(false)
-  const [loadingPlan, setLoadingPlan] = useState(true)
-  const [generating, setGenerating] = useState(false)
-  // True once the first part of a plan being generated has arrived
-  const [writing, setWriting] = useState(false)
-  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const app = useApp()
+  const { items, projects, today, timeZone } = app
+  const { loadDailyPlan, generateDailyPlan, askAboutDay, error } = useAI()
 
-  // Only read on mount — generating costs an AI call, so that stays an
-  // explicit action rather than a side effect of opening the page.
+  const [plan, setPlan] = useState<DailyPlan | null>(null)
+  const [loading, setLoading] = useState(true)
+  // 'waiting' until the first part of a plan arrives, then 'writing' while it streams
+  const [generating, setGenerating] = useState<false | 'waiting' | 'writing'>(false)
+
+  // Read on open only: generating costs an AI action, so it stays an explicit choice
   useEffect(() => {
     let cancelled = false
     loadDailyPlan()
-      .then((result) => {
-        if (!cancelled) setPlan(result)
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingPlan(false)
-      })
+      .then((result) => !cancelled && setPlan(result))
+      .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
   }, [loadDailyPlan])
 
-  const handleGenerate = async (regenerate = false) => {
-    setGenerating(true)
-    setWriting(false)
-    try {
-      // Show the plan as it is written, then swap in the saved one
-      const result = await generateDailyPlan({
-        regenerate,
-        onPartial: (partial) => {
-          setPlan(partial)
-          setWriting(true)
-        },
-      })
-      if (result) setPlan(result)
-    } finally {
-      setGenerating(false)
-      setWriting(false)
-    }
+  const generate = async (regenerate: boolean) => {
+    setGenerating('waiting')
+    const result = await generateDailyPlan({
+      regenerate,
+      onPartial: (partial) => {
+        setPlan(partial)
+        setGenerating('writing')
+      },
+    })
+    if (result) setPlan(result)
+    setGenerating(false)
   }
 
-  const handleToggleItem = async (itemId: string, completed: boolean) => {
-    setTogglingId(itemId)
-    try {
-      const updated = await setPlanItemCompleted(itemId, completed)
-      if (updated) setPlan(updated)
-    } finally {
-      setTogglingId(null)
-    }
-  }
+  // A step is done when its item is done. The shared items are the live copy, so a
+  // tick here, in the Inbox or in another tab shows up without re-reading the plan.
+  const steps = (plan?.plan_items ?? []).map((step) => {
+    const live = items.find((item) => item.id === step.item_id)
+    return { ...step, live, done: (live?.status ?? step.item?.status) === 'completed' }
+  })
+  const done = steps.filter((step) => step.done)
+  const open = steps.filter((step) => !step.done)
+  const minutesLeft = open.reduce((sum, step) => sum + (step.duration_minutes ?? 0), 0)
 
-  const handleAsk = async () => {
-    if (!question.trim()) return
-    setAskingAI(true)
-    try {
-      const result = await askAboutDay(question)
-      if (result) {
-        setAnswer(result)
-      }
-    } finally {
-      setAskingAI(false)
-    }
-  }
+  const planned = new Set(steps.map((step) => step.item_id))
+  const canWait = items.filter((item) => isOpen(item) && !planned.has(item.id) && item.item_type !== 'note').slice(0, 5)
 
-  const today = new Date()
-  const timeOfDay = today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'
-  const TimeIcon = timeOfDay === 'morning' ? Sun : timeOfDay === 'afternoon' ? Coffee : Moon
+  const dateLabel = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone })
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <motion.div
-        className="mb-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <TimeIcon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                Good {timeOfDay}!
-              </h1>
-              <p className="text-slate-500">
-                {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
-            </div>
+    <main className="grid items-start gap-8 px-4 py-6 md:px-12 md:py-8 xl:grid-cols-[minmax(0,720px)_300px] xl:gap-10">
+      <section className="flex min-w-0 flex-col gap-5">
+        <header className="flex items-end justify-between gap-4">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-small text-ink-3">{dateLabel}</span>
+            <h1 className="text-h2">Today</h1>
+          </div>
+          {plan && (
+            <Button variant="secondary" size="sm" disabled={Boolean(generating)} onClick={() => generate(true)}>
+              {generating ? 'Planning…' : 'Replan'}
+            </Button>
+          )}
+        </header>
+
+        {/* on narrower screens the progress sits under the title; wide screens show it in the side column */}
+        {plan && !loading && steps.length > 0 && (
+          <div className="flex items-center gap-3 xl:hidden">
+            <span className="block h-1 flex-1 rounded-full bg-surface-sunk">
+              <span
+                className="block h-1 rounded-full bg-apricot transition-[width] duration-500 ease-settle"
+                style={{ width: `${(done.length / steps.length) * 100}%` }}
+              />
+            </span>
+            <span className="text-stat-small">
+              {done.length} of {steps.length}
+            </span>
+          </div>
+        )}
+
+        {error && !generating && (
+          <div role="alert" className="rounded-row bg-danger-tint px-4 py-3 text-small text-danger">
+            {error}{' '}
+            <button type="button" onClick={() => generate(Boolean(plan))} className="underline underline-offset-2">
+              Try again
+            </button>
+          </div>
+        )}
+
+        {loading || generating === 'waiting' ? (
+          <PlanSkeleton label={generating ? 'Reading your inbox…' : 'Loading your plan'} />
+        ) : !plan ? (
+          <div className="flex flex-col items-start gap-3 rounded-card bg-surface px-6 py-8">
+            <h2 className="text-h3">No plan for today yet</h2>
+            <p className="max-w-[52ch] text-body text-ink-2">
+              FlowMind picks from what’s due and what matters, keeps it to a few realistic hours, and gives a reason
+              for every step.
+            </p>
+            {items.some(isOpen) ? (
+              <Button onClick={() => generate(false)}>Plan my day</Button>
+            ) : (
+              <Link href="/dash" className="text-small text-accent underline underline-offset-2">
+                Your inbox is empty. Add something first
+              </Link>
+            )}
+          </div>
+        ) : (
+          <>
+            {plan.reasoning && <p className="max-w-[60ch] text-body leading-relaxed text-ink-2">{plan.reasoning}</p>}
+
+            <ol className="flex flex-col gap-2">
+              {/* what is left first, in order; finished steps settle underneath */}
+              {[...open, ...done].map((step, i) => {
+                const project = projects.find((p) => p.id === (step.live?.project_id ?? null))
+                return (
+                  <li key={step.item_id} className={cn(step.done && 'opacity-70')}>
+                    <PlanStep
+                      time={step.scheduled_time}
+                      minutes={step.duration_minutes}
+                      content={step.live?.content ?? step.item?.content ?? ''}
+                      why={step.notes}
+                      done={step.done}
+                      current={i === 0 && !step.done && !generating}
+                      onToggle={() => step.live && app.complete(step.live)}
+                      meta={
+                        project && (
+                          <Chip tone={projectTone(project.color)}>
+                            <ProjectDot tone={projectTone(project.color)} />
+                            {project.name}
+                          </Chip>
+                        )
+                      }
+                    />
+                  </li>
+                )
+              })}
+            </ol>
+            {steps.length === 0 && !generating && (
+              <p className="text-body text-ink-2">Nothing needed planning today. Enjoy the quiet, or add something.</p>
+            )}
+
+            {canWait.length > 0 && !generating && (
+              <div className="flex flex-col gap-2 pt-2">
+                <h2 className="text-small text-ink-3">Can wait</h2>
+                <ul className="flex flex-wrap gap-2">
+                  {canWait.map((item) => (
+                    <li key={item.id} className="rounded-full bg-surface-sunk px-3 py-1.5 text-small text-ink-2">
+                      {item.content.length > 48 ? `${item.content.slice(0, 48)}…` : item.content} ·{' '}
+                      {item.due_date ? dueLabel(item.due_date, today).label.replace('Due ', '') : 'no deadline'}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
+      {plan && !loading && (
+        <aside className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5 rounded-card bg-surface p-6 max-xl:hidden">
+            <span className="text-stat">
+              {done.length} of {steps.length}
+            </span>
+            <span className="text-small text-ink-3">
+              done{minutesLeft > 0 && ` · about ${formatMinutes(minutesLeft)} left`}
+            </span>
+            {/* apricot means now: progress through today */}
+            <span className="mt-2.5 block h-1 rounded-full bg-surface-sunk">
+              <span
+                className="block h-1 rounded-full bg-apricot transition-[width] duration-500 ease-settle"
+                style={{ width: steps.length ? `${(done.length / steps.length) * 100}%` : 0 }}
+              />
+            </span>
           </div>
 
-          <motion.button
-            onClick={() => handleGenerate(true)}
-            disabled={generating || loadingPlan}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {generating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            Regenerate Plan
-          </motion.button>
-        </div>
-      </motion.div>
+          {plan.energy_recommendation && (
+            <div className="flex flex-col gap-2 rounded-card bg-surface p-6">
+              <h2 className="text-label">Energy</h2>
+              <p className="text-small leading-relaxed text-ink-2">{plan.energy_recommendation}</p>
+            </div>
+          )}
 
-      {error && (
-        <motion.div
-          className="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <span className="text-sm text-red-700">{error}</span>
-        </motion.div>
+          <AskAboutToday ask={askAboutDay} />
+        </aside>
       )}
+    </main>
+  )
+}
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main Plan Area */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* AI Reasoning Card */}
-          {plan?.reasoning && (
-            <motion.div
-              className="bg-gradient-to-br from-violet-50 to-azure-50 rounded-2xl border border-violet-100 p-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-5 h-5 text-violet-500" />
-                <span className="font-semibold text-slate-800">AI Recommendation</span>
-              </div>
-              <p className="text-slate-700 leading-relaxed">{plan.reasoning}</p>
-              {plan.energy_recommendation && (
-                <div className="mt-4 flex items-start gap-2 pt-4 border-t border-violet-200/50">
-                  <Zap className="w-4 h-4 text-amber-500 mt-0.5" />
-                  <p className="text-sm text-slate-600">{plan.energy_recommendation}</p>
-                </div>
-              )}
-            </motion.div>
-          )}
+function AskAboutToday({ ask }: { ask: (question: string) => Promise<string | null> }) {
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState<string | null>(null)
+  const [asking, setAsking] = useState(false)
+  const [failed, setFailed] = useState(false)
 
-          {/* Plan Items */}
-          {loadingPlan || (generating && !writing) ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-azure-500 mx-auto mb-4" />
-                <p className="text-slate-600">
-                  {generating ? 'Generating your daily plan...' : 'Loading your plan...'}
-                </p>
-              </div>
-            </div>
-          ) : !plan ? (
-            <motion.div
-              className="bg-white rounded-2xl border border-slate-200 shadow-soft p-8 text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="w-16 h-16 bg-azure-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Target className="w-8 h-8 text-azure-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                No plan yet for today
-              </h3>
-              <p className="text-slate-500 mb-6">
-                Add some items to your inbox and generate a daily plan.
-              </p>
-              <motion.button
-                onClick={() => handleGenerate()}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-azure-500 text-white font-medium rounded-xl hover:bg-azure-600 transition-colors"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Sparkles className="w-5 h-5" />
-                Generate Plan
-              </motion.button>
-            </motion.div>
-          ) : (
-            <motion.div
-              className="bg-white rounded-2xl border border-slate-200 shadow-soft overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-azure-500" />
-                  <span className="font-semibold text-slate-900">Today&apos;s Focus</span>
-                </div>
-                <span className="text-sm text-slate-500">
-                  {plan.items_completed || 0} / {plan.items_total || 0} completed
-                </span>
-              </div>
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!question.trim() || asking) return
+    setAsking(true)
+    setFailed(false)
+    const result = await ask(question.trim())
+    setAnswer(result)
+    setFailed(result === null)
+    setAsking(false)
+  }
 
-              <div className="divide-y divide-slate-100">
-                {plan.plan_items.length > 0 ? (
-                  plan.plan_items.map((planItem, index) => {
-                    const done = planItem.item?.status === 'completed'
-                    const busy = togglingId === planItem.item_id
-                    return (
-                      <motion.div
-                        key={planItem.item_id || index}
-                        className="p-4 hover:bg-slate-50 transition-colors"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.05 * index }}
-                      >
-                        <div className="flex items-start gap-3">
-                          <button
-                            onClick={() => handleToggleItem(planItem.item_id, !done)}
-                            disabled={busy || !planItem.item}
-                            className="mt-1 flex-shrink-0 disabled:opacity-50"
-                            aria-label={done ? 'Mark as not done' : 'Mark as done'}
-                          >
-                            {busy ? (
-                              <Loader2 className="w-5 h-5 animate-spin text-azure-500" />
-                            ) : done ? (
-                              <CheckCircle2 className="w-5 h-5 text-green-500" />
-                            ) : (
-                              <Circle className="w-5 h-5 text-slate-300 hover:text-azure-500 transition-colors" />
-                            )}
-                          </button>
-                          <div className="flex-1">
-                            <p
-                              className={`font-medium ${
-                                done ? 'text-slate-400 line-through' : 'text-slate-900'
-                              }`}
-                            >
-                              {planItem.item?.content || 'This item is no longer in your inbox'}
-                            </p>
-                            {planItem.notes && (
-                              <p className="text-sm text-slate-500 mt-1">{planItem.notes}</p>
-                            )}
-                            <div className="flex items-center gap-3 mt-2">
-                              {planItem.scheduled_time && (
-                                <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-                                  <Clock className="w-3 h-3" />
-                                  {planItem.scheduled_time}
-                                </span>
-                              )}
-                              {planItem.duration_minutes ? (
-                                <span className="text-xs text-slate-400">
-                                  ~{planItem.duration_minutes} min
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )
-                  })
-                ) : (
-                  <div className="p-8 text-center text-slate-500">
-                    No tasks scheduled for today
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-3 rounded-card bg-surface p-6">
+      <label htmlFor="ask-today" className="text-label">
+        Ask about today
+      </label>
+      <input
+        id="ask-today"
+        value={question}
+        onChange={(event) => setQuestion(event.target.value)}
+        placeholder="What can I drop if I run late?"
+        maxLength={500}
+        className="min-h-11 rounded-row border border-hairline bg-bg px-3.5 text-small text-ink placeholder:text-ink-3 focus:border-accent focus:outline-none"
+      />
+      <Button type="submit" variant="secondary" size="sm" disabled={asking || !question.trim()} className="self-start">
+        {asking ? 'Thinking…' : 'Ask'}
+      </Button>
+      {answer && <p className="text-small leading-relaxed text-ink-2">{answer}</p>}
+      {failed && (
+        <p role="alert" className="text-small text-danger">
+          Couldn’t get an answer. Try again in a moment.
+        </p>
+      )}
+    </form>
+  )
+}
+
+// Shaped like the plan it stands in for
+function PlanSkeleton({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col gap-2" aria-busy="true" aria-label={label}>
+      <p className="text-small text-ink-3">{label}</p>
+      {[64, 48, 56].map((width) => (
+        <div key={width} className="flex gap-4 rounded-row bg-surface px-4 py-4">
+          <span className="fm-skeleton h-7 w-14 rounded-control" />
+          <span className="flex flex-1 flex-col gap-2.5">
+            <span className="fm-skeleton h-4 rounded-full" style={{ width: `${width}%` }} />
+            <span className="fm-skeleton h-3.5 w-2/5 rounded-full" />
+          </span>
         </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Ask AI Card */}
-          <motion.div
-            className="bg-white rounded-2xl border border-slate-200 shadow-soft overflow-hidden"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div className="p-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-violet-500" />
-                <span className="font-semibold text-slate-900">Ask AI</span>
-              </div>
-            </div>
-            <div className="p-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleAsk()
-                  }}
-                  placeholder="What should I focus on?"
-                  className="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
-                />
-                <button
-                  onClick={handleAsk}
-                  disabled={askingAI || !question.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-violet-500 hover:text-violet-600 disabled:text-slate-300"
-                >
-                  {askingAI ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-
-              {answer && (
-                <motion.div
-                  className="mt-4 p-4 bg-violet-50 rounded-xl"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <p className="text-sm text-slate-700 leading-relaxed">{answer}</p>
-                </motion.div>
-              )}
-
-              {/* Quick questions */}
-              <div className="mt-4 space-y-2">
-                {[
-                  'What should I prioritize?',
-                  'Do I have time for a break?',
-                  'What can I delegate?',
-                ].map((q, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setQuestion(q)
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Stats Card */}
-          <motion.div
-            className="bg-white rounded-2xl border border-slate-200 shadow-soft p-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-green-500" />
-              <span className="font-semibold text-slate-900">Today&apos;s Progress</span>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-slate-600">Tasks completed</span>
-                  <span className="font-medium text-slate-900">
-                    {plan?.items_completed || 0}/{plan?.items_total || 0}
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-azure-500 to-violet-500 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: plan?.items_total
-                        ? `${((plan.items_completed || 0) / plan.items_total) * 100}%`
-                        : '0%',
-                    }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                  />
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </div>
+      ))}
     </div>
   )
 }
