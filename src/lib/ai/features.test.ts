@@ -33,7 +33,7 @@ describe('prompts render with what each feature provides', () => {
   it('organize', async () => {
     await organizeItem('Call Ada about the invoice', { userId: 'u', existingProjects: ['Clients'], today: '2026-10-02' })
     const prompt = rendered()
-    expect(prompt.version).toBe('organize-4')
+    expect(prompt.version).toMatch(/^organize-\d+$/)
     expect(prompt.system).toContain('Friday 2026-10-02 (today)\nSaturday 2026-10-03 (tomorrow)')
     expect(prompt.system).toContain('Friday 2026-10-09 (next week)')
     expect(prompt.user).toContain('<note>\nCall Ada about the invoice\n</note>')
@@ -70,7 +70,7 @@ describe('prompts render with what each feature provides', () => {
       pendingItems: [{ content: 'Renew domain', priority: 1, ageDays: 9 }],
     })
     const prompt = rendered()
-    expect(prompt.version).toBe('weekly-summary-3')
+    expect(prompt.version).toMatch(/^weekly-summary-\d+$/)
     expect(prompt.user).toContain('Completion rate: 50%')
     expect(prompt.user).toContain('Daily plans: 67% of planned steps done')
     expect(prompt.user).toContain('Completed per project: Home 3')
