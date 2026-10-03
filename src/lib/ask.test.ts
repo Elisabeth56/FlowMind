@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MIN_SIMILARITY, answerParts, citedNumbers, dropUnknownCitations, foundSomething, type Match } from './ask'
+import { MIN_SIMILARITY, answerParts, citedNumbers, dropUnknownCitations, foundSomething, withCitations, type Match } from './ask'
 
 const match = (over: Partial<Match>): Match => ({
   id: 'a', content: 'x', item_type: 'note', status: 'organized', project_name: null, created_at: '2026-10-01T00:00:00Z',
@@ -47,5 +47,17 @@ describe('answerParts', () => {
   })
   it('returns one part for an answer with no citations', () => {
     expect(answerParts('Nothing found.')).toEqual([{ text: 'Nothing found.' }])
+  })
+})
+
+describe('withCitations', () => {
+  it('puts the markers before the full stop', () => {
+    expect(withCitations('The pitch is Friday at 2pm.', [1, 3])).toBe('The pitch is Friday at 2pm [1][3].')
+  })
+  it('lists a repeated source once', () => {
+    expect(withCitations('Keep it to ten slides', [2, 2])).toBe('Keep it to ten slides [2]')
+  })
+  it('leaves a claim with no sources as it is', () => {
+    expect(withCitations('I could not find that in your notes.', [])).toBe('I could not find that in your notes.')
   })
 })

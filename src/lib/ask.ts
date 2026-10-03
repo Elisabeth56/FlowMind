@@ -45,6 +45,15 @@ export function dropUnknownCitations(answer: string, sourceCount: number): strin
     .trim()
 }
 
+/** A sentence followed by its sources as [n] markers, placed before the full stop: "Due Friday [2]." */
+export function withCitations(text: string, sources: number[]): string {
+  const markers = [...new Set(sources)].map((n) => `[${n}]`).join('')
+  const sentence = text.trim()
+  if (!markers) return sentence
+  const end = sentence.match(/[.!?]$/)
+  return end ? `${sentence.slice(0, -1)} ${markers}${end[0]}` : `${sentence} ${markers}`
+}
+
 export type AnswerPart = { text: string } | { cite: number }
 
 /** Splits an answer into text and citation markers, for rendering the markers as links. */

@@ -196,9 +196,12 @@ body {
 }
 
 /* Keyboard focus is always visible, in the accent */
-:focus-visible {
-  outline: none;
-  box-shadow: var(--fm-shadow-focus);
+/* In the base layer so a utility can replace it where a wrapper shows the focus instead */
+@layer base {
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--fm-shadow-focus);
+  }
 }
 
 ::selection {
