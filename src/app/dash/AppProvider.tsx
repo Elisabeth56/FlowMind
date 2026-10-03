@@ -26,6 +26,10 @@ type AppContext = ReturnType<typeof useInboxItems> &
     timeZone: string
     today: string
     usage: Usage | null
+    /** The free plan's AI actions for this month are used up */
+    atLimit: boolean
+    /** The last AI call found no model answering */
+    aiDown: boolean
     /** Items the AI is filing right now, and the ones that just landed */
     organizingIds: Set<string>
     settledIds: Set<string>
@@ -60,6 +64,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { addItem, syncItem, setCompleted, deleteItem } = inbox
 
   const [usage, setUsage] = useState<Usage | null>(null)
+  const [aiDown, setAiDown] = useState(false)
   const [organizingIds, setOrganizingIds] = useState<Set<string>>(new Set())
   const [settledIds, setSettledIds] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState<Toast | null>(null)
@@ -97,6 +102,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refreshUsage()
   }, [refreshUsage])
 
+  const atLimit = usage !== null && usage.limit !== null && usage.used >= usage.limit
+
   const dismissToast = useCallback(() => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
     setToast(null)
@@ -128,9 +135,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ itemIds: ids }),
         })
-        if (!response.ok) {
+        // 503: no model answered. The Inbox shows a banner with a retry instead of a toast per item.
+        setAiDown(response.status === 503)
+        if (!response.ok && response.status !== 503) {
           const body = await response.json().catch(() => ({}))
-          showToast(body.error ?? 'Couldn’t organize that. Try again.')
+          // At the limit the Inbox explains it; anything else is said here
+          if (!('limit' in body)) showToast(body.error ?? 'Couldn’t organize that. Try again.')
         }
       } catch {
         showToast('You seem to be offline. It’s saved, and you can organize it later.')
@@ -153,12 +163,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!text) return
       try {
         const item = await addItem(text, looksLikeUrl(text) ? 'link' : 'note')
-        void organize([item.id])
+        // Out of AI actions: it is saved, and waits to be organized
+        if (!atLimit) void organize([item.id])
       } catch {
         showToast('Couldn’t save that. Check your connection and try again.')
       }
     },
-    [addItem, organize, showToast]
+    [addItem, organize, showToast, atLimit]
   )
 
   const complete = useCallback(
@@ -204,6 +215,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timeZone,
       today,
       usage,
+      atLimit,
+      aiDown,
       organizingIds,
       settledIds,
       capture,
@@ -217,7 +230,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setPaletteOpen,
       captureInput,
     }),
-    [inbox, items, projects, createProject, updateProject, deleteProject, user, profile, updateProfile, signOut, timeZone, today, usage, organizingIds, settledIds, capture, organize, complete, remove, toast, showToast, dismissToast, paletteOpen]
+    [inbox, items, projects, createProject, updateProject, deleteProject, user, profile, updateProfile, signOut, timeZone, today, usage, atLimit, aiDown, organizingIds, settledIds, capture, organize, complete, remove, toast, showToast, dismissToast, paletteOpen]
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

@@ -6,6 +6,7 @@ import { Button, ProjectDot, cn, projectTone, type ChipTone } from '@/components
 import { useAI, type WeekView } from '@/hooks/useAI'
 import { barHeight, comparedWithLastWeek, weekLabel, weekdayOf } from '@/lib/weekly'
 import { useApp } from '../AppProvider'
+import { LimitNotice } from '../shell/LimitNotice'
 
 const BAR_FILL: Record<ChipTone, string> = {
   neutral: 'bg-ink-4',
@@ -16,7 +17,7 @@ const BAR_FILL: Record<ChipTone, string> = {
 }
 
 export default function InsightsPage() {
-  const { projects } = useApp()
+  const { projects, atLimit } = useApp()
   const { loadWeek, getWeeklySummary, error } = useAI()
 
   const [weekOffset, setWeekOffset] = useState(0)
@@ -62,7 +63,7 @@ export default function InsightsPage() {
         </div>
       </header>
 
-      {error && !writing && (
+      {error && !writing && !view && (
         <div role="alert" className="rounded-row bg-danger-tint px-4 py-3 text-small text-danger">
           {error}
         </div>
@@ -143,6 +144,8 @@ export default function InsightsPage() {
                 <span className="fm-skeleton h-4 w-11/12 rounded-full" />
                 <span className="fm-skeleton h-4 w-3/4 rounded-full" />
               </div>
+            ) : !summary && atLimit ? (
+              <LimitNotice what="Reflections" />
             ) : !summary ? (
               <div className="flex flex-col items-start gap-3">
                 <p className="max-w-[60ch] text-body text-ink-2">
@@ -150,7 +153,12 @@ export default function InsightsPage() {
                   slipped, one thing to keep and one to try.
                   {weekOffset === 0 && ' It is written once per week, so it reads best when the week is nearly over.'}
                 </p>
-                <Button variant="secondary" onClick={writeReflection}>Write the reflection</Button>
+                {error && (
+                  <p role="alert" className="text-small text-danger">{error}</p>
+                )}
+                <Button variant="secondary" onClick={writeReflection}>
+                  {error ? 'Try again' : 'Write the reflection'}
+                </Button>
               </div>
             ) : (
               <>

@@ -234,25 +234,6 @@ body {
   }
 }
 
-/* ── Bridge for screens not yet rebuilt ─────────────────────────────────────────
-   The old pages are written in azure/slate/violet utilities. Until each is rebuilt
-   on the tokens above (issues #27 to #32), those names point at the new palette so
-   the whole app already reads as one. Delete this block with the last old screen. */
-@theme {
-  --color-azure-50: #EEF3F9; --color-azure-100: #D3E1EF; --color-azure-200: #B7CCE3; --color-azure-300: #8FAACB; --color-azure-400: #5F7FA8; --color-azure-500: #1F3A5F; --color-azure-600: #1A3252; --color-azure-700: #152944; --color-azure-800: #102036; --color-azure-900: #0C182A;
-  --color-violet-50: #EEF3F9; --color-violet-100: #D3E1EF; --color-violet-200: #B7CCE3; --color-violet-300: #8FAACB; --color-violet-400: #5F7FA8; --color-violet-500: #1F3A5F; --color-violet-600: #1A3252; --color-violet-700: #152944; --color-violet-800: #102036; --color-violet-900: #0C182A;
-  --color-slate-50: #F7F6F3; --color-slate-100: #EFEDE8; --color-slate-200: #E0DED9; --color-slate-300: #D8D7D5; --color-slate-400: #A9A8A7; --color-slate-500: #6B6966; --color-slate-600: #4A4845; --color-slate-700: #3A3836; --color-slate-800: #292826; --color-slate-900: #292826;
-  --color-emerald-50: #EDF3EE; --color-emerald-100: #DCE7DF; --color-emerald-200: #C2D6C7; --color-emerald-300: #9DBBA5; --color-emerald-400: #6B9477; --color-emerald-500: #3F6B4A; --color-emerald-600: #3F6B4A; --color-emerald-700: #335A3D; --color-emerald-800: #2A4A33; --color-emerald-900: #223C2A;
-  --color-green-50: #EDF3EE; --color-green-100: #DCE7DF; --color-green-200: #C2D6C7; --color-green-300: #9DBBA5; --color-green-400: #6B9477; --color-green-500: #3F6B4A; --color-green-600: #3F6B4A; --color-green-700: #335A3D; --color-green-800: #2A4A33; --color-green-900: #223C2A;
-  --color-amber-50: #FDF3E9; --color-amber-100: #FBE3CF; --color-amber-200: #F6CFA9; --color-amber-300: #F2B27E; --color-amber-400: #F2B27E; --color-amber-500: #C98545; --color-amber-600: #8A5A1C; --color-amber-700: #8A4B1F; --color-amber-800: #733E19; --color-amber-900: #5C3214;
-  --color-red-50: #FAEEEB; --color-red-100: #F4DDD8; --color-red-200: #EBC4BD; --color-red-300: #DDA197; --color-red-400: #C4695E; --color-red-500: #9B3B32; --color-red-600: #9B3B32; --color-red-700: #84302A; --color-red-800: #6D2823; --color-red-900: #57201C;
-  --color-mist: #F2F0EC;
-  --font-serif: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --shadow-soft-lg: 0 1px 2px rgba(41, 40, 38, 0.04), 0 8px 24px rgba(41, 40, 38, 0.06);
-  --radius-4xl: 2rem;
-  --radius-5xl: 2.5rem;
-}
-
 /* The app's signature moment: an item settles once when it has been organised */
 @keyframes fm-settle {
   from {

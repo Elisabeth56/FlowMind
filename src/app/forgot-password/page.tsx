@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { resetPassword } from '@/app/auth/actions'
-import { AuthNotice, AuthShell, authButtonClass, authInputClass } from '@/components/auth/AuthShell'
+import { Button, Field } from '@/components/ui'
+import { AuthFooter, AuthNotice, AuthShell } from '@/components/auth/AuthShell'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -34,33 +35,25 @@ export default function ForgotPasswordPage() {
           If there is an account for {email}, a reset link is on its way. It works for one hour.
         </AuthNotice>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className={authInputClass}
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-          <button type="submit" disabled={sending} className={authButtonClass}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <Field
+            label="Email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            required
+          />
+          <Button type="submit" disabled={sending} className="w-full">
             {sending ? 'Sending…' : 'Send reset link'}
-          </button>
+          </Button>
         </form>
       )}
 
-      <p className="mt-8 text-sm text-slate-600">
-        <Link href="/login" className="text-azure-600 hover:text-azure-700">
-          Back to sign in
-        </Link>
-      </p>
+      <AuthFooter>
+        <Link href="/login">Back to sign in</Link>
+      </AuthFooter>
     </AuthShell>
   )
 }
