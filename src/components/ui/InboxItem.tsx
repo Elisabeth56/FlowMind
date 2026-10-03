@@ -29,7 +29,7 @@ export function InboxItem({ content, state = 'organized', time, chips, onToggle,
           onClick={onOpen}
           disabled={!onOpen}
           className={cn(
-            'block w-full text-left text-body transition-colors duration-200',
+            'block w-full text-left text-body [overflow-wrap:anywhere] transition-colors duration-200',
             completed ? 'text-ink-3 line-through decoration-ink-4' : 'text-ink'
           )}
         >

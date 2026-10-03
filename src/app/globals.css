@@ -251,3 +251,28 @@ body {
   --radius-4xl: 2rem;
   --radius-5xl: 2.5rem;
 }
+
+/* The app's signature moment: an item settles once when it has been organised */
+@keyframes fm-settle {
+  from {
+    transform: translateY(-6px) rotate(-1.2deg);
+  }
+  to {
+    transform: none;
+  }
+}
+.fm-settle {
+  animation: fm-settle 600ms var(--ease-settle);
+}
+
+/* Skeletons: a slow shimmer in the shape of what is loading */
+@keyframes fm-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.fm-skeleton {
+  background: linear-gradient(90deg, var(--fm-surface-sunk) 0%, var(--fm-bg) 50%, var(--fm-surface-sunk) 100%);
+  background-size: 200% 100%;
+  animation: fm-shimmer 1.4s linear infinite;
+}

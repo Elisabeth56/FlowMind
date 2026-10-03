@@ -1,359 +1,55 @@
 'use client'
 
-import { Mark } from '@/components/ui/Mark'
-import { useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import * as motion from 'motion/react-client'
-import { AnimatePresence } from 'motion/react'
-import {
-  Inbox,
-  Calendar,
-  FolderKanban,
-  BarChart3,
-  Settings,
-  LogOut,
-  ChevronLeft,
-  Sparkles,
-  Plus,
-  Loader2,
-  AlertCircle,
-  User,
-} from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { useInboxItems } from '@/hooks/useInboxItems'
-import { useAI } from '@/hooks/useAI'
+import { Suspense, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
+import { AppProvider, useApp } from './AppProvider'
+import { Palette } from './shell/Palette'
+import { Sidebar, TabBar } from './shell/Sidebar'
+import { Toast } from './shell/Toast'
 
-const navigation = [
-  { name: 'Inbox', href: '/dash', icon: Inbox },
-  { name: 'Today', href: '/dash/today', icon: Calendar },
-  { name: 'Projects', href: '/dash/projects', icon: FolderKanban },
-  { name: 'Insights', href: '/dash/insights', icon: BarChart3 },
-]
-
-const bottomNav = [
-  { name: 'Settings', href: '/dash/settings', icon: Settings },
-]
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+/** Keyboard shortcuts that work on every app screen. */
+function Shortcuts() {
   const pathname = usePathname()
-  const router = useRouter()
-  const { profile, signOut, isPro } = useAuth()
-  const [collapsed, setCollapsed] = useState(false)
-  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const { setPaletteOpen, captureInput } = useApp()
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.replace('/login')
-  }
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setPaletteOpen(true)
+        return
+      }
+      // N captures, unless the person is typing somewhere
+      const target = event.target as HTMLElement
+      const typing = target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+      if (event.key.toLowerCase() === 'n' && !typing && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault()
+        if (captureInput.current) captureInput.current.focus()
+        else setPaletteOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [pathname, setPaletteOpen, captureInput])
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-mist via-white to-cloud">
-      {/* Sidebar */}
-      <motion.aside
-        className={`fixed left-0 top-0 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200/50 z-40 flex flex-col transition-all duration-300 ${
-          collapsed ? 'w-20' : 'w-64'
-        }`}
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-      >
-        {/* Logo */}
-        <div className="p-4 flex items-center justify-between border-b border-slate-100">
-          <Link href="/dash" className="flex items-center gap-2">
-            <Mark size={36} />
-            {!collapsed && (
-              <motion.span
-                className="text-xl font-bold text-slate-900"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.1 }}
-              >
-                FlowMind
-              </motion.span>
-            )}
-          </Link>
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft
-              className={`w-4 h-4 text-slate-400 transition-transform ${
-                collapsed ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-        </div>
-
-        {/* Quick Add Button */}
-        <div className="p-4">
-          <motion.button
-            onClick={() => setShowQuickAdd(true)}
-            className={`w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-azure-500 to-azure-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-azure-500/25 transition-all ${
-              collapsed ? 'px-3' : 'px-4'
-            }`}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Plus className="w-5 h-5" />
-            {!collapsed && <span>Quick Add</span>}
-          </motion.button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-2 space-y-1">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link key={item.name} href={item.href}>
-                <motion.div
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                    isActive
-                      ? 'bg-azure-100 text-azure-700'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                  } ${collapsed ? 'justify-center' : ''}`}
-                  whileHover={{ x: collapsed ? 0 : 4 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <item.icon className={`w-5 h-5 ${isActive ? 'text-azure-600' : ''}`} />
-                  {!collapsed && (
-                    <span className="font-medium">{item.name}</span>
-                  )}
-                  {isActive && !collapsed && (
-                    <motion.div
-                      className="ml-auto w-1.5 h-1.5 bg-azure-500 rounded-full"
-                      layoutId="activeIndicator"
-                    />
-                  )}
-                </motion.div>
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* AI Assistant Card */}
-        {!collapsed && (
-          <div className="mx-3 mb-4">
-            <motion.div
-              className="p-4 bg-gradient-to-br from-violet-50 to-azure-50 rounded-2xl border border-violet-100"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-5 h-5 text-violet-500" />
-                <span className="font-semibold text-slate-800">AI Assistant</span>
-              </div>
-              <p className="text-sm text-slate-600 mb-3">
-                Ask me anything about your tasks and plans.
-              </p>
-              <Link
-                href="/dash/today"
-                className="text-sm font-medium text-azure-600 hover:text-azure-700"
-              >
-                What should I focus on? →
-              </Link>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Bottom Navigation */}
-        <div className="border-t border-slate-100 p-3 space-y-1">
-          {bottomNav.map((item) => {
-            const isActive = pathname.startsWith(item.href)
-            return (
-              <Link key={item.name} href={item.href}>
-                <div
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                    isActive
-                      ? 'bg-slate-100 text-slate-900'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                  } ${collapsed ? 'justify-center' : ''}`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  {!collapsed && <span className="font-medium">{item.name}</span>}
-                </div>
-              </Link>
-            )
-          })}
-          <button
-            onClick={handleSignOut}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all ${
-              collapsed ? 'justify-center' : ''
-            }`}
-          >
-            <LogOut className="w-5 h-5" />
-            {!collapsed && <span className="font-medium">Sign out</span>}
-          </button>
-        </div>
-      </motion.aside>
-
-      {/* Main Content */}
-      <main
-        className={`transition-all duration-300 ${
-          collapsed ? 'ml-20' : 'ml-64'
-        }`}
-      >
-        {/* Top Bar */}
-        <header className="sticky top-0 z-30 bg-white/60 backdrop-blur-xl border-b border-slate-200/50">
-          <div className="flex items-center justify-between px-6 py-4">
-            <p className="text-sm text-slate-500">
-              {navigation.find((item) => item.href === pathname)?.name ?? 'Settings'}
-            </p>
-
-            {/* Right side */}
-            <div className="flex items-center gap-3">
-              <Link href="/dash/settings">
-                <motion.div
-                  className="flex items-center gap-3 pl-3 pr-4 py-2 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className="w-8 h-8 bg-gradient-to-br from-azure-400 to-violet-500 rounded-full flex items-center justify-center">
-                    {profile?.avatar_url ? (
-                      <Image
-                        src={profile.avatar_url}
-                        alt=""
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <User className="w-4 h-4 text-white" />
-                    )}
-                  </div>
-                  <div className="hidden sm:block text-left">
-                    <p className="text-sm font-medium text-slate-900">
-                      {profile?.full_name || 'User'}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {isPro ? 'Pro Plan' : 'Free Plan'}
-                    </p>
-                  </div>
-                </motion.div>
-              </Link>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <div className="p-6">
-          {children}
-        </div>
-      </main>
-
-      {/* Quick Add Modal */}
-      <AnimatePresence>
-        {showQuickAdd && (
-          <QuickAddModal onClose={() => setShowQuickAdd(false)} />
-        )}
-      </AnimatePresence>
-    </div>
-  )
+  return null
 }
 
-function QuickAddModal({ onClose }: { onClose: () => void }) {
-  const [content, setContent] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  const { addItem } = useInboxItems()
-  const { organize } = useAI()
-
-  const handleSave = async () => {
-    const trimmed = content.trim()
-    if (!trimmed || saving) return
-
-    setSaving(true)
-    setError(null)
-    try {
-      const item = await addItem(trimmed)
-      // Close as soon as the item is safely stored; organising it is a
-      // best-effort follow-up that must not hold the modal open.
-      onClose()
-      if (item) {
-        organize({ itemIds: [item.id] })
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save that item')
-      setSaving(false)
-    }
-  }
-
+// The signed-in app: a calm sidebar (a tab bar on phones) around one screen at a time.
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <motion.div
-        className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      />
-      <motion.div
-        className="fixed top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 overflow-hidden"
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-      >
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-azure-100 rounded-xl flex items-center justify-center">
-              <Plus className="w-5 h-5 text-azure-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900">Quick Add</h3>
-              <p className="text-sm text-slate-500">Dump your thought, AI will organize it</p>
-            </div>
-          </div>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSave()
-              if (e.key === 'Escape') onClose()
-            }}
-            placeholder="What's on your mind? A task, idea, note, reminder..."
-            className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl resize-none focus:ring-2 focus:ring-azure-500/20 focus:border-azure-300 transition-all"
-            autoFocus
-          />
-
-          {error && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-red-600">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {error}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-xs text-slate-400">
-              Press ⌘+Enter to save
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <motion.button
-                onClick={handleSave}
-                disabled={!content.trim() || saving}
-                className="px-4 py-2 bg-azure-500 text-white font-medium rounded-lg hover:bg-azure-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-                Add & Organize
-              </motion.button>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </>
+    <AppProvider>
+      <div className="flex min-h-dvh bg-bg text-ink">
+        {/* the sidebar reads the URL's query, which needs a Suspense boundary */}
+        <Suspense>
+          <Sidebar />
+        </Suspense>
+        <div className="min-w-0 flex-1 pb-24 md:pb-0">{children}</div>
+        <TabBar />
+        <Palette />
+        <Toast />
+        <Shortcuts />
+      </div>
+    </AppProvider>
   )
 }
