@@ -64,7 +64,7 @@ the note that answers them, 8 whose answer is in no note. Retrieval needs no mod
 | | Hybrid | Embeddings only | Keywords only |
 |---|---|---|---|
 | Recall@8 | 1.00 | 1.00 | 0.84 |
-| MRR | see `results/ask-baseline.json` | | |
+| MRR | 0.75 | 0.75 | 0.64 |
 
 | Answer step (`openai/gpt-oss-120b`, prompt `ask-notes-2`) | Result |
 |---|---|
