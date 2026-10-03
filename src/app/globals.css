@@ -37,6 +37,7 @@
 /* Dark is designed, not inverted: surfaces lift by lightness and the accent turns pale.
    It applies only when asked for, until every screen is built on these tokens. */
 [data-theme="dark"] {
+  color-scheme: dark;
   --fm-bg: #161615;
   --fm-surface: #1F1F1D;
   --fm-surface-sunk: #2A2A27;

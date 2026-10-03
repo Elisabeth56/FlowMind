@@ -2,6 +2,8 @@
 
 // One place that holds what every app screen shares: the inbox items, projects, AI
 // usage, the undo toast and the command palette. Screens read it with useApp().
+import { readPreferences } from '@/lib/preferences'
+import { applyTheme } from '@/lib/theme'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
@@ -18,6 +20,9 @@ type Usage = { used: number; limit: number | null }
 type AppContext = ReturnType<typeof useInboxItems> &
   Pick<ReturnType<typeof useProjects>, 'projects' | 'createProject' | 'updateProject' | 'deleteProject'> & {
     profile: ReturnType<typeof useAuth>['profile']
+    email: string | null
+    updateProfile: ReturnType<typeof useAuth>['updateProfile']
+    signOut: () => Promise<void>
     timeZone: string
     today: string
     usage: Usage | null
@@ -49,7 +54,7 @@ const UNDO_MS = 5000
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
-  const { profile } = useAuth()
+  const { user, profile, updateProfile, signOut } = useAuth()
   const inbox = useInboxItems()
   const { projects, createProject, updateProject, deleteProject } = useProjects()
   const { addItem, syncItem, setCompleted, deleteItem } = inbox
@@ -61,6 +66,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const captureInput = useRef<HTMLInputElement | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // The stored theme wins over the copy this browser remembered; "system" follows the device live
+  const theme = profile ? readPreferences(profile.preferences).theme : null
+  useEffect(() => {
+    if (!theme) return
+    applyTheme(theme)
+    const device = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => applyTheme(theme)
+    device.addEventListener('change', onChange)
+    return () => device.removeEventListener('change', onChange)
+  }, [theme])
 
   const timeZone = safeTimeZone(profile?.timezone)
   const today = todayIn(timeZone)
@@ -182,6 +198,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateProject,
       deleteProject,
       profile,
+      email: user?.email ?? profile?.email ?? null,
+      updateProfile,
+      signOut,
       timeZone,
       today,
       usage,
@@ -198,7 +217,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setPaletteOpen,
       captureInput,
     }),
-    [inbox, items, projects, createProject, updateProject, deleteProject, profile, timeZone, today, usage, organizingIds, settledIds, capture, organize, complete, remove, toast, showToast, dismissToast, paletteOpen]
+    [inbox, items, projects, createProject, updateProject, deleteProject, user, profile, updateProfile, signOut, timeZone, today, usage, organizingIds, settledIds, capture, organize, complete, remove, toast, showToast, dismissToast, paletteOpen]
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

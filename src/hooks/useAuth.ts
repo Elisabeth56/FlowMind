@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Profile } from '@/types/models'
+import type { Preferences } from '@/lib/preferences'
 import { isPro as isProPlan } from '@/lib/billing/entitlement'
 
 export function useAuth() {
@@ -74,7 +75,11 @@ export function useAuth() {
 
   /** Persist preference changes and keep the cached profile in step. */
   const updateProfile = useCallback(
-    async (updates: Partial<Pick<Profile, 'full_name' | 'timezone' | 'daily_plan_time' | 'weekly_summary_day'>>) => {
+    async (
+      updates: Partial<Pick<Profile, 'full_name' | 'timezone' | 'daily_plan_time' | 'weekly_summary_day'>> & {
+        preferences?: Partial<Pick<Preferences, 'theme'>>
+      }
+    ) => {
       const response = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

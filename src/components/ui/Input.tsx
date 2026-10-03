@@ -41,6 +41,29 @@ export function Field({ label, error, hint, className, id, ...props }: FieldProp
   )
 }
 
+type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; hint?: string }
+
+/** A labelled dropdown, for a choice among many options. */
+export function Select({ label, hint, className, id, children, ...props }: SelectProps) {
+  const generatedId = useId()
+  const fieldId = id ?? generatedId
+  return (
+    <div className={className}>
+      <label htmlFor={fieldId} className="mb-2 block text-label text-ink">
+        {label}
+      </label>
+      <select id={fieldId} aria-describedby={hint ? `${fieldId}-note` : undefined} className={cn(fieldClass, 'border-hairline')} {...props}>
+        {children}
+      </select>
+      {hint && (
+        <p id={`${fieldId}-note`} className="mt-2 text-small text-ink-3">
+          {hint}
+        </p>
+      )}
+    </div>
+  )
+}
+
 /** The capture bar: the app's most used control. It floats, and Enter saves. */
 export function CaptureBar({
   value,
