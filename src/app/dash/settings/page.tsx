@@ -70,9 +70,25 @@ export default function ProfileSettingsPage() {
     }
   }
 
+  if (!profile) {
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading your settings">
+        <div className="flex flex-col gap-5 rounded-card bg-surface p-6">
+          {[0, 1, 2].map((key) => (
+            <span key={key} className="flex flex-col gap-2">
+              <span className="fm-skeleton h-3.5 w-20 rounded-full" />
+              <span className="fm-skeleton h-11 rounded-row" />
+            </span>
+          ))}
+        </div>
+        <div className="fm-skeleton h-28 rounded-card" />
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={save} className="flex flex-col gap-5 rounded-card bg-surface p-6" aria-busy={!profile}>
+      <form onSubmit={save} className="flex flex-col gap-5 rounded-card bg-surface p-6">
         <h2 className="text-h3">Profile</h2>
         <Field
           label="Name"

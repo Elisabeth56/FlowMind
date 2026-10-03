@@ -7,6 +7,7 @@ import { Button, CaptureBar, Chip, InboxItem as InboxRow, Menu, MenuItem, Projec
 import { KINDS, KIND_LABELS, PRIORITY_LABELS, countByKind, dueLabel, isOpen, relativeTime } from '@/lib/items'
 import type { InboxItem } from '@/types/models'
 import { useApp } from './AppProvider'
+import { LimitNotice } from './shell/LimitNotice'
 
 const TABS = [
   { id: 'all', label: 'All' },
@@ -58,6 +59,9 @@ function Inbox() {
     tab === 'done' ? item.status === 'completed' : isOpen(item) && (tab === 'all' || item.item_type === tab)
   )
   const waiting = scoped.filter((item) => isOpen(item) && item.ai_status === 'pending' && !app.organizingIds.has(item.id))
+
+  // What a retry picks up after the AI was down: never organized, or tried and failed
+  const retryable = items.filter((item) => isOpen(item) && item.ai_status !== 'done' && !app.organizingIds.has(item.id))
 
   const submit = () => {
     void capture(draft)
@@ -122,15 +126,29 @@ function Inbox() {
             </button>
           )
         })}
-        {waiting.length > 1 && (
+        {waiting.length > 1 && !app.atLimit && (
           <Button variant="secondary" size="sm" className="ml-auto shrink-0" onClick={() => app.organize(waiting.map((i) => i.id))}>
             Organize {waiting.length}
           </Button>
         )}
       </div>
 
+      {app.atLimit && <LimitNotice what="Organizing and planning" />}
+      {app.aiDown && !app.atLimit && (
+        <div role="status" className="rounded-row bg-apricot-tint px-4 py-3 text-small text-ink">
+          The AI isn’t answering right now. What you add is saved and waits as not organized.{' '}
+          <button
+            type="button"
+            onClick={() => app.organize(retryable.map((item) => item.id))}
+            className="text-apricot-ink underline underline-offset-2"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
       {error ? (
-        <div className="rounded-row bg-danger-tint px-4 py-3 text-small text-danger">
+        <div role="alert" className="rounded-row bg-danger-tint px-4 py-3 text-small text-danger">
           Couldn’t load your inbox.{' '}
           <button type="button" onClick={refetch} className="underline underline-offset-2">
             Try again
@@ -241,7 +259,7 @@ function Row({ item }: { item: InboxItem }) {
 
             <DueChip due={due} value={item.due_date} onChange={(due_date) => change({ due_date })} className={quiet} />
 
-            {item.ai_status === 'pending' && item.status !== 'completed' && (
+            {item.ai_status === 'pending' && item.status !== 'completed' && !app.atLimit && (
               <button type="button" onClick={() => app.organize([item.id])} className="text-caption text-accent underline underline-offset-2">
                 Organize
               </button>

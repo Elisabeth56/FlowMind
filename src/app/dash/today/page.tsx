@@ -6,6 +6,7 @@ import { Button, Chip, PlanStep, ProjectDot, cn, projectTone } from '@/component
 import { useAI, type DailyPlan } from '@/hooks/useAI'
 import { dueLabel, isOpen } from '@/lib/items'
 import { useApp } from '../AppProvider'
+import { LimitNotice } from '../shell/LimitNotice'
 
 function formatMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60)
@@ -70,7 +71,7 @@ export default function TodayPage() {
             <span className="text-small text-ink-3">{dateLabel}</span>
             <h1 className="text-h2">Today</h1>
           </div>
-          {plan && (
+          {plan && !app.atLimit && (
             <Button variant="secondary" size="sm" disabled={Boolean(generating)} onClick={() => generate(true)}>
               {generating ? 'Planning…' : 'Replan'}
             </Button>
@@ -92,7 +93,7 @@ export default function TodayPage() {
           </div>
         )}
 
-        {error && !generating && (
+        {error && !generating && !app.atLimit && (
           <div role="alert" className="rounded-row bg-danger-tint px-4 py-3 text-small text-danger">
             {error}{' '}
             <button type="button" onClick={() => generate(Boolean(plan))} className="underline underline-offset-2">
@@ -103,6 +104,8 @@ export default function TodayPage() {
 
         {loading || generating === 'waiting' ? (
           <PlanSkeleton label={generating ? 'Reading your inbox…' : 'Loading your plan'} />
+        ) : !plan && app.atLimit ? (
+          <LimitNotice what="Daily plans" />
         ) : !plan ? (
           <div className="flex flex-col items-start gap-3 rounded-card bg-surface px-6 py-8">
             <h2 className="text-h3">No plan for today yet</h2>

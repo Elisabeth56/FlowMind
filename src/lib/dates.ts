@@ -72,3 +72,11 @@ export function startOfDayIn(timeZone: string, date: string): Date {
   // Second pass covers dates where the offset changes between the guess and midnight (DST).
   return new Date(utcMidnight - offsetAt(guess))
 }
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+/** The first day of the month after `date`, in words: "1 November". When the monthly AI quota resets. */
+export function nextMonthStartLabel(date: string): string {
+  const month = Number(date.split('-')[1])
+  return `1 ${MONTH_NAMES[month % 12]}`
+}

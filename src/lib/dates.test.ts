@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, safeTimeZone, startOfDayIn, todayIn, weekIn } from './dates'
+import { addDays, safeTimeZone, startOfDayIn, todayIn, weekIn, nextMonthStartLabel } from './dates'
 
 describe('todayIn', () => {
   it('is still today at 23:30 in Lagos', () => {
@@ -58,5 +58,14 @@ describe('startOfDayIn', () => {
 describe('addDays', () => {
   it('crosses month ends', () => {
     expect(addDays('2026-09-30', 1)).toBe('2026-10-01')
+  })
+})
+
+describe('nextMonthStartLabel', () => {
+  it('names the first of the following month', () => {
+    expect(nextMonthStartLabel('2026-10-03')).toBe('1 November')
+  })
+  it('wraps from December to January', () => {
+    expect(nextMonthStartLabel('2026-12-31')).toBe('1 January')
   })
 })
