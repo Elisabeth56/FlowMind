@@ -33,6 +33,7 @@ export function authErrorMessage(error: { code?: string; message?: string } | nu
 
 /** Messages for the `?error=` codes our own routes put on the login URL. */
 export const LOGIN_NOTICES: Record<string, string> = {
+  demo_busy: 'A lot of people are trying the demo right now. Try again later, or create a free account.',
   demo_unavailable: 'The demo is not available right now. You can create a free account instead.',
   auth_failed: 'We could not complete that sign-in. Try again.',
   link_expired: 'That link has expired or was already used. Ask for a new one.',

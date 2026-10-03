@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (isDemo(user.id)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
+    if (isDemo(user)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
 
     const { action } = await request.json()
     if (action !== 'cancel' && action !== 'reactivate') {

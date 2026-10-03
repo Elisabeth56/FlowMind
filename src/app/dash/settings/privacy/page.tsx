@@ -58,7 +58,7 @@ export default function YourDataPage() {
           subscription is stopped first. This cannot be undone, so export first if you want a copy.
         </p>
         {isDemo ? (
-          <p className="text-small text-ink-3">Switched off in the shared demo.</p>
+          <p className="text-small text-ink-3">Switched off in the demo. This account is deleted on its own after a day.</p>
         ) : !confirming ? (
           <Button variant="danger" onClick={() => setConfirming(true)}>
             Delete my account…

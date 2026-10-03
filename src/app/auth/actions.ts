@@ -98,7 +98,7 @@ export async function updatePassword(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: authErrorMessage({ code: 'otp_expired' }) }
 
-  if (isDemo(user.id)) return { error: DEMO_REFUSAL }
+  if (isDemo(user)) return { error: DEMO_REFUSAL }
 
   const { error } = await supabase.auth.updateUser({ password })
   if (error) return { error: authErrorMessage(error) }

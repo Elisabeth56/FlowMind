@@ -1,6 +1,6 @@
--- Local seed: the demo user. Its data comes from reset_demo(), the same function that
--- puts the hosted demo back every night. Demo login: demo@elisabethnnamani.dev / NBtnS7vPGlkFNP0jvHrG
--- (local only; the hosted demo user has no password and is entered through /auth/demo).
+-- Local seed: one account to develop against. Its data comes from seed_demo(), the same
+-- function that fills each visitor's demo account. Demo login: demo@elisabethnnamani.dev / NBtnS7vPGlkFNP0jvHrG
+-- (local only).
 
 
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -16,4 +16,4 @@ values (gen_random_uuid(), '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', '0d3e5f6a-1b2
   jsonb_build_object('sub', '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', 'email', 'demo@elisabethnnamani.dev', 'email_verified', true),
   'email', now(), now() - interval '21 days', now());
 
-select public.reset_demo();
+select public.seed_demo('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6');

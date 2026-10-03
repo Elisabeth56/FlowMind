@@ -565,6 +565,13 @@ export type Database = {
         Args: { p_now?: string; p_user_id: string }
         Returns: number
       }
+      demo_usage: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          accounts: number
+          ai_units_today: number
+        }[]
+      }
       items_to_embed: {
         Args: { p_limit?: number }
         Returns: {
@@ -596,7 +603,7 @@ export type Database = {
           project_name: string
         }[]
       }
-      reset_demo: { Args: Record<PropertyKey, never>; Returns: undefined }
+      purge_demo_users: { Args: Record<PropertyKey, never>; Returns: number }
       save_daily_plan: {
         Args: {
           p_energy_recommendation: string
@@ -606,6 +613,7 @@ export type Database = {
         }
         Returns: string
       }
+      seed_demo: { Args: { p_user: string }; Returns: undefined }
       week_days: {
         Args: { p_week_end: string; p_week_start: string }
         Returns: {

@@ -1,48 +1,54 @@
--- The demo account goes back to the same state every night, whatever visitors did to it,
--- and nothing else is touched.
+-- Demo accounts: each visitor gets the same seeded week in an account of their own,
+-- and only demo accounts older than a day are deleted.
 begin;
-select plan(9);
+select plan(11);
 
-select ok(not has_function_privilege('authenticated', 'public.reset_demo()', 'execute'), 'a signed-in user cannot reset the demo');
-select ok(not has_function_privilege('anon', 'public.reset_demo()', 'execute'), 'a visitor cannot reset the demo');
+select ok(not has_function_privilege('authenticated', 'public.seed_demo(uuid)', 'execute'), 'a signed-in user cannot seed an account');
+select ok(not has_function_privilege('authenticated', 'public.purge_demo_users()', 'execute'), 'a signed-in user cannot delete demo accounts');
+select ok(not has_function_privilege('authenticated', 'public.demo_usage()', 'execute'), 'a signed-in user cannot read demo usage');
 
--- another account, which a reset must leave alone
-insert into auth.users (instance_id, id, aud, role, email)
-values ('00000000-0000-0000-0000-000000000000', 'dddddddd-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'someone@example.com');
-insert into public.inbox_items (user_id, content) values ('dddddddd-0000-4000-8000-000000000001', 'mine, not the demo''s');
+-- two demo visitors (one from yesterday, one from just now) and one real account
+insert into auth.users (instance_id, id, aud, role, email, raw_app_meta_data, created_at) values
+  ('00000000-0000-0000-0000-000000000000', 'dddddddd-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'demo-old@example.com', '{"demo":true}', now() - interval '25 hours'),
+  ('00000000-0000-0000-0000-000000000000', 'dddddddd-0000-4000-8000-000000000002', 'authenticated', 'authenticated', 'demo-new@example.com', '{"demo":true}', now()),
+  ('00000000-0000-0000-0000-000000000000', 'dddddddd-0000-4000-8000-000000000003', 'authenticated', 'authenticated', 'real@example.com', '{}', now() - interval '30 days');
+insert into public.inbox_items (user_id, content) values ('dddddddd-0000-4000-8000-000000000003', 'a real person''s note');
 
-create temp table before as
-select (select count(*) from public.inbox_items where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6') as items,
-       (select count(*) from public.projects where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6') as projects;
-
--- a day of visitors
-delete from public.inbox_items where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6' and content = 'Finish the pitch deck';
-insert into public.inbox_items (user_id, content) values ('0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6', 'a visitor was here');
-update public.inbox_items set status = 'completed', completed_at = now() where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6' and content = 'Buy gas before Sunday';
-update public.profiles set full_name = 'Changed', timezone = 'UTC', preferences = '{"theme":"dark"}' where id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6';
-delete from public.projects where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6' and name = 'Reading';
-
-select public.reset_demo();
+select public.seed_demo('dddddddd-0000-4000-8000-000000000001');
+select public.seed_demo('dddddddd-0000-4000-8000-000000000002');
 
 select is(
+  (select count(*) from public.inbox_items where user_id = 'dddddddd-0000-4000-8000-000000000002'),
   (select count(*) from public.inbox_items where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6'),
-  (select items from before), 'the demo has the same number of items as before');
-select is(
-  (select count(*) from public.projects where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6'),
-  (select projects from before), 'and the same projects');
-select is((select count(*) from public.inbox_items where content = 'a visitor was here'), 0::bigint, 'what a visitor added is gone');
-select is(
-  (select status from public.inbox_items where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6' and content = 'Buy gas before Sunday'),
-  'organized', 'what a visitor ticked off is open again');
-select results_eq(
-  $$select full_name, timezone, preferences::text from public.profiles where id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6'$$,
-  $$values ('Tolu Adebayo', 'Africa/Lagos', '{}')$$, 'the profile is put back');
+  'a visitor''s account holds the same items as the seeded one');
 select is(
   (select count(*) from public.daily_plan_items s join public.daily_plans p on p.id = s.plan_id
-    where p.user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6' and p.plan_date = current_date),
-  4::bigint, 'today has its plan again');
-select is((select count(*) from public.inbox_items where user_id = 'dddddddd-0000-4000-8000-000000000001'), 1::bigint,
-  'another account is not touched');
+    where p.user_id = 'dddddddd-0000-4000-8000-000000000002' and p.plan_date = current_date),
+  4::bigint, 'with a plan for today');
+select is(
+  (select count(*) from public.inbox_items i join public.projects p on p.id = i.project_id
+    where i.user_id = 'dddddddd-0000-4000-8000-000000000002' and p.user_id <> i.user_id),
+  0::bigint, 'and its items point only at its own projects');
+select is(
+  (select tier from public.subscriptions where user_id = 'dddddddd-0000-4000-8000-000000000002'), 'pro',
+  'a demo account is on Pro');
+
+-- seeding again puts an account back, whatever was done to it
+delete from public.inbox_items where user_id = 'dddddddd-0000-4000-8000-000000000002' and content = 'Finish the pitch deck';
+insert into public.inbox_items (user_id, content) values ('dddddddd-0000-4000-8000-000000000002', 'added by the visitor');
+select public.seed_demo('dddddddd-0000-4000-8000-000000000002');
+select is(
+  (select count(*) from public.inbox_items where user_id = 'dddddddd-0000-4000-8000-000000000002'),
+  (select count(*) from public.inbox_items where user_id = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6'),
+  'seeding an account again restores it');
+
+select is((select accounts from public.demo_usage()), 2, 'demo usage counts demo accounts only');
+
+select is(public.purge_demo_users(), 1, 'the cleanup removes the demo account older than a day');
+select results_eq(
+  $$select id from auth.users where id::text like 'dddddddd-%' order by id$$,
+  $$values ('dddddddd-0000-4000-8000-000000000002'::uuid), ('dddddddd-0000-4000-8000-000000000003'::uuid)$$,
+  'today''s demo account and the real account are still there');
 
 select * from finish();
 rollback;

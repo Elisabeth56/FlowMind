@@ -219,7 +219,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       today,
       usage,
       atLimit,
-      isDemo: isDemo(profile?.id),
+      isDemo: isDemo(user),
       aiDown,
       organizingIds,
       settledIds,

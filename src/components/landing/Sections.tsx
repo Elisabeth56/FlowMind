@@ -77,8 +77,8 @@ export function Hero() {
           <DemoButton size="lg" />
         </div>
         <p className="text-small text-ink-3">
-          Free for {FREE_TIER_AI_CALLS} AI actions a month. No card needed. The demo opens a shared account with a
-          week of sample notes, no sign-up.
+          Free for {FREE_TIER_AI_CALLS} AI actions a month. No card needed. The demo opens your own copy of an
+          account with a week of sample notes, no sign-up.
         </p>
       </div>
       <HeroStage />
