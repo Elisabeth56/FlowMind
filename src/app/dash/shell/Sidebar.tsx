@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { BarChart3, Inbox, Plus, Sun } from 'lucide-react'
+import { BarChart3, Inbox, Plus, Sun, MessageCircleQuestion } from 'lucide-react'
 import { Logo, ProjectDot, cn, projectTone } from '@/components/ui'
 import { isOpen } from '@/lib/items'
 import { useApp } from '../AppProvider'
@@ -11,6 +11,7 @@ import { useApp } from '../AppProvider'
 export const NAV = [
   { name: 'Inbox', href: '/dash', icon: Inbox },
   { name: 'Today', href: '/dash/today', icon: Sun },
+  { name: 'Ask', href: '/dash/ask', icon: MessageCircleQuestion },
   { name: 'Insights', href: '/dash/insights', icon: BarChart3 },
 ]
 

@@ -9,7 +9,8 @@ export default defineConfig({
   },
   test: {
     root: fileURLToPath(new URL('..', import.meta.url)),
-    include: ['evals/run.eval.ts'],
+    // EVAL_FILE picks the suite: the model evals by default, ask.eval.ts for retrieval
+    include: [`evals/${process.env.EVAL_FILE ?? 'run.eval.ts'}`],
     environment: 'node',
     testTimeout: 30 * 60 * 1000,
     reporters: ['default'],
