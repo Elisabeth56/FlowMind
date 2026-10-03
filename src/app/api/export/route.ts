@@ -16,7 +16,7 @@ export async function GET() {
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('inbox_items').select('*').eq('user_id', user.id).order('created_at'),
       supabase.from('projects').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('daily_plans').select('*').eq('user_id', user.id).order('plan_date'),
+      supabase.from('daily_plans').select('*, daily_plan_items (*)').eq('user_id', user.id).order('plan_date'),
       supabase.from('weekly_summaries').select('*').eq('user_id', user.id).order('week_start'),
     ])
 

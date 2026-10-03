@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { BarChart3, Inbox, Plus, Sun } from 'lucide-react'
 import { Logo, ProjectDot, cn, projectTone } from '@/components/ui'
-import { useAuth } from '@/hooks/useAuth'
 import { isOpen } from '@/lib/items'
 import { useApp } from '../AppProvider'
 
@@ -49,8 +48,7 @@ function NavLink({
 export function Sidebar() {
   const pathname = usePathname()
   const activeProject = useSearchParams().get('project')
-  const { items, projects, createProject, usage, profile, showToast } = useApp()
-  const { signOut } = useAuth()
+  const { items, projects, createProject, usage, profile, showToast, signOut } = useApp()
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
 

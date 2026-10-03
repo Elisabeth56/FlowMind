@@ -1,9 +1,8 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import * as motion from 'motion/react-client'
+import { Button, Chip, Segmented } from '@/components/ui'
 import { useSubscription } from '@/hooks/useSubscription'
 import {
   FREE_FEATURES,
@@ -12,395 +11,184 @@ import {
   PRO_YEARLY_SAVINGS,
   PRO_YEARLY_TOTAL,
   YEARLY_DISCOUNT_PERCENT,
-  formatNaira,
   proMonthlyPrice,
   type BillingPeriod,
 } from '@/lib/plans'
-import { 
-  Check, 
-  Loader2, 
-  Sparkles, 
-  Zap, 
-  Shield, 
-  CreditCard,
-  AlertCircle,
-  CheckCircle2,
-  Crown,
-  Infinity,
-} from 'lucide-react'
 
 const CHECKOUT_ERRORS: Record<string, string> = {
-  payment_failed: 'Payment failed. Please try again.',
-  verification_failed: 'Could not verify payment. Contact support if you were charged.',
-  missing_reference: 'Invalid payment reference.',
+  payment_failed: 'The payment did not go through. Nothing was charged; try again.',
+  verification_failed: 'We could not confirm the payment. If you were charged, it will show here within a few minutes.',
+  missing_reference: 'That payment link is not valid. Start the upgrade again.',
 }
 
-function BillingPageContent() {
-  const searchParams = useSearchParams()
-  const success = searchParams.get('success')
-  const error = searchParams.get('error')
-  
-  const {
-    subscription,
-    tier,
-    status,
-    limits,
-    loading,
-    checkout,
-    cancel,
-    reactivate,
-    isPro,
-    isActive,
-  } = useSubscription()
+const PERIODS = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: `Yearly, ${YEARLY_DISCOUNT_PERCENT}% off` },
+] as const
 
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly')
-  const [actionLoading, setActionLoading] = useState(false)
+function Billing() {
+  const searchParams = useSearchParams()
+  const { subscription, status, limits, loading, error, checkout, cancel, reactivate, isPro, isActive } = useSubscription()
+
+  const [period, setPeriod] = useState<BillingPeriod>('monthly')
+  const [busy, setBusy] = useState(false)
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const handleCheckout = async () => {
-    setActionLoading(true)
+  const run = async (action: () => Promise<unknown>, fallback: string) => {
+    setBusy(true)
     setActionError(null)
     try {
-      // On success this redirects to Paystack and never returns.
-      await checkout(PLAN_IDS[billingPeriod])
+      await action()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not start checkout')
+      setActionError(err instanceof Error ? err.message : fallback)
     } finally {
-      setActionLoading(false)
+      setBusy(false)
     }
   }
 
-  const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription? You\'ll keep access until the end of your billing period.')) {
-      return
-    }
-    setActionLoading(true)
-    setActionError(null)
-    try {
-      await cancel()
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not cancel your subscription')
-    } finally {
-      setActionLoading(false)
-    }
-  }
+  const problem = CHECKOUT_ERRORS[searchParams.get('error') ?? ''] ?? actionError ?? error
+  const nextPayment = subscription
+    ? new Date(subscription.next_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null
 
-  const handleReactivate = async () => {
-    setActionLoading(true)
-    setActionError(null)
-    try {
-      await reactivate()
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not reactivate your subscription')
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (loading && !limits) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-azure-500" />
+      <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading your plan">
+        <div className="fm-skeleton h-40 rounded-card" />
+        <div className="fm-skeleton h-56 rounded-card" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Success/Error Messages */}
-      {success && (
-        <motion.div
-          className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <CheckCircle2 className="w-5 h-5 text-green-600" />
-          <span className="text-green-700">
-            Payment successful! Welcome to FlowMind Pro 🎉
-          </span>
-        </motion.div>
+    <div className="flex flex-col gap-4">
+      {searchParams.get('success') && (
+        <p role="status" className="rounded-row bg-sage-tint px-4 py-3 text-small text-sage-ink">
+          Payment received. You are on Pro.
+        </p>
+      )}
+      {problem && (
+        <p role="alert" className="rounded-row bg-danger-tint px-4 py-3 text-small text-danger">
+          {problem}
+        </p>
       )}
 
-      {(error || actionError) && (
-        <motion.div
-          className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <span className="text-red-700">{CHECKOUT_ERRORS[error ?? ''] ?? actionError}</span>
-        </motion.div>
-      )}
-
-      {/* Current Plan Card */}
-      <motion.div
-        className="bg-white rounded-2xl border border-slate-200 shadow-soft overflow-hidden"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-lg font-semibold text-slate-900">Current Plan</h2>
-                <span className={`px-3 py-1 text-xs font-medium rounded-full flex items-center gap-1 ${
-                  isPro 
-                    ? 'bg-gradient-to-r from-azure-100 to-violet-100 text-azure-700'
-                    : 'bg-slate-100 text-slate-600'
-                }`}>
-                  {isPro && <Crown className="w-3 h-3" />}
-                  {tier.toUpperCase()}
-                </span>
-                {status === 'non_renewing' && (
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
-                    Cancelling
-                  </span>
-                )}
-              </div>
-              {isPro && subscription && (
-                <p className="text-sm text-slate-500">
-                  Next billing: {new Date(subscription.next_payment_date).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })}
-                </p>
-              )}
-            </div>
-            
-            {isPro && isActive && (
-              <button
-                onClick={handleCancel}
-                disabled={actionLoading}
-                className="text-sm text-red-600 hover:text-red-700 font-medium"
-              >
-                Cancel subscription
-              </button>
-            )}
-
-            {isPro && status === 'non_renewing' && (
-              <motion.button
-                onClick={handleReactivate}
-                disabled={actionLoading}
-                className="text-sm text-azure-600 hover:text-azure-700 font-medium"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Reactivate
-              </motion.button>
-            )}
+      <section className="flex flex-col gap-4 rounded-card bg-surface p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h2 className="text-h3">Your plan</h2>
+            <Chip tone={isPro ? 'blue' : 'neutral'}>{isPro ? 'Pro' : 'Free'}</Chip>
+            {status === 'non_renewing' && <Chip tone="apricot">Ends {nextPayment ?? 'this period'}</Chip>}
+            {status === 'past_due' && <Chip state="overdue">Payment overdue</Chip>}
           </div>
-
-          {/* Usage Stats */}
-          {limits && (
-            <div className="bg-gradient-to-br from-slate-50 to-azure-50/30 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-slate-700">AI Calls This Month</span>
-                <span className="text-sm font-semibold text-slate-900 flex items-center gap-1">
-                  {limits.ai_calls_used}
-                  <span className="text-slate-400">/</span>
-                  {limits.ai_calls_per_month === 'unlimited' ? (
-                    <Infinity className="w-4 h-4 text-azure-500" />
-                  ) : (
-                    limits.ai_calls_per_month
-                  )}
-                </span>
-              </div>
-              {limits.ai_calls_per_month !== 'unlimited' && (
-                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-gradient-to-r from-azure-500 to-violet-500 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ 
-                      width: `${Math.min(100, (limits.ai_calls_used / (limits.ai_calls_per_month as number)) * 100)}%` 
-                    }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
-                  />
-                </div>
-              )}
-              {isPro && (
-                <p className="text-xs text-azure-600 mt-2 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  Unlimited AI calls with Pro
-                </p>
-              )}
-            </div>
+          {isPro && isActive && !confirmingCancel && (
+            <Button variant="danger" size="sm" onClick={() => setConfirmingCancel(true)}>
+              Cancel subscription
+            </Button>
+          )}
+          {isPro && status === 'non_renewing' && (
+            <Button variant="secondary" size="sm" disabled={busy} onClick={() => run(reactivate, 'Could not reactivate your subscription')}>
+              Keep Pro
+            </Button>
           )}
         </div>
-      </motion.div>
 
-      {/* Upgrade Section (show only for free users) */}
+        {isPro && isActive && nextPayment && <p className="text-small text-ink-2">Next payment on {nextPayment}.</p>}
+
+        {confirmingCancel && (
+          <div className="flex flex-col items-start gap-3 rounded-row bg-bg px-4 py-4">
+            <p className="text-small text-ink-2">
+              Pro stays on until {nextPayment ?? 'the end of the period you have paid for'}, then the account moves to
+              Free. Nothing is deleted.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={busy}
+                onClick={() => run(cancel, 'Could not cancel your subscription').then(() => setConfirmingCancel(false))}
+              >
+                {busy ? 'Cancelling…' : 'Cancel at period end'}
+              </Button>
+              <Button variant="quiet" size="sm" onClick={() => setConfirmingCancel(false)}>
+                Keep Pro
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {limits && (
+          <div className="flex flex-col gap-2">
+            <p className="text-small text-ink-2">
+              {limits.ai_calls_per_month === 'unlimited'
+                ? `${limits.ai_calls_used} AI actions this month. Pro has no limit.`
+                : `${limits.ai_calls_used} of ${limits.ai_calls_per_month} AI actions used this month.`}
+            </p>
+            {limits.ai_calls_per_month !== 'unlimited' && (
+              <span className="block h-1.5 rounded-full bg-surface-sunk">
+                <span
+                  className="block h-1.5 rounded-full bg-apricot"
+                  style={{ width: `${Math.min(100, (limits.ai_calls_used / limits.ai_calls_per_month) * 100)}%` }}
+                />
+              </span>
+            )}
+          </div>
+        )}
+      </section>
+
       {!isPro && (
-        <>
-          {/* Billing Toggle */}
-          <motion.div
-            className="flex justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-          >
-            <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-soft inline-flex">
-              <button
-                onClick={() => setBillingPeriod('monthly')}
-                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                  billingPeriod === 'monthly'
-                    ? 'bg-azure-500 text-white shadow-lg shadow-azure-500/20'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBillingPeriod('yearly')}
-                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
-                  billingPeriod === 'yearly'
-                    ? 'bg-azure-500 text-white shadow-lg shadow-azure-500/20'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Yearly
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  billingPeriod === 'yearly'
-                    ? 'bg-white/20 text-white'
-                    : 'bg-green-100 text-green-700'
-                }`}>
-                  -{YEARLY_DISCOUNT_PERCENT}%
-                </span>
-              </button>
+        <section className="flex flex-col gap-5 rounded-card bg-surface p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h2 className="text-h3">Upgrade to Pro</h2>
+            <Segmented label="Billing period" value={period} options={PERIODS} onChange={setPeriod} />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-3 rounded-row bg-bg p-5">
+              <h3 className="text-label text-ink-2">Free, what you have now</h3>
+              <FeatureList features={FREE_FEATURES} />
             </div>
-          </motion.div>
-
-          {/* Plans Comparison */}
-          <motion.div
-            className="grid md:grid-cols-2 gap-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            {/* Free Plan */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-soft p-6">
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">Free</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-slate-900">{formatNaira(0)}</span>
-                  <span className="text-slate-500">/forever</span>
-                </div>
-              </div>
-              
-              <ul className="space-y-3 mb-6">
-                {FREE_FEATURES.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 text-sm text-slate-600">
-                    <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
-                      <Check className="w-3 h-3 text-slate-500" />
-                    </div>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              
-              <button
-                disabled
-                className="w-full py-3 border border-slate-200 text-slate-400 font-medium rounded-xl cursor-not-allowed"
-              >
-                Current Plan
-              </button>
+            <div className="flex flex-col gap-3 rounded-row bg-accent-tint p-5 text-accent-tint-ink">
+              <h3 className="text-label">Pro</h3>
+              <p className="flex items-baseline gap-1.5">
+                <span className="text-stat-small">{proMonthlyPrice(period)}</span>
+                <span className="text-small">a month</span>
+              </p>
+              <p className="text-small">
+                {period === 'yearly'
+                  ? `Billed once a year at ${PRO_YEARLY_TOTAL}. You save ${PRO_YEARLY_SAVINGS}.`
+                  : 'Billed monthly. Cancel any time.'}
+              </p>
+              <FeatureList features={PRO_FEATURES} />
             </div>
-
-            {/* Pro Plan */}
-            <div className="relative bg-gradient-to-br from-azure-500 via-azure-600 to-violet-600 rounded-2xl p-6 text-white overflow-hidden">
-              {/* Background decoration */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-violet-400/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-              
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-lg font-semibold">Pro</h3>
-                  <Sparkles className="w-4 h-4 text-white/80" />
-                  {billingPeriod === 'yearly' && (
-                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
-                      Save {PRO_YEARLY_SAVINGS}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-3xl font-bold">{proMonthlyPrice(billingPeriod)}</span>
-                  <span className="text-white/70">/month</span>
-                </div>
-                <p className="text-sm text-white/70 mb-6">
-                  {billingPeriod === 'yearly'
-                    ? `Billed yearly at ${PRO_YEARLY_TOTAL}.`
-                    : 'Billed monthly. Cancel any time.'}
-                </p>
-                
-                <ul className="space-y-3 mb-6">
-                  {PRO_FEATURES.map((feature) => (
-                    <li key={feature} className="flex items-center gap-3 text-sm text-white/90">
-                      <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                        <Check className="w-3 h-3 text-white" />
-                      </div>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                
-                <motion.button
-                  onClick={handleCheckout}
-                  disabled={actionLoading}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-white text-azure-600 font-semibold rounded-xl hover:bg-white/90 transition-colors shadow-lg"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {actionLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Zap className="w-5 h-5" />
-                      Upgrade to Pro
-                    </>
-                  )}
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        </>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <Button disabled={busy} onClick={() => run(() => checkout(PLAN_IDS[period]), 'Could not start checkout')}>
+              {busy ? 'Opening Paystack…' : 'Upgrade to Pro'}
+            </Button>
+            <span className="text-small text-ink-3">Paid through Paystack: card, bank transfer or USSD.</span>
+          </div>
+        </section>
       )}
-
-      {/* Payment Methods & Security */}
-      <motion.div
-        className="flex items-center justify-center gap-8 pt-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <CreditCard className="w-4 h-4" />
-          <span>Cards, Bank Transfer, USSD</span>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <Shield className="w-4 h-4" />
-          <span>Secured by Paystack</span>
-        </div>
-        <Link
-          href="/#pricing"
-          className="text-sm text-azure-600 hover:text-azure-700 font-medium"
-        >
-          Compare plans
-        </Link>
-      </motion.div>
     </div>
   )
 }
 
+function FeatureList({ features }: { features: readonly string[] }) {
+  return (
+    <ul className="flex list-disc flex-col gap-1.5 pl-5 text-small">
+      {features.map((feature) => (
+        <li key={feature}>{feature}</li>
+      ))}
+    </ul>
+  )
+}
+
+// useSearchParams needs a Suspense boundary
 export default function BillingPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-azure-500" />
-        </div>
-      }
-    >
-      <BillingPageContent />
+    <Suspense>
+      <Billing />
     </Suspense>
   )
 }

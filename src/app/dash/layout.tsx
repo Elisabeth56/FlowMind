@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { APP_ROOT_ID, themeScript } from '@/lib/theme'
 import { AppProvider, useApp } from './AppProvider'
 import { Palette } from './shell/Palette'
 import { Sidebar, TabBar } from './shell/Sidebar'
@@ -39,7 +40,9 @@ function Shortcuts() {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AppProvider>
-      <div className="flex min-h-dvh bg-bg text-ink">
+      {/* data-theme is set by the script below and by AppProvider, never by React */}
+      <div id={APP_ROOT_ID} suppressHydrationWarning className="flex min-h-dvh bg-bg text-ink">
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {/* the sidebar reads the URL's query, which needs a Suspense boundary */}
         <Suspense>
           <Sidebar />
