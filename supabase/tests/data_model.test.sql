@@ -1,6 +1,6 @@
 -- Plans, projects and tags: the integrity the schema now guarantees.
 begin;
-select plan(13);
+select plan(14);
 
 select is(
   (select count(*) >= 3 from public.inbox_items where tags @> array['pitch']),
@@ -45,6 +45,11 @@ select results_eq(
 select is(
   (select count(*)::int from public.plan_candidates(current_date) where content = 'Book the meeting room'),
   0, 'completed items are not candidates'
+);
+select is(
+  (select count(*)::int from public.plan_candidates(current_date, 50)
+   where content like 'idea:%' or content like 'notes from%' or content like 'https://%'),
+  0, 'ideas, notes and links are not scheduled'
 );
 
 -- progress is a count over the plan's steps
