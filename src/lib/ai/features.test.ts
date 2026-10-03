@@ -33,8 +33,8 @@ describe('prompts render with what each feature provides', () => {
   it('organize', async () => {
     await organizeItem('Call Ada about the invoice', { userId: 'u', existingProjects: ['Clients'], today: '2026-10-02' })
     const prompt = rendered()
-    expect(prompt.version).toBe('organize-2')
-    expect(prompt.system).toContain('Today is 2026-10-02')
+    expect(prompt.version).toBe('organize-3')
+    expect(prompt.system).toContain('Today is Friday, 2026-10-02')
     expect(prompt.user).toContain('<note>\nCall Ada about the invoice\n</note>')
     expect(prompt.user).toContain('Existing projects: Clients')
   })

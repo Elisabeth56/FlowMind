@@ -38,6 +38,7 @@ export function organizeItem(
     schema: organizedItemSchema,
     variables: {
       today: context.today,
+      weekday: new Date(`${context.today}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }),
       existing_projects: context.existingProjects.join(', ') || 'none yet',
       content,
     },

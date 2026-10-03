@@ -30,16 +30,27 @@ const readCases = <T>(file: string): T[] =>
 
 const pause = () => new Promise((resolve) => setTimeout(resolve, PAUSE_MS))
 
-type CaseResult = { name: string; checks: Record<string, boolean>; error?: string; latencyMs: number; tokens: number }
+type CaseResult = {
+  name: string
+  checks: Record<string, boolean>
+  answer?: unknown
+  error?: string
+  latencyMs: number
+  tokens: number
+}
 
 /** Runs one case, collecting what the AI module would have written to ai_runs. */
-async function measure(name: string, run: (record: (r: AiRunRecord) => Promise<void>) => Promise<Record<string, boolean>>) {
+async function measure(
+  name: string,
+  run: (record: (r: AiRunRecord) => Promise<void>) => Promise<{ checks: Record<string, boolean>; answer: unknown }>
+) {
   const runs: AiRunRecord[] = []
   const startedAt = Date.now()
   let checks: Record<string, boolean> = {}
+  let answer: unknown
   let error: string | undefined
   try {
-    checks = await run(async (r) => void runs.push(r))
+    ;({ checks, answer } = await run(async (r) => void runs.push(r)))
   } catch (e) {
     error = e instanceof Error ? e.message : String(e)
     checks = { answered: false }
@@ -47,6 +58,7 @@ async function measure(name: string, run: (record: (r: AiRunRecord) => Promise<v
   const result: CaseResult = {
     name,
     checks,
+    answer,
     error,
     latencyMs: Date.now() - startedAt,
     tokens: runs.reduce((sum, r) => sum + (r.inputTokens ?? 0) + (r.outputTokens ?? 0), 0),
@@ -75,16 +87,14 @@ it('evals', async () => {
   const organize: CaseResult[] = []
   for (const c of readCases<{ input: string; expect: OrganizeExpectation }>('organize.jsonl')) {
     organize.push(
-      await measure(c.input.slice(0, 60), async (record) =>
-        scoreOrganize(
-          await organizeItem(
-            c.input,
-            { userId: 'eval', existingProjects: PROJECTS, today: TODAY },
-            { targets: defaultTargets('fast', keys), record }
-          ),
-          c.expect
+      await measure(c.input.slice(0, 60), async (record) => {
+        const answer = await organizeItem(
+          c.input,
+          { userId: 'eval', existingProjects: PROJECTS, today: TODAY },
+          { targets: defaultTargets('fast', keys), record }
         )
-      )
+        return { checks: scoreOrganize(answer, c.expect), answer }
+      })
     )
     await pause()
   }
@@ -105,16 +115,13 @@ it('evals', async () => {
       project_name: item.project,
     }))
     plan.push(
-      await measure(c.name, async (record) =>
-        scorePlan(
-          await planDay(
-            { userId: 'eval', items, projects: PROJECTS, timeZone: 'Africa/Lagos', preferredStart: '08:30', completedToday: 0, now: NOW },
-            { targets: defaultTargets('smart', keys), record }
-          ),
-          items.map((item) => item.id),
-          c.expect
+      await measure(c.name, async (record) => {
+        const answer = await planDay(
+          { userId: 'eval', items, projects: PROJECTS, timeZone: 'Africa/Lagos', preferredStart: '08:30', completedToday: 0, now: NOW },
+          { targets: defaultTargets('smart', keys), record }
         )
-      )
+        return { checks: scorePlan(answer, items.map((item) => item.id), c.expect), answer }
+      })
     )
     await pause()
   }
@@ -125,7 +132,8 @@ it('evals', async () => {
     daily_plan: summarize(plan),
     failures: [...organize, ...plan]
       .filter((r) => Object.values(r.checks).includes(false))
-      .map((r) => ({ name: r.name, failed: Object.keys(r.checks).filter((k) => !r.checks[k]), error: r.error })),
+      // The answer is kept for failed cases only, so a failure can be read from the file
+      .map((r) => ({ name: r.name, failed: Object.keys(r.checks).filter((k) => !r.checks[k]), answer: r.answer, error: r.error })),
   }
 
   mkdirSync(path.join(dir, 'results'), { recursive: true })
