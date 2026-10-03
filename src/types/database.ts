@@ -596,6 +596,7 @@ export type Database = {
           project_name: string
         }[]
       }
+      reset_demo: { Args: never; Returns: undefined }
       save_daily_plan: {
         Args: {
           p_energy_recommendation: string

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { publicEnv } from '@/lib/env'
 import { authErrorMessage, MIN_PASSWORD_LENGTH, safeNext } from '@/lib/auth'
 import { safeTimeZone } from '@/lib/dates'
+import { DEMO_REFUSAL, isDemo } from '@/lib/demo'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -96,6 +97,8 @@ export async function updatePassword(formData: FormData) {
   // Only someone who arrived through a reset link (or is signed in) has a session here
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: authErrorMessage({ code: 'otp_expired' }) }
+
+  if (isDemo(user.id)) return { error: DEMO_REFUSAL }
 
   const { error } = await supabase.auth.updateUser({ password })
   if (error) return { error: authErrorMessage(error) }

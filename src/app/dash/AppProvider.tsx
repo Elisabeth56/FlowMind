@@ -4,6 +4,7 @@
 // usage, the undo toast and the command palette. Screens read it with useApp().
 import { readPreferences } from '@/lib/preferences'
 import { applyTheme } from '@/lib/theme'
+import { isDemo } from '@/lib/demo'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
@@ -28,6 +29,8 @@ type AppContext = ReturnType<typeof useInboxItems> &
     usage: Usage | null
     /** The free plan's AI actions for this month are used up */
     atLimit: boolean
+    /** Signed in to the shared demo account */
+    isDemo: boolean
     /** The last AI call found no model answering */
     aiDown: boolean
     /** Items the AI is filing right now, and the ones that just landed */
@@ -216,6 +219,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       today,
       usage,
       atLimit,
+      isDemo: isDemo(profile?.id),
       aiDown,
       organizingIds,
       settledIds,

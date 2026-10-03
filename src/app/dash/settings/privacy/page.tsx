@@ -5,7 +5,7 @@ import { Button, Field, buttonClass } from '@/components/ui'
 import { useApp } from '../../AppProvider'
 
 export default function YourDataPage() {
-  const { email } = useApp()
+  const { email, isDemo } = useApp()
   const [confirming, setConfirming] = useState(false)
   const [typed, setTyped] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -57,7 +57,9 @@ export default function YourDataPage() {
           Removes your account and everything in it: items, projects, plans, reflections and usage history. A paid
           subscription is stopped first. This cannot be undone, so export first if you want a copy.
         </p>
-        {!confirming ? (
+        {isDemo ? (
+          <p className="text-small text-ink-3">Switched off in the shared demo.</p>
+        ) : !confirming ? (
           <Button variant="danger" onClick={() => setConfirming(true)}>
             Delete my account…
           </Button>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button, Field } from '@/components/ui'
 import { AuthFooter, AuthNotice, AuthShell, GoogleSignIn } from '@/components/auth/AuthShell'
+import { DemoButton } from '@/components/auth/DemoButton'
 import { login } from '@/app/auth/actions'
 import { LOGIN_NOTICES } from '@/lib/auth'
 
@@ -71,6 +72,10 @@ function Login() {
         <span className="mx-2 text-ink-4">·</span>
         New here? <Link href="/signup">Create an account</Link>
       </AuthFooter>
+      <div className="flex items-center justify-between gap-3 rounded-row bg-bg px-4 py-3">
+        <span className="text-small text-ink-2">Just looking? Open a shared account with sample notes.</span>
+        <DemoButton size="sm" className="shrink-0" />
+      </div>
     </AuthShell>
   )
 }

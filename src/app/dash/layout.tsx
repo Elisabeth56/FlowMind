@@ -4,6 +4,7 @@ import { Suspense, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { APP_ROOT_ID, themeScript } from '@/lib/theme'
 import { AppProvider, useApp } from './AppProvider'
+import { DemoBanner } from './shell/DemoBanner'
 import { Palette } from './shell/Palette'
 import { Sidebar, TabBar } from './shell/Sidebar'
 import { Toast } from './shell/Toast'
@@ -47,7 +48,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Suspense>
           <Sidebar />
         </Suspense>
-        <div className="min-w-0 flex-1 pb-24 md:pb-0">{children}</div>
+        <div className="min-w-0 flex-1 pb-24 md:pb-0">
+          <DemoBanner />
+          {children}
+        </div>
         <TabBar />
         <Palette />
         <Toast />
