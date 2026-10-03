@@ -11,13 +11,13 @@ create function public.seed_demo(p_user uuid)
 returns void language plpgsql security definer set search_path = '' as $demo$
 declare
   demo constant uuid := p_user;
-  -- The local seed user keeps fixed project ids, which the database tests refer to
+  -- The local seed user keeps fixed project and plan ids, which the database tests refer to
   fixed constant boolean := p_user = '0d3e5f6a-1b2c-4d5e-8f90-a1b2c3d4e5f6';
   v_clients constant uuid := case when fixed then '11111111-0000-4000-8000-000000000001' else gen_random_uuid() end;
   v_pitch constant uuid := case when fixed then '11111111-0000-4000-8000-000000000002' else gen_random_uuid() end;
   v_home constant uuid := case when fixed then '11111111-0000-4000-8000-000000000003' else gen_random_uuid() end;
   v_reading constant uuid := case when fixed then '11111111-0000-4000-8000-000000000004' else gen_random_uuid() end;
-  v_plan constant uuid := gen_random_uuid();
+  v_plan constant uuid := case when fixed then '22222222-0000-4000-8000-000000000001' else gen_random_uuid() end;
 begin
   if not exists (select 1 from public.profiles where id = demo) then
     raise exception 'No such user';
