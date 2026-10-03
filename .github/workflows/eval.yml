@@ -57,7 +57,7 @@ jobs:
           cache: npm
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.119.0
       - run: npm ci
       # Database, auth, API and the edge runtime; the rest of the stack is not needed
       - run: supabase start -x studio,imgproxy,storage-api,logflare,vector,realtime,inbucket,postgres-meta,supavisor
