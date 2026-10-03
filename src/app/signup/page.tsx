@@ -1,5 +1,6 @@
 'use client'
 
+import { Mark } from '@/components/ui/Mark'
 import { useState } from 'react'
 import Link from 'next/link'
 import * as motion from 'motion/react-client'
@@ -187,12 +188,8 @@ export default function SignUpPage() {
             transition={{ delay: 0.2 }}
           >
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-azure-500 to-azure-600 rounded-xl flex items-center justify-center shadow-lg shadow-azure-500/20">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-slate-900">
-                flow<span className="text-azure-500">mind</span>
-              </span>
+              <Mark size={36} />
+              <span className="text-xl font-medium tracking-[-0.01em] text-ink">FlowMind</span>
             </Link>
           </motion.div>
 

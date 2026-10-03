@@ -1,9 +1,10 @@
 "use client";
 
+import { Mark } from '@/components/ui/Mark'
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import * as motion from "motion/react-client";
-import { ArrowUpRight, Brain } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 const navLinks = [
   { name: "Features", href: "/#features" },
@@ -56,8 +57,8 @@ export default function Navbar() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Brain className="w-8 h-8 text-azure-500" />
-          <span>flow<span className="text-azure-500">mind</span></span>
+          <Mark size={32} />
+          <span className="font-medium tracking-[-0.01em]">FlowMind</span>
         </motion.a>
 
         {/* Nav Links */}

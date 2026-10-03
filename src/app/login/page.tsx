@@ -1,10 +1,11 @@
 'use client'
 
+import { Mark } from '@/components/ui/Mark'
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import * as motion from 'motion/react-client'
-import { Brain, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { login, loginWithGoogle } from '@/app/auth/actions'
 import { LOGIN_NOTICES } from '@/lib/auth'
 
@@ -77,12 +78,8 @@ function LoginPageContent() {
             transition={{ delay: 0.2 }}
           >
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-azure-500 to-azure-600 rounded-xl flex items-center justify-center shadow-lg shadow-azure-500/20">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-slate-900">
-                flow<span className="text-azure-500">mind</span>
-              </span>
+              <Mark size={36} />
+              <span className="text-xl font-medium tracking-[-0.01em] text-ink">FlowMind</span>
             </Link>
           </motion.div>
 
@@ -309,21 +306,6 @@ function LoginPageContent() {
               plan your days, and keep you focused on what matters.
             </p>
           </motion.div>
-
-          {/* Floating elements */}
-          <div className="absolute bottom-12 left-12 right-12 flex justify-between">
-            {['50K+ users', '1M+ tasks organized', '4.9★ rating'].map((stat, i) => (
-              <motion.div
-                key={stat}
-                className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white/90"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 + i * 0.1 }}
-              >
-                {stat}
-              </motion.div>
-            ))}
-          </div>
         </div>
       </motion.div>
     </div>

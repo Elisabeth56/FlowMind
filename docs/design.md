@@ -37,3 +37,11 @@ Before launch, check each stock photo's licence page and record the photographer
 ## Copy
 
 Sentence case, short, specific. Only real numbers (pricing from `src/lib/plans.ts`). Pro lists what Pro actually does: unlimited AI actions and Ask your notes. Contact: hello@elisabethnnamani.dev.
+
+## In code
+
+- Tokens: `src/app/globals.css`. Raw values are `--fm-*` variables (light on `:root`, dark on `[data-theme="dark"]`); Tailwind utilities come from them: `bg-surface`, `text-ink-2`, `rounded-card`, `shadow-soft`, `text-h2`, `text-stat`.
+- Components: `src/components/ui/` (Mark, Button, Chip, Checkbox, Field, CaptureBar, InboxItem, PlanStep). `/styleguide` shows all of them in both themes.
+- Contrast: `src/app/design-tokens.test.ts` checks every allowed text and background pairing against AA in both themes, reading the stylesheet itself.
+- Fonts ship with the app (Geist from its package, Instrument Serif in `src/fonts/`); nothing is fetched from a font host.
+- Dark applies only when `data-theme="dark"` is set, until every screen is built on the tokens. The bridge block at the end of `globals.css` points the old azure/slate/violet utilities at the new palette for screens not yet rebuilt; it goes when the last of them does.
