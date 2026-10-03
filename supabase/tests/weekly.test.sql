@@ -1,7 +1,7 @@
 -- Every number Insights shows for a week comes from week_stats(). The week under
 -- test is 1 to 7 March 2026 for the demo user, who is in Lagos (UTC+1).
 begin;
-select plan(7);
+select plan(10);
 
 insert into public.inbox_items (id, user_id, content, status, project_id, created_at, completed_at) values
   -- created 28 Feb 23:30 UTC, which is already 1 March in Lagos: inside the week
@@ -43,6 +43,20 @@ select results_eq(
   $$select items_created, items_completed, plan_steps from public.week_stats('2025-01-05', '2025-01-11')$$,
   $$values (0, 0, 0)$$,
   'a week with nothing in it is all zeros'
+);
+
+-- the chart: one row per day, adding up to the week's plan numbers
+select is((select count(*)::integer from public.week_days('2026-03-01', '2026-03-07')), 7,
+  'the chart has a column for every day, planned or not');
+select results_eq(
+  $$select planned, done from public.week_days('2026-03-01', '2026-03-07') where day = '2026-03-03'$$,
+  $$values (3, 2)$$,
+  'a day shows the steps on its plan and how many are done'
+);
+select results_eq(
+  $$select sum(planned)::integer, sum(done)::integer from public.week_days('2026-03-01', '2026-03-07')$$,
+  $$select plan_steps, plan_steps_done from w$$,
+  'the days add up to the week''s planned and done steps'
 );
 
 select * from finish();
