@@ -3,18 +3,22 @@ import { cn } from './cn'
 
 // primary: the one next step on a screen. secondary: the alternative.
 // quiet: dismissive actions. danger: a quiet button for destructive ones.
-type Variant = 'primary' | 'secondary' | 'quiet' | 'danger'
-type Size = 'md' | 'sm'
+type Variant = 'primary' | 'inverse' | 'warm' | 'secondary' | 'quiet' | 'danger'
+type Size = 'lg' | 'md' | 'sm'
 
 const VARIANTS: Record<Variant, string> = {
   primary: 'bg-accent text-on-accent hover:-translate-y-px',
+  // for ink-blue panels, where the accent is the background
+  inverse: 'bg-bg text-accent hover:-translate-y-px',
+  warm: 'bg-apricot text-ink hover:-translate-y-px',
   secondary: 'bg-accent-tint text-accent-tint-ink hover:-translate-y-px',
   quiet: 'text-ink-2 hover:bg-surface-sunk hover:text-ink',
   danger: 'text-danger hover:bg-danger-tint',
 }
 
-// md is the 44px touch target; sm is for dense rows on pointer devices
+// lg is for marketing pages; md is the 44px touch target; sm is for dense rows on pointer devices
 const SIZES: Record<Size, string> = {
+  lg: 'min-h-12 px-6 text-[16px]',
   md: 'min-h-11 px-5',
   sm: 'min-h-9 px-4',
 }

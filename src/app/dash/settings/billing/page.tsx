@@ -381,7 +381,7 @@ function BillingPageContent() {
           <span>Secured by Paystack</span>
         </div>
         <Link
-          href="/pricing"
+          href="/#pricing"
           className="text-sm text-azure-600 hover:text-azure-700 font-medium"
         >
           Compare plans

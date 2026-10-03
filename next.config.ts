@@ -72,6 +72,12 @@ const nextConfig: NextConfig = {
   // Redirects
   async redirects() {
     return [
+      // pricing is a section of the landing page
+      {
+        source: '/pricing',
+        destination: '/#pricing',
+        permanent: false,
+      },
       {
         source: '/dashboard',
         destination: '/dash',

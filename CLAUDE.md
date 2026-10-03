@@ -22,8 +22,11 @@ Gemini fallback) · Paystack.
 
 - `src/app/` — routes. `/` is the marketing site, `/dash/*` the signed-in app,
   `/api/*` the route handlers.
-- `src/components/` — marketing-site components; `src/components/ui/` — the design
-  system's base components. In-app UI lives beside its route.
+- `src/components/landing/` — the marketing page (its motion is in `landing.css`, scoped
+  to `.lp`); `src/components/ui/` — the design system's base components. In-app UI lives
+  beside its route.
+- `src/middleware.ts` — refreshes the session and guards `/dash`. It must live in `src/`:
+  at the repo root Next ignores it without any warning.
 - `src/hooks/` — client data hooks (`useAuth`, `useInboxItems`, `useProjects`,
   `useAI`, `useSubscription`).
 - `src/lib/` — `env.ts` (validated env), `ai/` (model client, features, prompts), `supabase/`, `paystack/`, `plans.ts`.
