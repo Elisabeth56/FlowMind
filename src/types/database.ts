@@ -548,6 +548,14 @@ export type Database = {
         }
         Returns: string
       }
+      week_days: {
+        Args: { p_week_end: string; p_week_start: string }
+        Returns: {
+          day: string
+          done: number
+          planned: number
+        }[]
+      }
       week_stats: {
         Args: { p_week_end: string; p_week_start: string }
         Returns: {
