@@ -241,6 +241,42 @@ export type Database = {
           },
         ]
       }
+      item_embeddings: {
+        Row: {
+          created_at: string
+          embedding: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          embedding: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_embeddings_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "inbox_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_embeddings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_events: {
         Row: {
           event_key: string
@@ -528,6 +564,27 @@ export type Database = {
       ai_units_this_month: {
         Args: { p_now?: string; p_user_id: string }
         Returns: number
+      }
+      items_to_embed: {
+        Args: { p_limit?: number }
+        Returns: {
+          body: string
+          id: string
+        }[]
+      }
+      match_items: {
+        Args: { p_embedding?: string; p_limit?: number; p_query: string }
+        Returns: {
+          content: string
+          created_at: string
+          id: string
+          item_type: string
+          keyword_rank: number
+          project_name: string
+          score: number
+          similarity: number
+          status: string
+        }[]
       }
       plan_candidates: {
         Args: { p_limit?: number; p_today: string }

@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-export type PromptName = 'organize' | 'daily-plan' | 'weekly-summary' | 'ask'
+export type PromptName = 'organize' | 'daily-plan' | 'weekly-summary' | 'ask' | 'ask-notes'
 
 type PromptFile = { version: string; system: string; user: string }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accuracy, percentile, scoreOrganize, scorePlan } from './score'
+import { accuracy, mean, percentile, recallAtK, reciprocalRank, scoreOrganize, scorePlan } from './score'
 
 const organized = {
   item_type: 'task' as const,
@@ -84,5 +84,21 @@ describe('accuracy and percentile', () => {
     const values = Array.from({ length: 20 }, (_, i) => (i + 1) * 100)
     expect(percentile(values, 50)).toBe(1000)
     expect(percentile(values, 95)).toBe(1900)
+  })
+})
+
+describe('retrieval scores', () => {
+  it('recall@k counts expected items inside the first k results', () => {
+    expect(recallAtK(['a', 'b', 'c'], ['c'], 2)).toBe(0)
+    expect(recallAtK(['a', 'b', 'c'], ['c'], 3)).toBe(1)
+    expect(recallAtK(['a', 'b'], ['a', 'z'], 8)).toBe(0.5)
+  })
+  it('reciprocal rank is 1 over the position of the first expected item', () => {
+    expect(reciprocalRank(['a', 'b', 'c'], ['b'])).toBe(0.5)
+    expect(reciprocalRank(['a'], ['z'])).toBe(0)
+  })
+  it('mean rounds to three places and is 0 for no values', () => {
+    expect(mean([1, 0, 0])).toBe(0.333)
+    expect(mean([])).toBe(0)
   })
 })

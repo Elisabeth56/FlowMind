@@ -94,3 +94,20 @@ export function percentile(values: number[], p: number): number {
   const sorted = [...values].sort((a, b) => a - b)
   return sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)]
 }
+
+/** Share of the expected items that appear in the first `k` results. */
+export function recallAtK(retrieved: string[], expected: string[], k: number): number {
+  if (expected.length === 0) return 1
+  const top = retrieved.slice(0, k)
+  return expected.filter((id) => top.includes(id)).length / expected.length
+}
+
+/** 1 / the position of the first expected item, or 0 when none was retrieved. */
+export function reciprocalRank(retrieved: string[], expected: string[]): number {
+  const position = retrieved.findIndex((id) => expected.includes(id))
+  return position === -1 ? 0 : 1 / (position + 1)
+}
+
+export function mean(values: number[]): number {
+  return values.length === 0 ? 0 : Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 1000) / 1000
+}

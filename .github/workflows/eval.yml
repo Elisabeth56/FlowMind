@@ -1,7 +1,8 @@
 name: Evals
 
 # Calls the real models, so it is not part of CI. Run it from the Actions tab, or
-# push any branch named evals/<something> to start it from a branch.
+# push any branch named evals/<something> to start it from a branch (evals/ask... runs
+# only the Ask your notes job).
 on:
   workflow_dispatch:
   push:
@@ -9,6 +10,8 @@ on:
 
 jobs:
   eval:
+    # A branch named evals/ask... runs only the Ask job below
+    if: ${{ !startsWith(github.ref_name, 'evals/ask') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -37,3 +40,56 @@ jobs:
         with:
           name: eval-results
           path: evals/results/*.json
+
+  # Ask your notes on a local Supabase with the seed: retrieval (no model), then the
+  # answer step when the Groq key is available.
+  retrieval:
+    # After the model evals, never beside them: both use the same free-tier key
+    needs: eval
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || startsWith(github.ref_name, 'evals/ask')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: npm ci
+      # Database, auth, API and the edge runtime; the rest of the stack is not needed
+      - run: supabase start -x studio,imgproxy,storage-api,logflare,vector,realtime,inbucket,postgres-meta,supavisor
+      - name: Serve the embed function
+        run: |
+          nohup supabase functions serve > /tmp/functions.log 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS http://127.0.0.1:54321/functions/v1/embed || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          echo "embed answered $code"
+      - name: Run
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          eval "$(supabase status -o env)"
+          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+            npm run eval:ask > /tmp/eval.txt 2>&1 || { cat /tmp/eval.txt; tail -40 /tmp/functions.log; echo "::error title=ask-eval-failed::$(tail -c 2500 /tmp/eval.txt | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')%0A$(tail -c 1200 /tmp/functions.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"; exit 1; }
+          cat /tmp/eval.txt
+      - name: Report
+        if: always()
+        run: |
+          file=$(ls -t evals/results/ask-2*.json 2>/dev/null | head -1)
+          [ -n "$file" ] || { echo "::error::No results file was written"; exit 0; }
+          node -e '
+            const text = JSON.stringify(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")))
+            for (let i = 0, n = 0; i < text.length && n < 16; i += 3000, n++)
+              console.log(`::notice title=ask-${String(n).padStart(2, "0")}::${text.slice(i, i + 3000).replace(/%/g, "%25")}`)
+          ' "$file"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ask-eval-results
+          path: evals/results/ask-*.json

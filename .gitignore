@@ -34,3 +34,4 @@ coverage/
 # eval runs; only the baseline is kept
 evals/results/*.json
 !evals/results/baseline.json
+!evals/results/ask-baseline.json

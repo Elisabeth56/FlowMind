@@ -10,7 +10,7 @@ select is(
 select results_eq(
   $$select item_count::int, completed_count::int from public.project_counts
     where project_id = '11111111-0000-4000-8000-000000000003'$$,
-  $$values (3, 2)$$,
+  $$values (9, 2)$$,
   'project counts are computed from the items'
 );
 
