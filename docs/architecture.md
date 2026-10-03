@@ -2,6 +2,15 @@
 
 Status: accepted 2026-10-01. Decisions live in `docs/decisions/`.
 
+> **As built (2026-10-03).** This document is the plan the rebuild started from. Where the
+> code ended up different:
+> - Features live in `src/lib/ai/<feature>.ts` and beside their routes, not in `src/features/`.
+> - Models are Groq `openai/gpt-oss-20b` and `openai/gpt-oss-120b`; the Llama models named in the plan were retired.
+> - Embeddings are in their own table, `item_embeddings`, and keyword search uses an expression index (see ADR 005, "As built").
+> - `daily_plan_items` has no `completed_at`: a step is done when its inbox item is done.
+> - The keep-alive is the nightly demo cleanup cron, which also deletes demo accounts older than a day.
+> - Column names differ in places from the tables below; `src/types/database.ts` is the schema as it is.
+
 ## What it does
 
 FlowMind is a second brain for people with too many inputs. You dump anything into one inbox (a task, a half-formed idea, a link, a note from a call) and the app does the filing for you.
