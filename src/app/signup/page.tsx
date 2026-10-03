@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react'
 import { signup, loginWithGoogle } from '@/app/auth/actions'
+import { LOGIN_NOTICES } from '@/lib/auth'
 
 const features = [
   { icon: Inbox, text: 'Unified inbox for all your thoughts' },
@@ -62,6 +63,7 @@ export default function SignUpPage() {
     formData.append('email', email)
     formData.append('password', password)
     formData.append('fullName', fullName)
+    formData.append('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone)
     
     const result = await signup(formData)
     
@@ -80,9 +82,13 @@ export default function SignUpPage() {
   const handleGoogleSignUp = async () => {
     setGoogleLoading(true)
     try {
-      await loginWithGoogle()
+      const result = await loginWithGoogle()
+      if (result?.error) {
+        setError(result.error)
+        setGoogleLoading(false)
+      }
     } catch {
-      setError('Failed to sign up with Google')
+      setError(LOGIN_NOTICES.auth_failed)
       setGoogleLoading(false)
     }
   }

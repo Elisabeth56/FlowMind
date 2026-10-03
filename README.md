@@ -19,6 +19,35 @@ FlowMind is a SaaS productivity app where users can:
 - **TypeScript 5.7**
 - **Lucide React** for icons
 
+## Auth setup
+
+Sign-up, sign-in, Google and password reset run on Supabase Auth. Three things are set
+once in the dashboards; the code needs no keys for any of them.
+
+**1. URLs** (Supabase → Authentication → URL Configuration)
+
+- Site URL: the production address, for example `https://flowmind.example`
+- Redirect URLs: `https://flowmind.example/auth/callback**` and
+  `http://localhost:3000/auth/callback**`. Add the Vercel preview pattern too if previews
+  should be able to sign in: `https://*-<your-team>.vercel.app/auth/callback**`
+
+**2. Email templates** (Supabase → Authentication → Email Templates)
+
+Paste the three files from `supabase/templates/` into "Confirm signup", "Reset password"
+and "Change email address". Their links go to `/auth/confirm` with a token hash, so a
+link opened on a different device still signs the person in.
+
+**3. Google** (optional)
+
+1. Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth
+   client ID → Web application.
+2. Authorised redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`
+3. Copy the client ID and secret into Supabase → Authentication → Providers → Google,
+   and enable the provider.
+
+Until step 3 is done the Google button answers "That sign-in method is not available
+right now."
+
 ## AI providers
 
 Every model call goes through `src/lib/ai/index.ts`. It tries Groq's model for the job,

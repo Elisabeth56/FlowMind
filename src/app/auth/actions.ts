@@ -4,61 +4,50 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { publicEnv } from '@/lib/env'
+import { authErrorMessage, MIN_PASSWORD_LENGTH, safeNext } from '@/lib/auth'
+import { safeTimeZone } from '@/lib/dates'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
-  const data = {
+  const { error } = await supabase.auth.signInWithPassword({
     email: formData.get('email') as string,
     password: formData.get('password') as string,
-  }
-
-  const { error } = await supabase.auth.signInWithPassword(data)
-
-  if (error) {
-    return { error: error.message }
-  }
+  })
+  if (error) return { error: authErrorMessage(error) }
 
   revalidatePath('/', 'layout')
-  redirect('/dash')
+  // Back to the page they were sent to sign in from, if there was one
+  redirect(safeNext(formData.get('next') as string | null))
 }
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()
 
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-  const fullName = formData.get('fullName') as string
-
   const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
     options: {
       data: {
-        full_name: fullName,
+        full_name: formData.get('fullName') as string,
+        // The browser's timezone becomes the profile's, so "today" is right from day one
+        timezone: safeTimeZone(formData.get('timezone') as string | null),
       },
       emailRedirectTo: `${publicEnv().NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   })
+  if (error) return { error: authErrorMessage(error) }
 
-  if (error) {
-    return { error: error.message }
+  // Supabase answers a sign-up for an existing address with a user that has no identities
+  if (data.user?.identities?.length === 0) {
+    return { error: authErrorMessage({ code: 'user_already_exists' }) }
   }
 
-  // Check if email confirmation is required
-  // If user.identities is empty, email confirmation is needed
-  if (data.user && data.user.identities && data.user.identities.length === 0) {
-    // User already exists
-    return { error: 'An account with this email already exists.' }
-  }
-
-  // If email confirmation is required (user exists but not confirmed)
+  // Email confirmation is on: there is a user but no session until they click the link
   if (data.user && !data.session) {
-    // Email confirmation required
-    return { success: true, message: 'Please check your email to verify your account.' }
+    return { success: true, message: 'Check your email for a link to confirm your account.' }
   }
 
-  // Auto-confirm is enabled, redirect to app
   revalidatePath('/', 'layout')
   redirect('/dash')
 }
@@ -75,32 +64,24 @@ export async function loginWithGoogle() {
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: `${publicEnv().NEXT_PUBLIC_APP_URL}/auth/callback`,
-    },
+    options: { redirectTo: `${publicEnv().NEXT_PUBLIC_APP_URL}/auth/callback` },
   })
+  if (error) return { error: authErrorMessage(error) }
 
-  if (error) {
-    return { error: error.message }
-  }
-
-  if (data.url) {
-    redirect(data.url)
-  }
+  if (data.url) redirect(data.url)
 }
 
 export async function resetPassword(formData: FormData) {
   const supabase = await createClient()
-  const email = formData.get('email') as string
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${publicEnv().NEXT_PUBLIC_APP_URL}/auth/reset-password`,
+  const { error } = await supabase.auth.resetPasswordForEmail(formData.get('email') as string, {
+    redirectTo: `${publicEnv().NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
   })
-
-  if (error) {
-    return { error: error.message }
+  // Only a rate limit is worth reporting. Anything else gets the same answer as success,
+  // so this form cannot be used to find out which addresses have an account.
+  if (error?.code === 'over_email_send_rate_limit' || error?.code === 'over_request_rate_limit') {
+    return { error: authErrorMessage(error) }
   }
-
   return { success: true }
 }
 
@@ -108,13 +89,17 @@ export async function updatePassword(formData: FormData) {
   const supabase = await createClient()
   const password = formData.get('password') as string
 
-  const { error } = await supabase.auth.updateUser({
-    password,
-  })
-
-  if (error) {
-    return { error: error.message }
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Use at least ${MIN_PASSWORD_LENGTH} characters.` }
   }
 
+  // Only someone who arrived through a reset link (or is signed in) has a session here
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: authErrorMessage({ code: 'otp_expired' }) }
+
+  const { error } = await supabase.auth.updateUser({ password })
+  if (error) return { error: authErrorMessage(error) }
+
+  revalidatePath('/', 'layout')
   redirect('/dash')
 }
