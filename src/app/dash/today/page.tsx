@@ -59,7 +59,10 @@ export default function TodayPage() {
   const minutesLeft = open.reduce((sum, step) => sum + (step.duration_minutes ?? 0), 0)
 
   const planned = new Set(steps.map((step) => step.item_id))
-  const canWait = items.filter((item) => isOpen(item) && !planned.has(item.id) && item.item_type !== 'note').slice(0, 5)
+  // Things to do that today's plan left out. Notes, ideas and links are never planned, so they are not "waiting".
+  const canWait = items
+    .filter((item) => isOpen(item) && !planned.has(item.id) && (item.is_actionable || item.item_type === 'task' || item.item_type === 'reminder'))
+    .slice(0, 5)
 
   const dateLabel = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone })
 
