@@ -7,8 +7,9 @@ import { serverEnv } from '@/lib/env'
 // from pausing for inactivity.
 export async function GET(request: Request) {
   const secret = serverEnv().CRON_SECRET
-  // Vercel sends the secret as a bearer token; without one configured nobody may run this
-  if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
+  // Vercel sends the secret as a bearer token. Without one, or with one short enough to
+  // guess, nobody may run this.
+  if (!secret || secret.length < 16 || request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
