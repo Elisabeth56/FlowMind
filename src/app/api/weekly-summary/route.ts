@@ -1,238 +1,146 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { weeklySummaryChain, type WeeklySummary } from '@/lib/ai/chains/weekly-summary'
-import { rateLimiter } from '@/lib/ai/groq'
+import { refuseAiCall } from '@/lib/billing/quota'
+import { aiErrorResponse } from '@/lib/ai/http'
+import { summarizeWeek } from '@/lib/ai/weekly-summary'
+import { addDays, startOfDayIn, weekIn } from '@/lib/dates'
+import { completionRate, isEmptyWeek, planCompletionRate, trendOf } from '@/lib/weekly'
 
-// Helper to get week boundaries
-function getWeekBounds(date: Date = new Date()): { start: string; end: string } {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day // Adjust to Sunday
-  
-  const start = new Date(d)
-  start.setDate(diff)
-  start.setHours(0, 0, 0, 0)
-  
-  const end = new Date(start)
-  end.setDate(start.getDate() + 6)
-  end.setHours(23, 59, 59, 999)
-  
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  }
+type Client = Awaited<ReturnType<typeof createClient>>
+
+// The user's week: seven days from their chosen weekday, in their own timezone.
+async function userWeek(supabase: Client, userId: string, weekOffset: number) {
+  const { data } = await supabase
+    .from('profiles')
+    .select('timezone, weekly_summary_day')
+    .eq('id', userId)
+    .single()
+  const timeZone = data?.timezone ?? 'UTC'
+  return { timeZone, ...weekIn(timeZone, new Date(), weekOffset, data?.weekly_summary_day ?? 0) }
 }
 
+async function weekStats(supabase: Client, start: string, end: string) {
+  const { data, error } = await supabase.rpc('week_stats', { p_week_start: start, p_week_end: end }).single()
+  if (error) throw new Error(`Could not compute the week: ${error.message}`)
+  return { ...data, projects: data.projects as Array<{ name: string; completed: number }> }
+}
+
+// POST - write the reflection for a week. The numbers are computed; the model writes the words.
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { weekOffset = 0 } = body // 0 = current week, -1 = last week
+    const { weekOffset = 0 } = await request.json() // 0 = this week, -1 = last week
+    const { timeZone, start: weekStart, end: weekEnd } = await userWeek(supabase, user.id, Number(weekOffset) || 0)
 
-    // Get profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Check free tier
-    const FREE_TIER_LIMIT = 50
-    if (profile.subscription_tier === 'free' && profile.ai_calls_this_month >= FREE_TIER_LIMIT) {
-      return NextResponse.json({ 
-        error: 'Free tier limit reached',
-        limit: FREE_TIER_LIMIT,
-        used: profile.ai_calls_this_month,
-      }, { status: 429 })
-    }
-
-    // Calculate week bounds
-    const targetDate = new Date()
-    targetDate.setDate(targetDate.getDate() + (weekOffset * 7))
-    const { start: weekStart, end: weekEnd } = getWeekBounds(targetDate)
-
-    // Check if summary already exists
     const { data: existingSummary } = await supabase
       .from('weekly_summaries')
       .select('*')
       .eq('user_id', user.id)
       .eq('week_start', weekStart)
-      .single()
-
+      .maybeSingle()
     if (existingSummary) {
-      return NextResponse.json({
-        success: true,
-        summary: existingSummary,
-        cached: true,
-      })
+      return NextResponse.json({ success: true, summary: existingSummary, cached: true })
     }
 
-    await rateLimiter.acquire()
-    const startTime = Date.now()
+    const [stats, lastWeek] = await Promise.all([
+      weekStats(supabase, weekStart, weekEnd),
+      weekStats(supabase, addDays(weekStart, -7), addDays(weekEnd, -7)),
+    ])
 
-    // Get items created this week
-    const { data: createdItems, count: itemsCreated } = await supabase
-      .from('inbox_items')
-      .select('*', { count: 'exact' })
-      .eq('user_id', user.id)
-      .gte('created_at', weekStart)
-      .lte('created_at', weekEnd + 'T23:59:59')
-
-    // Get completed items this week
-    const { data: completedItems } = await supabase
-      .from('inbox_items')
-      .select(`
-        content,
-        completed_at,
-        project_id,
-        projects (name)
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'completed')
-      .gte('completed_at', weekStart)
-      .lte('completed_at', weekEnd + 'T23:59:59')
-
-    // Get pending items (carried over)
-    const { data: pendingItems } = await supabase
-      .from('inbox_items')
-      .select('content, priority, created_at')
-      .eq('user_id', user.id)
-      .in('status', ['inbox', 'organized', 'in_progress'])
-      .lt('created_at', weekStart) // Created before this week = carried over
-
-    // Get daily plans for adherence calculation
-    const { data: dailyPlans } = await supabase
-      .from('daily_plans')
-      .select('items_completed, items_total, status')
-      .eq('user_id', user.id)
-      .gte('plan_date', weekStart)
-      .lte('plan_date', weekEnd)
-
-    // Calculate plan adherence
-    let planAdherence = 'No daily plans created'
-    if (dailyPlans && dailyPlans.length > 0) {
-      const totalPlanned = dailyPlans.reduce((sum, p) => sum + p.items_total, 0)
-      const totalCompleted = dailyPlans.reduce((sum, p) => sum + p.items_completed, 0)
-      const adherenceRate = totalPlanned > 0 ? Math.round((totalCompleted / totalPlanned) * 100) : 0
-      planAdherence = `${dailyPlans.length} plans created, ${adherenceRate}% completion rate`
+    // Nothing happened this week: say so, and don't spend a model call inventing a story
+    if (isEmptyWeek(stats)) {
+      return NextResponse.json({ success: true, summary: null, empty: true })
     }
 
-    // Get projects touched
-    const projectsTouched = new Set<string>()
-    completedItems?.forEach(item => {
-      if ((item.projects as unknown as { name: string } | null)?.name) {
-        projectsTouched.add((item.projects as unknown as { name: string }).name)
-      }
-    })
+    const refusal = await refuseAiCall(supabase, user.id)
+    if (refusal) return NextResponse.json(refusal.body, { status: refusal.status })
 
-    // Get last week's summary for comparison
-    const lastWeekDate = new Date(targetDate)
-    lastWeekDate.setDate(lastWeekDate.getDate() - 7)
-    const { start: lastWeekStart } = getWeekBounds(lastWeekDate)
-    
-    const { data: lastWeekSummary } = await supabase
-      .from('weekly_summaries')
-      .select('summary_text, focus_score, productivity_trend')
-      .eq('user_id', user.id)
-      .eq('week_start', lastWeekStart)
-      .single()
+    // The items themselves, for the model to write about
+    const weekStartsAt = startOfDayIn(timeZone, weekStart).toISOString()
+    const weekEndsAt = startOfDayIn(timeZone, addDays(weekEnd, 1)).toISOString()
+    const [{ data: completedItems }, { data: pendingItems }] = await Promise.all([
+      supabase
+        .from('inbox_items')
+        .select('content, projects (name)')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .gte('completed_at', weekStartsAt)
+        .lt('completed_at', weekEndsAt)
+        .limit(40),
+      supabase
+        .from('inbox_items')
+        .select('content, priority, created_at')
+        .eq('user_id', user.id)
+        .in('status', ['inbox', 'organized', 'in_progress'])
+        .lt('created_at', weekStartsAt)
+        .order('priority', { ascending: false })
+        .limit(20),
+    ])
 
-    // Generate summary
-    const summary: WeeklySummary = await weeklySummaryChain.invoke({
+    const trend = trendOf(stats.items_completed, lastWeek.items_completed)
+    const planRate = planCompletionRate(stats.plan_steps, stats.plan_steps_done)
+
+    const written = await summarizeWeek({
+      userId: user.id,
       weekStart,
       weekEnd,
-      itemsCreated: itemsCreated || 0,
-      itemsCompleted: completedItems?.length || 0,
-      itemsCarriedOver: pendingItems?.length || 0,
-      completedItems: (completedItems || []).map(item => ({
+      itemsCreated: stats.items_created,
+      itemsCompleted: stats.items_completed,
+      itemsCarriedOver: stats.items_carried_over,
+      completionRate: completionRate(stats.items_created, stats.items_carried_over, stats.items_completed),
+      planCompletionRate: planRate,
+      trend: isEmptyWeek(lastWeek)
+        ? 'no activity last week to compare with'
+        : `${trend} (${stats.items_completed} completed, ${lastWeek.items_completed} last week)`,
+      projects: stats.projects,
+      completedItems: (completedItems ?? []).map((item) => ({
         content: item.content,
-        project_name: (item.projects as unknown as { name: string } | null)?.name || null,
-        completed_at: item.completed_at!,
+        project_name: (item.projects as unknown as { name: string } | null)?.name ?? null,
       })),
-      pendingItems: (pendingItems || []).map(item => ({
+      pendingItems: (pendingItems ?? []).map((item) => ({
         content: item.content,
         priority: item.priority,
-        created_at: item.created_at,
+        ageDays: Math.floor((Date.now() - new Date(item.created_at).getTime()) / 86_400_000),
       })),
-      planAdherence,
-      projectsTouched: Array.from(projectsTouched),
-      lastWeekSummary: lastWeekSummary 
-        ? `Score: ${lastWeekSummary.focus_score}, Trend: ${lastWeekSummary.productivity_trend}. ${lastWeekSummary.summary_text?.slice(0, 200)}`
-        : null,
     })
 
-    const latencyMs = Date.now() - startTime
-
-    // Save the summary
-    const { data: savedSummary } = await supabase
+    const { data: savedSummary, error: saveError } = await supabase
       .from('weekly_summaries')
       .insert({
         user_id: user.id,
         week_start: weekStart,
         week_end: weekEnd,
-        items_created: itemsCreated || 0,
-        items_completed: completedItems?.length || 0,
-        items_carried_over: pendingItems?.length || 0,
-        summary_text: summary.summary_text,
-        accomplishments: summary.accomplishments,
-        patterns: summary.patterns,
-        suggestions: summary.suggestions,
-        productivity_trend: summary.productivity_trend,
-        focus_score: summary.focus_score,
+        // computed
+        items_created: stats.items_created,
+        items_completed: stats.items_completed,
+        items_carried_over: stats.items_carried_over,
+        plan_completion_rate: planRate,
+        project_counts: stats.projects,
+        productivity_trend: isEmptyWeek(lastWeek) ? null : trend,
+        // written by the model
+        summary_text: written.summary_text,
+        accomplishments: written.accomplishments,
+        keep: written.keep,
+        try_next: written.try_next,
       })
       .select()
       .single()
+    if (saveError) throw new Error(`Could not save summary: ${saveError.message}`)
 
-    // Log the operation
-    await supabase.from('ai_processing_log').insert({
-      user_id: user.id,
-      operation_type: 'weekly_summary',
-      model_used: 'llama-3.1-70b-versatile',
-      latency_ms: latencyMs,
-      success: true,
-    })
-
-    // Increment AI call counter
-    await supabase
-      .from('profiles')
-      .update({ ai_calls_this_month: profile.ai_calls_this_month + 1 })
-      .eq('id', user.id)
-
-    return NextResponse.json({
-      success: true,
-      summary: savedSummary,
-      aiSummary: summary,
-      latencyMs,
-    })
-
+    return NextResponse.json({ success: true, summary: savedSummary })
   } catch (error) {
     console.error('Weekly summary API error:', error)
-    
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase.from('ai_processing_log').insert({
-        user_id: user.id,
-        operation_type: 'weekly_summary',
-        success: false,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
 
-    return NextResponse.json(
-      { error: 'Failed to generate weekly summary' },
-      { status: 500 }
-    )
+    const aiFailure = aiErrorResponse(error)
+    if (aiFailure) return aiFailure
+
+    return NextResponse.json({ error: 'Failed to generate weekly summary' }, { status: 500 })
   }
 }
 
@@ -247,7 +155,49 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = parseInt(searchParams.get('limit') || '4')
+    const parsedLimit = Number.parseInt(searchParams.get('limit') || '4', 10)
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 52)
+      : 4
+
+    // A specific week, so the UI can show an existing summary without
+    // spending an AI call to (re)generate one.
+    const weekOffsetParam = searchParams.get('weekOffset')
+    if (weekOffsetParam !== null) {
+      const weekOffset = Number.parseInt(weekOffsetParam, 10)
+      if (!Number.isFinite(weekOffset)) {
+        return NextResponse.json({ error: 'Invalid weekOffset' }, { status: 400 })
+      }
+
+      const { start: weekStart, end: weekEnd } = await userWeek(supabase, user.id, weekOffset)
+
+      // The numbers are always the live ones; the reflection is read if it has been written
+      const [stats, lastWeek, { data: days, error: daysError }, { data: summary }] = await Promise.all([
+        weekStats(supabase, weekStart, weekEnd),
+        weekStats(supabase, addDays(weekStart, -7), addDays(weekEnd, -7)),
+        supabase.rpc('week_days', { p_week_start: weekStart, p_week_end: weekEnd }),
+        supabase
+          .from('weekly_summaries')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('week_start', weekStart)
+          .maybeSingle(),
+      ])
+      if (daysError) throw new Error(`Could not compute the week's days: ${daysError.message}`)
+
+      return NextResponse.json({
+        success: true,
+        week: { start: weekStart, end: weekEnd },
+        stats: {
+          ...stats,
+          plan_completion_rate: planCompletionRate(stats.plan_steps, stats.plan_steps_done),
+          completed_last_week: isEmptyWeek(lastWeek) ? null : lastWeek.items_completed,
+          empty: isEmptyWeek(stats),
+        },
+        days: days ?? [],
+        summary: summary ?? null,
+      })
+    }
 
     // Get recent summaries
     const { data: summaries } = await supabase
@@ -259,7 +209,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      summaries,
+      summaries: summaries ?? [],
     })
 
   } catch (error) {

@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { isPro } from '@/lib/billing/entitlement'
 import {
   initializeTransaction,
   getCustomer,
   createCustomer,
   generateReference,
 } from '@/lib/paystack/client'
+import { PRO_PRICE_KOBO, type PaidPlanId } from '@/lib/plans'
+import { publicEnv, serverEnv } from '@/lib/env'
+import { DEMO_REFUSAL, isDemo } from '@/lib/demo'
 
-const PLANS = {
-  pro_monthly: process.env.PAYSTACK_PRO_MONTHLY_PLAN_CODE!,
-  pro_yearly: process.env.PAYSTACK_PRO_YEARLY_PLAN_CODE!,
+// Read per request: plan codes are optional, and module scope runs during `next build`.
+function planCode(plan: PaidPlanId): string | undefined {
+  const env = serverEnv()
+  return plan === 'pro_monthly' ? env.PAYSTACK_PRO_MONTHLY_PLAN_CODE : env.PAYSTACK_PRO_YEARLY_PLAN_CODE
+}
+
+const PLAN_AMOUNTS: Record<PaidPlanId, number> = {
+  pro_monthly: PRO_PRICE_KOBO.monthly,
+  pro_yearly: PRO_PRICE_KOBO.yearly,
 }
 
 export async function POST(request: NextRequest) {
@@ -22,12 +32,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    if (isDemo(user)) return NextResponse.json({ error: DEMO_REFUSAL }, { status: 403 })
+
     const body = await request.json()
     const { plan = 'pro_monthly' } = body
 
     // Validate plan
-    if (!['pro_monthly', 'pro_yearly'].includes(plan)) {
+    if (plan !== 'pro_monthly' && plan !== 'pro_yearly') {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
+    }
+    const planId: PaidPlanId = plan
+
+    const code = planCode(planId)
+    if (!code) {
+      console.error(`Missing Paystack plan code for ${planId}`)
+      return NextResponse.json(
+        { error: 'Checkout is not configured yet. Please try again later.' },
+        { status: 503 }
+      )
     }
 
     // Get user profile
@@ -41,8 +63,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Check if already on Pro
-    if (profile.subscription_tier === 'pro' && profile.subscription_status === 'active') {
+    // Billing rows are server-owned: read with the user's session, write as the service role.
+    const admin = createAdminClient()
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('tier, status, paystack_customer_code')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (isPro(subscription ?? null) && subscription?.status === 'active') {
       return NextResponse.json({ 
         error: 'Already subscribed to Pro',
         message: 'You already have an active Pro subscription'
@@ -50,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get or create Paystack customer
-    let customerCode = profile.paystack_customer_code
+    let customerCode = subscription?.paystack_customer_code ?? null
 
     if (!customerCode) {
       // Check if customer exists by email
@@ -70,39 +99,42 @@ export async function POST(request: NextRequest) {
 
       customerCode = customer.customer_code
 
-      // Save customer code to profile
-      await supabase
-        .from('profiles')
-        .update({ paystack_customer_code: customerCode })
-        .eq('id', user.id)
+      // Remember the customer, so webhooks can be matched back to this user
+      const { error: saveError } = await admin
+        .from('subscriptions')
+        .upsert({ user_id: user.id, paystack_customer_code: customerCode }, { onConflict: 'user_id' })
+      if (saveError) throw new Error(`Could not save Paystack customer: ${saveError.message}`)
     }
 
     // Initialize transaction with plan (creates subscription on success)
     const reference = generateReference('sub')
     
+    // Paystack charges the plan amount, but the API still wants one passed
+    const amount = PLAN_AMOUNTS[planId]
+
     const transaction = await initializeTransaction({
       email: user.email!,
-      // Amount is set by the plan, but we need to pass something
-      // Paystack will use the plan amount
-      amount: plan === 'pro_yearly' ? 4800000 : 500000, // ₦48,000 or ₦5,000 in kobo
+      amount,
       reference,
-      plan: PLANS[plan as keyof typeof PLANS],
-      callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`,
+      plan: code,
+      callback_url: `${publicEnv().NEXT_PUBLIC_APP_URL}/api/payments/callback`,
       metadata: {
         user_id: user.id,
-        plan_type: plan,
+        plan_type: planId,
       },
       channels: ['card', 'bank', 'ussd', 'bank_transfer'],
     })
 
     // Store pending transaction
-    await supabase.from('payment_transactions').insert({
+    const { error: txError } = await admin.from('payment_transactions').insert({
       user_id: user.id,
       reference,
-      amount: plan === 'pro_yearly' ? 4800000 : 500000,
-      plan_type: plan,
+      amount,
+      plan_type: planId,
       status: 'pending',
     })
+    // Without this row the callback can't tell who paid, so don't send them to pay.
+    if (txError) throw new Error(`Could not store transaction: ${txError.message}`)
 
     return NextResponse.json({
       success: true,

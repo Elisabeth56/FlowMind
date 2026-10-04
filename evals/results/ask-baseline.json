@@ -1,0 +1,1414 @@
+{
+  "summary": {
+    "items": 48,
+    "questions": {
+      "answerable": 32,
+      "unanswerable": 8
+    },
+    "recall_at_8": {
+      "hybrid": 1,
+      "keyword": 0.844,
+      "semantic": 1
+    },
+    "mrr": {
+      "hybrid": 0.748,
+      "keyword": 0.642,
+      "semantic": 0.748
+    },
+    "mrr_by_keyword_weight": {
+      "0": 0.748,
+      "1": 0.748,
+      "0.75": 0.754,
+      "0.5": 0.754,
+      "0.25": 0.725
+    },
+    "not_found_without_a_model": 0.25,
+    "answerable_wrongly_stopped": 0,
+    "min_similarity": 0.8,
+    "top_similarity": {
+      "answerable": {
+        "min": 0.820546,
+        "p50": 0.87847
+      },
+      "unanswerable": {
+        "p50": 0.801028,
+        "max": 0.882415
+      }
+    },
+    "search_latency_ms": {
+      "p50": 133,
+      "p95": 259
+    },
+    "answers": {
+      "answered_cases": 40,
+      "errors": 0,
+      "answered_citing_the_right_note": 1,
+      "answerable_but_said_not_found": 0,
+      "unanswerable_said_not_found": 1
+    }
+  },
+  "results": [
+    {
+      "question": "How much is Bisi paying for the redesign?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.925634,
+      "keyword_hits": 7,
+      "top": "Bisi's quote: 450k for the redesign, half upfront, the rest on launch",
+      "latencyMs": 273,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "When does Ada settle invoices?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.5,
+        "keyword": 0.5,
+        "semantic": 0.5
+      },
+      "found": true,
+      "top_similarity": 0.91339,
+      "keyword_hits": 2,
+      "top": "Call Ada about the invoice before Friday",
+      "latencyMs": 142,
+      "rr_by_keyword_weight": {
+        "0": 0.5,
+        "1": 0.5,
+        "0.75": 0.5,
+        "0.5": 0.5,
+        "0.25": 0.5
+      }
+    },
+    {
+      "question": "Where is the client site's domain registered?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.3333333333333333,
+        "keyword": 0.3333333333333333,
+        "semantic": 0.5
+      },
+      "found": true,
+      "top_similarity": 0.879249,
+      "keyword_hits": 5,
+      "top": "Renew the domain for the studio site",
+      "latencyMs": 131,
+      "rr_by_keyword_weight": {
+        "0": 0.5,
+        "1": 0.3333333333333333,
+        "0.75": 0.3333333333333333,
+        "0.5": 0.3333333333333333,
+        "0.25": 0.5
+      }
+    },
+    {
+      "question": "What features did Chidi ask for?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 0.2,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.839831,
+      "keyword_hits": 5,
+      "top": "Chidi wants the dashboard in dark mode and an export to CSV",
+      "latencyMs": 155,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "How many hours is Ngozi's monthly retainer?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.947713,
+      "keyword_hits": 7,
+      "top": "Retainer with Ngozi: 10 hours a month, unused hours do not roll over",
+      "latencyMs": 139,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "What was my idea for landing new customers?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 0.3333333333333333
+      },
+      "found": true,
+      "top_similarity": 0.87847,
+      "keyword_hits": 10,
+      "top": "idea: offer a fixed-price website audit as a first project for new clients",
+      "latencyMs": 137,
+      "rr_by_keyword_weight": {
+        "0": 0.3333333333333333,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 0.3333333333333333
+      }
+    },
+    {
+      "question": "Where did I save the docs about taking payments online?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 0,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.2,
+        "keyword": 0,
+        "semantic": 0.3333333333333333
+      },
+      "found": true,
+      "top_similarity": 0.845273,
+      "keyword_hits": 2,
+      "top": "Ask Tunde if the venue takes card",
+      "latencyMs": 138,
+      "rr_by_keyword_weight": {
+        "0": 0.3333333333333333,
+        "1": 0.2,
+        "0.75": 0.2,
+        "0.5": 0.2,
+        "0.25": 0.25
+      }
+    },
+    {
+      "question": "What's the best way to reach Bisi?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.3333333333333333,
+        "keyword": 0.3333333333333333,
+        "semantic": 0.25
+      },
+      "found": true,
+      "top_similarity": 0.830011,
+      "keyword_hits": 3,
+      "top": "Send the revised quote to Bisi",
+      "latencyMs": 139,
+      "rr_by_keyword_weight": {
+        "0": 0.25,
+        "1": 0.3333333333333333,
+        "0.75": 0.3333333333333333,
+        "0.5": 0.3333333333333333,
+        "0.25": 0.3333333333333333
+      }
+    },
+    {
+      "question": "What time and where is the pitch?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 0.25,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.895883,
+      "keyword_hits": 6,
+      "top": "Pitch is Friday 2pm at the Co-Creation Hub, fourth floor",
+      "latencyMs": 134,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "Which tough question might investors ask me?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.831508,
+      "keyword_hits": 4,
+      "top": "Investor question to prepare for: how do you get the first 100 customers",
+      "latencyMs": 132,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "How many paying customers do we have?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 0.5
+      },
+      "found": true,
+      "top_similarity": 0.855209,
+      "keyword_hits": 7,
+      "top": "Traction numbers for the deck: 38 paying customers, 12 percent monthly growth",
+      "latencyMs": 127,
+      "rr_by_keyword_weight": {
+        "0": 0.5,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 0.5
+      }
+    },
+    {
+      "question": "How long should the deck be?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.3333333333333333,
+        "keyword": 0.16666666666666666,
+        "semantic": 0.5
+      },
+      "found": true,
+      "top_similarity": 0.857597,
+      "keyword_hits": 6,
+      "top": "Finish the pitch deck",
+      "latencyMs": 126,
+      "rr_by_keyword_weight": {
+        "0": 0.5,
+        "1": 0.3333333333333333,
+        "0.75": 0.5,
+        "0.5": 0.5,
+        "0.25": 0.5
+      }
+    },
+    {
+      "question": "How much money are we raising?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 0,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.16666666666666666,
+        "keyword": 0,
+        "semantic": 0.2
+      },
+      "found": true,
+      "top_similarity": 0.820546,
+      "keyword_hits": 1,
+      "top": "Shape Up: appetite means deciding how much time an idea is worth before designing it",
+      "latencyMs": 163,
+      "rr_by_keyword_weight": {
+        "0": 0.2,
+        "1": 0.16666666666666666,
+        "0.75": 0.16666666666666666,
+        "0.5": 0.16666666666666666,
+        "0.25": 0.16666666666666666
+      }
+    },
+    {
+      "question": "How did I want to start the presentation?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 0,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.14285714285714285,
+        "keyword": 0,
+        "semantic": 0.25
+      },
+      "found": true,
+      "top_similarity": 0.843701,
+      "keyword_hits": 3,
+      "top": "Mum's birthday is 14 November, she wants the blue wrapper from Balogun market",
+      "latencyMs": 286,
+      "rr_by_keyword_weight": {
+        "0": 0.25,
+        "1": 0.14285714285714285,
+        "0.75": 0.16666666666666666,
+        "0.5": 0.16666666666666666,
+        "0.25": 0.2
+      }
+    },
+    {
+      "question": "What did Kemi want changed in the deck?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.25,
+        "keyword": 0.25,
+        "semantic": 0.25
+      },
+      "found": true,
+      "top_similarity": 0.878699,
+      "keyword_hits": 11,
+      "top": "Review Kemi's deck notes before the pitch",
+      "latencyMs": 129,
+      "rr_by_keyword_weight": {
+        "0": 0.25,
+        "1": 0.25,
+        "0.75": 0.25,
+        "0.5": 0.25,
+        "0.25": 0.25
+      }
+    },
+    {
+      "question": "When does Kemi need the deck?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.3333333333333333,
+        "keyword": 0.5,
+        "semantic": 0.3333333333333333
+      },
+      "found": true,
+      "top_similarity": 0.902395,
+      "keyword_hits": 8,
+      "top": "Review Kemi's deck notes before the pitch",
+      "latencyMs": 138,
+      "rr_by_keyword_weight": {
+        "0": 0.3333333333333333,
+        "1": 0.3333333333333333,
+        "0.75": 0.3333333333333333,
+        "0.5": 0.3333333333333333,
+        "0.25": 0.3333333333333333
+      }
+    },
+    {
+      "question": "How much is my rent going up to?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 0.5,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.887421,
+      "keyword_hits": 3,
+      "top": "Landlord: rent goes up to 1.8 million from January, renewal letter due in November",
+      "latencyMs": 139,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "When was the generator last serviced?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.896695,
+      "keyword_hits": 2,
+      "top": "Generator service is every three months, last done in August",
+      "latencyMs": 131,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "What does my mother want for her birthday?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.886943,
+      "keyword_hits": 3,
+      "top": "Mum's birthday is 14 November, she wants the blue wrapper from Balogun market",
+      "latencyMs": 140,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "Who fixed the leaking tap?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.861528,
+      "keyword_hits": 3,
+      "top": "Plumber Sunday fixed the kitchen tap, his number is in the building WhatsApp group",
+      "latencyMs": 128,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "When do I need to cancel the gym by?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.912557,
+      "keyword_hits": 1,
+      "top": "Gym membership renews on the 5th, cancel before then if I am not going",
+      "latencyMs": 135,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "What was my meal prep plan?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 0,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.5,
+        "keyword": 0,
+        "semantic": 0.5
+      },
+      "found": true,
+      "top_similarity": 0.835937,
+      "keyword_hits": 0,
+      "top": "Groceries for the week",
+      "latencyMs": 135,
+      "rr_by_keyword_weight": {
+        "0": 0.5,
+        "1": 0.5,
+        "0.75": 0.5,
+        "0.5": 0.5,
+        "0.25": 0.5
+      }
+    },
+    {
+      "question": "What does appetite mean in Shape Up?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.903781,
+      "keyword_hits": 2,
+      "top": "Shape Up: appetite means deciding how much time an idea is worth before designing it",
+      "latencyMs": 139,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "What's the scheduling advice from Deep Work?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.885117,
+      "keyword_hits": 2,
+      "top": "From Deep Work: schedule every minute of the day, then revise the schedule when it breaks",
+      "latencyMs": 135,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "Which book did Kemi recommend?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.874839,
+      "keyword_hits": 7,
+      "top": "Book to read next: The Mom Test, recommended by Kemi for customer interviews",
+      "latencyMs": 147,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "How big is the wedding venue's capacity?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.5,
+        "keyword": 0.5,
+        "semantic": 0.5
+      },
+      "found": true,
+      "top_similarity": 0.826333,
+      "keyword_hits": 2,
+      "top": "Ask Tunde if the venue takes card",
+      "latencyMs": 149,
+      "rr_by_keyword_weight": {
+        "0": 0.5,
+        "1": 0.5,
+        "0.75": 0.5,
+        "0.5": 0.5,
+        "0.25": 0.5
+      }
+    },
+    {
+      "question": "What time is my flight to Abuja?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.937543,
+      "keyword_hits": 2,
+      "top": "Flight to Abuja on the 22nd, 7am from the local wing, book a cab the night before",
+      "latencyMs": 259,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "When is my next dental checkup?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 0,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0.3333333333333333,
+        "keyword": 0,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.850962,
+      "keyword_hits": 2,
+      "top": "Book to read next: The Mom Test, recommended by Kemi for customer interviews",
+      "latencyMs": 127,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 0.3333333333333333,
+        "0.75": 0.3333333333333333,
+        "0.5": 0.3333333333333333,
+        "0.25": 0.3333333333333333
+      }
+    },
+    {
+      "question": "When do I need to renew my passport?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.905018,
+      "keyword_hits": 4,
+      "top": "Passport expires next June, renewal takes about six weeks",
+      "latencyMs": 122,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "Where is the studio internet password?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.933019,
+      "keyword_hits": 2,
+      "top": "Wifi password for the studio is on the sticky note under the router",
+      "latencyMs": 122,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "What am I supposed to buy before Sunday?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.873935,
+      "keyword_hits": 3,
+      "top": "Buy gas before Sunday",
+      "latencyMs": 126,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "Which bills have I already paid?",
+      "answerable": true,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "found": true,
+      "top_similarity": 0.842077,
+      "keyword_hits": 1,
+      "top": "Pay the electricity bill",
+      "latencyMs": 124,
+      "rr_by_keyword_weight": {
+        "0": 1,
+        "1": 1,
+        "0.75": 1,
+        "0.5": 1,
+        "0.25": 1
+      }
+    },
+    {
+      "question": "When is Tunde's wedding?",
+      "answerable": false,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0,
+        "keyword": 0,
+        "semantic": 0
+      },
+      "found": true,
+      "top_similarity": 0.882415,
+      "keyword_hits": 2,
+      "top": "Ask Tunde if the venue takes card",
+      "latencyMs": 128,
+      "rr_by_keyword_weight": {
+        "0": 0,
+        "1": 0,
+        "0.75": 0,
+        "0.5": 0,
+        "0.25": 0
+      }
+    },
+    {
+      "question": "What is my car's plate number?",
+      "answerable": false,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0,
+        "keyword": 0,
+        "semantic": 0
+      },
+      "found": true,
+      "top_similarity": 0.767296,
+      "keyword_hits": 2,
+      "top": "Plumber Sunday fixed the kitchen tap, his number is in the building WhatsApp group",
+      "latencyMs": 121,
+      "rr_by_keyword_weight": {
+        "0": 0,
+        "1": 0,
+        "0.75": 0,
+        "0.5": 0,
+        "0.25": 0
+      }
+    },
+    {
+      "question": "How much did I spend on groceries last month?",
+      "answerable": false,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0,
+        "keyword": 0,
+        "semantic": 0
+      },
+      "found": true,
+      "top_similarity": 0.87225,
+      "keyword_hits": 9,
+      "top": "Groceries for the week",
+      "latencyMs": 120,
+      "rr_by_keyword_weight": {
+        "0": 0,
+        "1": 0,
+        "0.75": 0,
+        "0.5": 0,
+        "0.25": 0
+      }
+    },
+    {
+      "question": "What is Ada's phone number?",
+      "answerable": false,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0,
+        "keyword": 0,
+        "semantic": 0
+      },
+      "found": true,
+      "top_similarity": 0.879498,
+      "keyword_hits": 4,
+      "top": "Call Ada about the invoice before Friday",
+      "latencyMs": 124,
+      "rr_by_keyword_weight": {
+        "0": 0,
+        "1": 0,
+        "0.75": 0,
+        "0.5": 0,
+        "0.25": 0
+      }
+    },
+    {
+      "question": "Who is my accountant?",
+      "answerable": false,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0,
+        "keyword": 0,
+        "semantic": 0
+      },
+      "found": true,
+      "top_similarity": 0.801028,
+      "keyword_hits": 0,
+      "top": "Call Ada about the invoice before Friday",
+      "latencyMs": 121,
+      "rr_by_keyword_weight": {
+        "0": 0,
+        "1": 0,
+        "0.75": 0,
+        "0.5": 0,
+        "0.25": 0
+      }
+    },
+    {
+      "question": "What's the recipe for jollof rice?",
+      "answerable": false,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0,
+        "keyword": 0,
+        "semantic": 0
+      },
+      "found": false,
+      "top_similarity": 0.793975,
+      "keyword_hits": 0,
+      "top": "Groceries for the week",
+      "latencyMs": 119,
+      "rr_by_keyword_weight": {
+        "0": 0,
+        "1": 0,
+        "0.75": 0,
+        "0.5": 0,
+        "0.25": 0
+      }
+    },
+    {
+      "question": "When does my driver's licence expire?",
+      "answerable": false,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0,
+        "keyword": 0,
+        "semantic": 0
+      },
+      "found": true,
+      "top_similarity": 0.829515,
+      "keyword_hits": 1,
+      "top": "Passport expires next June, renewal takes about six weeks",
+      "latencyMs": 119,
+      "rr_by_keyword_weight": {
+        "0": 0,
+        "1": 0,
+        "0.75": 0,
+        "0.5": 0,
+        "0.25": 0
+      }
+    },
+    {
+      "question": "What is the capital of Australia?",
+      "answerable": false,
+      "recall": {
+        "hybrid": 1,
+        "keyword": 1,
+        "semantic": 1
+      },
+      "rr": {
+        "hybrid": 0,
+        "keyword": 0,
+        "semantic": 0
+      },
+      "found": false,
+      "top_similarity": 0.739783,
+      "keyword_hits": 0,
+      "top": "Flight to Abuja on the 22nd, 7am from the local wing, book a cab the night before",
+      "latencyMs": 133,
+      "rr_by_keyword_weight": {
+        "0": 0,
+        "1": 0,
+        "0.75": 0,
+        "0.5": 0,
+        "0.25": 0
+      }
+    }
+  ],
+  "answers": [
+    {
+      "question": "How much is Bisi paying for the redesign?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Bisi is paying 450k for the redesign [1]."
+    },
+    {
+      "question": "When does Ada settle invoices?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Ada settles invoices on the last Friday of the month [2]."
+    },
+    {
+      "question": "Where is the client site's domain registered?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "The client site's domain is registered with Namecheap [3]."
+    },
+    {
+      "question": "What features did Chidi ask for?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You asked for the dashboard in dark mode and an export to CSV [1]."
+    },
+    {
+      "question": "How many hours is Ngozi's monthly retainer?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Ngozi's monthly retainer is 10 hours [1]."
+    },
+    {
+      "question": "What was my idea for landing new customers?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Your idea for landing new customers was to offer a fixed-price website audit as a first project for new clients [1]."
+    },
+    {
+      "question": "Where did I save the docs about taking payments online?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You saved a link to Stripe documentation on how checkout sessions work for taking payments online [5]."
+    },
+    {
+      "question": "What's the best way to reach Bisi?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You should contact Bisi via WhatsApp, as that is their preferred method [3]."
+    },
+    {
+      "question": "What time and where is the pitch?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "The pitch is at 2 pm on Friday at the Co‑Creation Hub, fourth floor [1]."
+    },
+    {
+      "question": "Which tough question might investors ask me?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Investors might ask how you get the first 100 customers [1]."
+    },
+    {
+      "question": "How many paying customers do we have?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You have 38 paying customers [1]."
+    },
+    {
+      "question": "How long should the deck be?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "The deck should be kept to ten slides [3]."
+    },
+    {
+      "question": "How much money are we raising?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You are raising 15 million naira [6]."
+    },
+    {
+      "question": "How did I want to start the presentation?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You wanted to start the presentation by opening the pitch with the story of the missed delivery [7]."
+    },
+    {
+      "question": "What did Kemi want changed in the deck?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Kemi wanted the pricing slide moved before the team slide and a customer quote added at the front of the deck [4]. She also asked to keep the deck to ten slides and end with the ask [2]."
+    },
+    {
+      "question": "When does Kemi need the deck?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Kemi needs the deck by Thursday morning so she can rehearse [3]."
+    },
+    {
+      "question": "How much is my rent going up to?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Your rent is going up to 1.8 million [1]."
+    },
+    {
+      "question": "When was the generator last serviced?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "The generator was last serviced in August [1]."
+    },
+    {
+      "question": "What does my mother want for her birthday?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Your mother wants the blue wrapper from Balogun market for her birthday [1]."
+    },
+    {
+      "question": "Who fixed the leaking tap?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Plumber Sunday fixed the kitchen tap [1]."
+    },
+    {
+      "question": "When do I need to cancel the gym by?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You need to cancel the gym membership before the 5th of the month [1]."
+    },
+    {
+      "question": "What was my meal prep plan?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Your meal prep plan is to batch cook on Sundays so weekday lunches are sorted [2]."
+    },
+    {
+      "question": "What does appetite mean in Shape Up?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "In Shape Up, appetite means deciding how much time an idea is worth before designing it [1]."
+    },
+    {
+      "question": "What's the scheduling advice from Deep Work?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Schedule every minute of the day and revise the schedule when it breaks [1]."
+    },
+    {
+      "question": "Which book did Kemi recommend?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Kemi recommended the book The Mom Test [1]."
+    },
+    {
+      "question": "How big is the wedding venue's capacity?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "The wedding venue can hold 150 people [2]."
+    },
+    {
+      "question": "What time is my flight to Abuja?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Your flight to Abuja is at 7 am [1]."
+    },
+    {
+      "question": "When is my next dental checkup?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "Your next dental checkup is in March [3]."
+    },
+    {
+      "question": "When do I need to renew my passport?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You need to renew your passport before it expires next June, allowing about six weeks for the renewal process [1]."
+    },
+    {
+      "question": "Where is the studio internet password?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "The studio internet password is on the sticky note under the router [1]."
+    },
+    {
+      "question": "What am I supposed to buy before Sunday?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You need to buy gas before Sunday [1]."
+    },
+    {
+      "question": "Which bills have I already paid?",
+      "answerable": true,
+      "found": true,
+      "stopped_before_model": false,
+      "cites_expected": true,
+      "answer": "You have already paid the electricity bill [1]."
+    },
+    {
+      "question": "When is Tunde's wedding?",
+      "answerable": false,
+      "found": false,
+      "stopped_before_model": false,
+      "cites_expected": false,
+      "answer": "I could not find the date of Tunde's wedding in your notes."
+    },
+    {
+      "question": "What is my car's plate number?",
+      "answerable": false,
+      "found": false,
+      "stopped_before_model": false,
+      "cites_expected": false,
+      "answer": "I could not find your car's plate number in your notes."
+    },
+    {
+      "question": "How much did I spend on groceries last month?",
+      "answerable": false,
+      "found": false,
+      "stopped_before_model": false,
+      "cites_expected": false,
+      "answer": "I could not find the amount you spent on groceries last month in your notes."
+    },
+    {
+      "question": "What is Ada's phone number?",
+      "answerable": false,
+      "found": false,
+      "stopped_before_model": false,
+      "cites_expected": false,
+      "answer": "I could not find Ada's phone number in your notes."
+    },
+    {
+      "question": "Who is my accountant?",
+      "answerable": false,
+      "found": false,
+      "stopped_before_model": false,
+      "cites_expected": false,
+      "answer": "I could not find information about your accountant in your notes."
+    },
+    {
+      "question": "What's the recipe for jollof rice?",
+      "answerable": false,
+      "found": false,
+      "stopped_before_model": true,
+      "cites_expected": false,
+      "answer": null
+    },
+    {
+      "question": "When does my driver's licence expire?",
+      "answerable": false,
+      "found": false,
+      "stopped_before_model": false,
+      "cites_expected": false,
+      "answer": "I could not find the expiration date of your driver's licence in your notes."
+    },
+    {
+      "question": "What is the capital of Australia?",
+      "answerable": false,
+      "found": false,
+      "stopped_before_model": true,
+      "cites_expected": false,
+      "answer": null
+    }
+  ]
+}

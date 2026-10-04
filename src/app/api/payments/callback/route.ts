@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { verifyTransaction } from '@/lib/paystack/client'
+import { publicEnv } from '@/lib/env'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   if (!ref) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?error=missing_reference`
+      `${publicEnv().NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=missing_reference`
     )
   }
 
@@ -36,46 +37,44 @@ export async function GET(request: NextRequest) {
       // Get the user_id from the transaction metadata or payment_transactions table
       const { data: txRecord } = await supabase
         .from('payment_transactions')
-        .select('user_id, plan_type')
+        .select('user_id, plan_type, amount')
         .eq('reference', ref)
         .single()
 
-      if (txRecord) {
-        // Update user profile to Pro
-        await supabase
-          .from('profiles')
-          .update({
-            subscription_tier: 'pro',
-            subscription_status: 'active',
-            paystack_customer_code: transaction.customer.customer_code,
-            subscription_plan: txRecord.plan_type,
-            subscription_started_at: new Date().toISOString(),
-          })
-          .eq('id', txRecord.user_id)
-
-        // Reset AI call counter for new Pro user
-        await supabase
-          .from('profiles')
-          .update({
-            ai_calls_this_month: 0,
-            ai_calls_reset_at: new Date().toISOString(),
-          })
-          .eq('id', txRecord.user_id)
+      // Only what we asked to be paid counts: the amount must cover the plan.
+      if (!txRecord || transaction.amount < txRecord.amount) {
+        return NextResponse.redirect(
+          `${publicEnv().NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=verification_failed`
+        )
       }
 
+      // The webhook does the same; whichever arrives first wins and the other is a no-op.
+      const { error: upgradeError } = await supabase.from('subscriptions').upsert(
+        {
+          user_id: txRecord.user_id,
+          tier: 'pro',
+          status: 'active',
+          plan: txRecord.plan_type,
+          paystack_customer_code: transaction.customer.customer_code,
+          ended_at: null,
+        },
+        { onConflict: 'user_id' }
+      )
+      if (upgradeError) throw new Error(upgradeError.message)
+
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?success=true`
+        `${publicEnv().NEXT_PUBLIC_APP_URL}/dash/settings/billing?success=true`
       )
     } else {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?error=payment_failed`
+        `${publicEnv().NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=payment_failed`
       )
     }
 
   } catch (error) {
     console.error('Payment callback error:', error)
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?error=verification_failed`
+      `${publicEnv().NEXT_PUBLIC_APP_URL}/dash/settings/billing?error=verification_failed`
     )
   }
 }

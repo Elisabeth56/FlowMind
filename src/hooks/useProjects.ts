@@ -2,16 +2,31 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Project, NewProject } from '@/types/database'
+import type { Project, NewProject, ProjectWithCounts } from '@/types/models'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([])
+  const [counts, setCounts] = useState<Record<string, { item_count: number; completed_count: number }>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const supabaseRef = useRef(createClient())
   const supabase = supabaseRef.current
+
+  // Counts are computed by the database from the items themselves
+  const fetchCounts = useCallback(async () => {
+    const { data } = await supabase.from('project_counts').select('*')
+    if (!data) return
+    setCounts(
+      Object.fromEntries(
+        data.map((row) => [
+          row.project_id,
+          { item_count: row.item_count ?? 0, completed_count: row.completed_count ?? 0 },
+        ])
+      )
+    )
+  }, [supabase])
 
   // Fetch projects
   const fetchProjects = useCallback(async () => {
@@ -28,10 +43,11 @@ export function useProjects() {
       setError(error.message)
     } else {
       setProjects(data || [])
+      await fetchCounts()
     }
 
     setLoading(false)
-  }, [supabase])
+  }, [supabase, fetchCounts])
 
   // Create project
   const createProject = async (
@@ -144,6 +160,14 @@ export function useProjects() {
             }
           }
         )
+        // An item filed, moved or completed changes a project's counts
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'inbox_items', filter: `user_id=eq.${user.id}` },
+          () => {
+            fetchCounts()
+          }
+        )
         .subscribe()
     }
 
@@ -156,10 +180,15 @@ export function useProjects() {
         channel = null
       }
     }
-  }, [supabase, fetchProjects])
+  }, [supabase, fetchProjects, fetchCounts])
+
+  const projectsWithCounts: ProjectWithCounts[] = projects.map((project) => ({
+    ...project,
+    ...(counts[project.id] ?? { item_count: 0, completed_count: 0 }),
+  }))
 
   return {
-    projects,
+    projects: projectsWithCounts,
     loading,
     error,
     createProject,

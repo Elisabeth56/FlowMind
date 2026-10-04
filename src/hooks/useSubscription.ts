@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import type { PaidPlanId } from '@/lib/plans'
 
 interface Subscription {
   code: string
@@ -18,7 +19,7 @@ interface Subscription {
 
 interface SubscriptionData {
   subscription: Subscription | null
-  tier: 'free' | 'pro' | 'enterprise'
+  tier: 'free' | 'pro'
   status: 'active' | 'canceled' | 'past_due' | 'non_renewing' | null
   limits: {
     ai_calls_per_month: number | 'unlimited'
@@ -56,7 +57,7 @@ export function useSubscription() {
   }, [fetchSubscription])
 
   // Start checkout flow
-  const checkout = useCallback(async (plan: 'pro_monthly' | 'pro_yearly' = 'pro_monthly') => {
+  const checkout = useCallback(async (plan: PaidPlanId = 'pro_monthly') => {
     try {
       setLoading(true)
       const response = await fetch('/api/payments/checkout', {
@@ -68,14 +69,15 @@ export function useSubscription() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to start checkout')
+        throw new Error(result.message || result.error || 'Failed to start checkout')
       }
 
-      // Redirect to Paystack checkout
+      // Redirect to Paystack checkout (this navigation never returns)
       window.location.href = result.authorization_url
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
       setLoading(false)
+      throw err
     }
   }, [])
 
@@ -142,7 +144,7 @@ export function useSubscription() {
     cancel,
     reactivate,
     refresh: fetchSubscription,
-    isPro: data?.tier === 'pro' || data?.tier === 'enterprise',
+    isPro: data?.tier === 'pro',
     isActive: data?.status === 'active',
   }
 }

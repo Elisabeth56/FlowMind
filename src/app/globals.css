@@ -1,123 +1,263 @@
 @import "tailwindcss";
 
-@theme {
-  /* Typography */
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+/* FlowMind design system: "Clear desk". Decisions are recorded in docs/design.md.
+   Colours are CSS variables so a theme is one block of values; Tailwind utilities
+   (bg-surface, text-ink-2, rounded-card …) are generated from them below. */
 
-  /* Azure/Sky blue color palette */
-  --color-azure-50: #f0f7ff;
-  --color-azure-100: #e0efff;
-  --color-azure-200: #b9dfff;
-  --color-azure-300: #7cc4ff;
-  --color-azure-400: #36a5ff;
-  --color-azure-500: #0c87eb;
-  --color-azure-600: #006bc9;
-  --color-azure-700: #0055a3;
-  --color-azure-800: #044986;
-  --color-azure-900: #0a3d6e;
-
-  /* Slate palette for neutrals */
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-600: #475569;
-  --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #0f172a;
-
-  /* Accent colors */
-  --color-sky: #38bdf8;
-  --color-indigo: #6366f1;
-  --color-violet: #8b5cf6;
-  --color-mist: #f0f7ff;
-  --color-cloud: #e0efff;
-
-  /* Shadows */
-  --shadow-soft: 0 4px 20px rgba(10, 61, 110, 0.08);
-  --shadow-soft-lg: 0 8px 40px rgba(10, 61, 110, 0.12);
-  --shadow-glow: 0 0 40px rgba(56, 189, 248, 0.3);
-
-  /* Border radius */
-  --radius-4xl: 2rem;
-  --radius-5xl: 2.5rem;
-
-  /* Animations */
-  --animate-fade-in: fade-in 0.6s ease-out forwards;
-  --animate-slide-up: slide-up 0.6s ease-out forwards;
-  --animate-float: float 6s ease-in-out infinite;
-
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes slide-up {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.3); }
-    50% { box-shadow: 0 0 40px rgba(56, 189, 248, 0.6); }
-  }
+:root {
+  --fm-bg: #F2F0EC;
+  --fm-surface: #FBFAF8;
+  --fm-surface-sunk: #E8E5DF;
+  --fm-ink: #292826;
+  --fm-ink-2: #4A4845;
+  --fm-ink-3: #6B6966;
+  --fm-ink-4: #A9A8A7;
+  --fm-hairline: #D8D7D5;
+  --fm-accent: #1F3A5F;
+  --fm-on-accent: #F2F0EC;
+  --fm-accent-tint: #D3E1EF;
+  --fm-accent-tint-ink: #1F3A5F;
+  --fm-success: #3F6B4A;
+  --fm-warning: #8A5A1C;
+  --fm-danger: #9B3B32;
+  --fm-danger-tint: #F4DDD8;
+  --fm-apricot: #F2B27E;
+  --fm-apricot-tint: #FBE3CF;
+  --fm-apricot-ink: #8A4B1F;
+  --fm-sage: #5E7F6A;
+  --fm-sage-tint: #DCE7DF;
+  --fm-sage-ink: #3E5E49;
+  --fm-plum: #7A5C7E;
+  --fm-plum-tint: #EADFEB;
+  --fm-plum-ink: #5B3F5F;
+  --fm-shadow-soft: 0 1px 2px rgba(41, 40, 38, 0.04), 0 8px 24px rgba(41, 40, 38, 0.06);
+  --fm-shadow-focus: 0 0 0 3px rgba(31, 58, 95, 0.35);
 }
 
-/* Base styles */
+/* Dark is designed, not inverted: surfaces lift by lightness and the accent turns pale.
+   It applies only when asked for, until every screen is built on these tokens. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --fm-bg: #161615;
+  --fm-surface: #1F1F1D;
+  --fm-surface-sunk: #2A2A27;
+  --fm-ink: #EDEBE7;
+  --fm-ink-2: #BDBAB4;
+  --fm-ink-3: #9A9690;
+  --fm-ink-4: #5E5C58;
+  --fm-hairline: #33322F;
+  --fm-accent: #A9C4E4;
+  --fm-on-accent: #161615;
+  --fm-accent-tint: #24364D;
+  --fm-accent-tint-ink: #C9DAEE;
+  --fm-success: #8FBF98;
+  --fm-warning: #D9AE6E;
+  --fm-danger: #E59A8F;
+  --fm-danger-tint: #3A2321;
+  --fm-apricot: #E8A06A;
+  --fm-apricot-tint: #3B2A1D;
+  --fm-apricot-ink: #F2C49C;
+  --fm-sage: #8FB39B;
+  --fm-sage-tint: #26332B;
+  --fm-sage-ink: #B9D3C0;
+  --fm-plum: #B497B8;
+  --fm-plum-tint: #322736;
+  --fm-plum-ink: #D9C3DC;
+  --fm-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --fm-shadow-focus: 0 0 0 3px rgba(169, 196, 228, 0.45);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Instrument Serif sets numerals only, never words */
+  --font-numeral: var(--font-instrument-serif), ui-serif, Georgia, serif;
+
+  --color-bg: var(--fm-bg);
+  --color-surface: var(--fm-surface);
+  --color-surface-sunk: var(--fm-surface-sunk);
+  --color-ink: var(--fm-ink);
+  --color-ink-2: var(--fm-ink-2);
+  --color-ink-3: var(--fm-ink-3);
+  --color-ink-4: var(--fm-ink-4);
+  --color-hairline: var(--fm-hairline);
+  --color-accent: var(--fm-accent);
+  --color-on-accent: var(--fm-on-accent);
+  --color-accent-tint: var(--fm-accent-tint);
+  --color-accent-tint-ink: var(--fm-accent-tint-ink);
+  --color-success: var(--fm-success);
+  --color-warning: var(--fm-warning);
+  --color-danger: var(--fm-danger);
+  --color-danger-tint: var(--fm-danger-tint);
+  --color-apricot: var(--fm-apricot);
+  --color-apricot-tint: var(--fm-apricot-tint);
+  --color-apricot-ink: var(--fm-apricot-ink);
+  --color-sage: var(--fm-sage);
+  --color-sage-tint: var(--fm-sage-tint);
+  --color-sage-ink: var(--fm-sage-ink);
+  --color-plum: var(--fm-plum);
+  --color-plum-tint: var(--fm-plum-tint);
+  --color-plum-ink: var(--fm-plum-ink);
+
+  /* No sharp corners. Named for what they round. */
+  --radius-control: 8px;
+  --radius-row: 14px;
+  --radius-card: 20px;
+  --radius-panel: 28px;
+
+  /* Only for things that float: menus, the capture bar, a dragged card */
+  --shadow-soft: var(--fm-shadow-soft);
+  --shadow-focus: var(--fm-shadow-focus);
+
+  /* Reveals and section transitions; UI feedback */
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-ui: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Type scale. Geist at 400 and 500 only; hierarchy comes from size and ink. */
+@utility text-display {
+  font-size: 44px;
+  line-height: 1.02;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  @media (width >= 48rem) {
+    font-size: 72px;
+  }
+}
+@utility text-h1 {
+  font-size: 34px;
+  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  @media (width >= 48rem) {
+    font-size: 48px;
+  }
+}
+@utility text-h2 {
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+@utility text-h3 {
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+@utility text-body {
+  font-size: 16px;
+  line-height: 1.5;
+}
+@utility text-small {
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+@utility text-caption {
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+@utility text-label {
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+@utility text-stat {
+  font-family: var(--font-numeral);
+  font-size: 48px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+@utility text-stat-small {
+  font-family: var(--font-numeral);
+  font-size: 28px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
 html {
+  /* `clip` instead of `hidden`: hidden would turn <html> into a scroll
+     container and break the sticky/fixed headers inside it. */
+  overflow-x: clip;
+  /* Anchor targets clear the fixed navbar instead of hiding under it. */
+  scroll-padding-top: 6rem;
   scroll-behavior: smooth;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-mist);
-  color: var(--color-slate-900);
+  background-color: var(--fm-bg);
+  color: var(--fm-ink);
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+/* Keyboard focus is always visible, in the accent */
+/* In the base layer so a utility can replace it where a wrapper shows the focus instead */
+@layer base {
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--fm-shadow-focus);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: var(--color-slate-100);
+::selection {
+  background: var(--fm-accent-tint);
+  color: var(--fm-accent-tint-ink);
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--color-azure-400);
-  border-radius: 4px;
+/* The mark: the top bar is still landing, and levels on hover or while organising */
+.fm-mark-top {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(-14deg);
+  transition: transform 500ms var(--ease-settle);
+}
+.fm-mark:hover .fm-mark-top,
+.fm-mark[data-settling="true"] .fm-mark-top {
+  transform: rotate(0deg);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-azure-600);
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Every effect shows its end state */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-/* Utility classes */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+/* The app's signature moment: an item settles once when it has been organised */
+@keyframes fm-settle {
+  from {
+    transform: translateY(-6px) rotate(-1.2deg);
+  }
+  to {
+    transform: none;
+  }
+}
+.fm-settle {
+  animation: fm-settle 600ms var(--ease-settle);
 }
 
-.glass-dark {
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Skeletons: a slow shimmer in the shape of what is loading */
+@keyframes fm-shimmer {
+  to {
+    background-position: -200% 0;
+  }
 }
-
-.gradient-text {
-  background: linear-gradient(135deg, var(--color-azure-600) 0%, var(--color-violet) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.fm-skeleton {
+  background: linear-gradient(90deg, var(--fm-surface-sunk) 0%, var(--fm-bg) 50%, var(--fm-surface-sunk) 100%);
+  background-size: 200% 100%;
+  animation: fm-shimmer 1.4s linear infinite;
 }

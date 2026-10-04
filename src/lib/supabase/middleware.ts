@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { publicEnv } from '@/lib/env'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -7,8 +8,8 @@ export async function updateSession(request: NextRequest) {
   })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    publicEnv().NEXT_PUBLIC_SUPABASE_URL,
+    publicEnv().NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
@@ -38,7 +39,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protected routes - redirect to login if not authenticated
-  const protectedPaths = ['/app', '/dashboard', '/settings']
+  const protectedPaths = ['/dash']
   const isProtectedPath = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )
@@ -51,14 +52,16 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect logged-in users away from auth pages
-  const authPaths = ['/login', '/signup']
+  // (not /reset-password: a reset link signs the person in, then they set the password there)
+  const authPaths = ['/login', '/signup', '/forgot-password']
   const isAuthPath = authPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )
 
   if (isAuthPath && user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/app'
+    url.pathname = '/dash'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { InboxItem, NewInboxItem } from '@/types/database'
+import type { InboxItem, NewInboxItem } from '@/types/models'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 type InboxFilter = 'all' | 'inbox' | 'organized' | 'completed'
@@ -40,49 +40,67 @@ export function useInboxItems(filter: InboxFilter = 'all') {
     setLoading(false)
   }, [supabase, filter])
 
-  // Add new item
+  // Add new item. It appears at once under a temporary id and is swapped for the
+  // saved row when the insert returns, so capture never waits on the network.
   const addItem = async (content: string, itemType: InboxItem['item_type'] = 'note') => {
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (!user) throw new Error('Not authenticated')
 
-    const newItem: NewInboxItem = {
+    const tempId = `temp-${crypto.randomUUID()}`
+    const now = new Date().toISOString()
+    const optimistic = {
+      id: tempId,
       user_id: user.id,
       content,
       item_type: itemType,
       status: 'inbox',
+      ai_status: 'pending',
+      priority: 0,
+      is_actionable: false,
+      tags: [],
+      extracted_entities: [],
+      project_id: null,
+      due_date: null,
+      sentiment: null,
+      organized_at: null,
+      completed_at: null,
+      created_at: now,
+      updated_at: now,
+    } as InboxItem
+    setItems((prev) => [optimistic, ...prev])
+
+    const newItem: NewInboxItem = { user_id: user.id, content, item_type: itemType, status: 'inbox' }
+    const { data, error } = await supabase.from('inbox_items').insert(newItem).select().single()
+
+    if (error) {
+      setItems((prev) => prev.filter((item) => item.id !== tempId))
+      throw error
     }
-
-    const { data, error } = await supabase
-      .from('inbox_items')
-      .insert(newItem)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    // Optimistic update - item will also come through realtime
-    setItems((prev) => [data, ...prev])
-
+    // Realtime may have delivered the saved row already; keep exactly one copy
+    setItems((prev) => [data, ...prev.filter((item) => item.id !== tempId && item.id !== data.id)])
     return data
   }
 
-  // Update item
+  // Update item: shown at once, put back if the save fails
   const updateItem = async (id: string, updates: Partial<InboxItem>) => {
-    const { data, error } = await supabase
-      .from('inbox_items')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
+    const before = items.find((item) => item.id === id)
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)))
 
-    if (error) throw error
+    const { data, error } = await supabase.from('inbox_items').update(updates).eq('id', id).select().single()
 
-    // Optimistic update
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...data } : item))
-    )
-
+    if (error) {
+      if (before) setItems((prev) => prev.map((item) => (item.id === id ? before : item)))
+      throw error
+    }
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...data } : item)))
     return data
+  }
+
+  // Re-read one item, for changes the server made (organising writes its fields there)
+  const syncItem = async (id: string) => {
+    const { data } = await supabase.from('inbox_items').select('*').eq('id', id).maybeSingle()
+    if (data) setItems((prev) => prev.map((item) => (item.id === id ? data : item)))
   }
 
   // Delete item
@@ -98,11 +116,11 @@ export function useInboxItems(filter: InboxFilter = 'all') {
     setItems((prev) => prev.filter((item) => item.id !== id))
   }
 
-  // Complete item
-  const completeItem = async (id: string) => {
+  // Complete item, or put it back
+  const setCompleted = async (id: string, completed: boolean) => {
     return updateItem(id, {
-      status: 'completed',
-      completed_at: new Date().toISOString(),
+      status: completed ? 'completed' : 'organized',
+      completed_at: completed ? new Date().toISOString() : null,
     })
   }
 
@@ -175,7 +193,8 @@ export function useInboxItems(filter: InboxFilter = 'all') {
     addItem,
     updateItem,
     deleteItem,
-    completeItem,
+    setCompleted,
+    syncItem,
     refetch: fetchItems,
   }
 }

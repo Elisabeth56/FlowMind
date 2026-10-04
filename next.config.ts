@@ -22,19 +22,13 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Ignore TypeScript errors during build (remove in strict mode)
-  // typescript: {
-  //   ignoreBuildErrors: true,
-  // },
+  // Prompt files are read from disk at request time, so they must ship with the API routes
+  outputFileTracingIncludes: {
+    '/api/**': ['./src/lib/ai/prompts/**'],
+  },
 
-  // Ignore ESLint errors during build (remove in strict mode)
-  // eslint: {
-  //   ignoreDuringBuilds: true,
-  // },
-
-  // Experimental features
+  // Server Actions
   experimental: {
-    // Enable server actions (already stable in Next.js 14+)
     serverActions: {
       bodySizeLimit: '2mb',
     },
@@ -78,9 +72,20 @@ const nextConfig: NextConfig = {
   // Redirects
   async redirects() {
     return [
+      // pricing is a section of the landing page
+      {
+        source: '/pricing',
+        destination: '/#pricing',
+        permanent: false,
+      },
       {
         source: '/dashboard',
-        destination: '/app',
+        destination: '/dash',
+        permanent: true,
+      },
+      {
+        source: '/app',
+        destination: '/dash',
         permanent: true,
       },
       {
