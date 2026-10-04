@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { BarChart3, Inbox, Plus, Sun, MessageCircleQuestion } from 'lucide-react'
-import { Logo, ProjectDot, cn, projectTone } from '@/components/ui'
+import { Logo, ProjectDot, ThemeToggle, cn, projectTone } from '@/components/ui'
 import { isOpen } from '@/lib/items'
 import { useApp } from '../AppProvider'
 
@@ -49,7 +49,7 @@ function NavLink({
 export function Sidebar() {
   const pathname = usePathname()
   const activeProject = useSearchParams().get('project')
-  const { items, projects, createProject, usage, profile, showToast, signOut } = useApp()
+  const { items, projects, createProject, usage, profile, showToast, signOut, updateProfile } = useApp()
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
 
@@ -145,12 +145,17 @@ export function Sidebar() {
             </span>
           </Link>
         )}
-        <NavLink href="/dash/settings" active={pathname.startsWith('/dash/settings')}>
-          <span className="grid size-6 place-items-center rounded-full bg-accent-tint text-caption text-accent-tint-ink">
-            {(profile?.full_name ?? profile?.email ?? '?').charAt(0).toUpperCase()}
-          </span>
-          Settings
-        </NavLink>
+        <div className="flex items-center gap-1">
+          <div className="min-w-0 flex-1">
+          <NavLink href="/dash/settings" active={pathname.startsWith('/dash/settings')}>
+              <span className="grid size-6 place-items-center rounded-full bg-accent-tint text-caption text-accent-tint-ink">
+                {(profile?.full_name ?? profile?.email ?? '?').charAt(0).toUpperCase()}
+              </span>
+              Settings
+            </NavLink>
+          </div>
+          <ThemeToggle onChoose={(theme) => void updateProfile({ preferences: { theme } }).catch(() => {})} />
+        </div>
         <button
           type="button"
           onClick={async () => {

@@ -55,9 +55,10 @@ Gemini fallback) · Paystack.
 - **UI is built on the design tokens** (`docs/design.md`): `bg-surface`, `text-ink-2`,
   `rounded-card`, `text-h2` and the components in `src/components/ui/`. No hex colours,
   default Tailwind palette names or new one-off buttons in screens.
-- **The theme is set on the app's root element, not by React.** `src/lib/theme.ts` applies
-  the stored preference (and a script in the app layout applies the remembered one before
-  first paint). Only `/dash` is themed; the marketing site is always light.
+- **The theme is set on a root element, not by React.** `src/lib/theme.ts` applies the choice
+  to the element with `APP_ROOT_ID` (the app shell and the landing page each have one), and a
+  script beside it applies the remembered choice before first paint. `ThemeToggle` switches it;
+  in the app the choice is also saved to the profile. Auth pages are always light.
 - **Scroll reveals share `revealViewport` from `src/lib/motion.ts`.** It starts
   the animation before the section enters view; per-component viewport settings
   reintroduce the "page fills in late" effect.
