@@ -234,9 +234,11 @@ export function AskDemo() {
   return (
     <div className="rv dots flex flex-col gap-3 rounded-panel bg-surface-sunk p-6 md:p-8">
       <Picker label="Example questions" options={QUESTIONS} value={id} onChange={setId} />
-      <div className="self-end rounded-[20px_20px_6px_20px] bg-accent-tint px-4 py-3 text-body text-accent-tint-ink">
+      <div className="lift-sm self-end rounded-[20px_20px_6px_20px] bg-accent-tint px-4 py-3 text-body text-accent-tint-ink">
         {question.label}
       </div>
+      {/* the hover lift sits on a wrapper: the card itself is busy with its swap animation */}
+      <div className="lift-sm">
       <div key={id} className="swap flex flex-col gap-3 rounded-card bg-surface p-5 text-body leading-relaxed shadow-soft" aria-live="polite">
         <p>
           {question.answer.map(([text, source], i) => (
@@ -251,6 +253,7 @@ export function AskDemo() {
             <Chip key={source} tone="blue">{source}</Chip>
           ))}
         </div>
+      </div>
       </div>
     </div>
   )
@@ -328,12 +331,51 @@ export function ProPrice() {
   )
 }
 
-// ── What has scrolled into view ─────────────────────────────────────────────────────
+// ── Numbers that count up ──────────────────────────────────────────────────────────
+
+/** A number that counts up from zero each time it scrolls into view. Without scripts it simply shows the number. */
+export function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
+  const [value, setValue] = useState(to)
+  const [element, setElement] = useState<HTMLSpanElement | null>(null)
+
+  useEffect(() => {
+    if (!element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let frame = 0
+    const observer = new IntersectionObserver(([entry]) => {
+      cancelAnimationFrame(frame)
+      if (!entry.isIntersecting) return
+      const startedAt = performance.now()
+      const tick = (now: number) => {
+        const progress = Math.min(1, (now - startedAt) / 1100)
+        // ease out: quick at first, settling on the number
+        setValue(Math.round(to * (1 - Math.pow(1 - progress, 3))))
+        if (progress < 1) frame = requestAnimationFrame(tick)
+      }
+      setValue(0)
+      frame = requestAnimationFrame(tick)
+    }, { threshold: 0.6 })
+    observer.observe(element)
+    return () => {
+      observer.disconnect()
+      cancelAnimationFrame(frame)
+    }
+  }, [element, to])
+
+  return (
+    <span ref={setElement} className="font-numeral text-[56px] leading-none tabular-nums">
+      <span aria-hidden="true">{value}{suffix}</span>
+      <span className="sr-only">{to}{suffix}</span>
+    </span>
+  )
+}
+
+// ── What is on screen ───────────────────────────────────────────────────────────────
 
 /**
- * Marks elements with `data-seen` once they scroll into view (class `seen`), which starts
- * the underlines, the closing scene and the footer. Also gives Safari and Firefox, which do
- * not run `animation-timeline: view()`, the same section reveals from the observer.
+ * Adds the class `seen` to elements marked `data-seen` while they are on screen and takes
+ * it away when they leave, so their animation plays again on the way back. A scene
+ * (`data-seen="half"`) waits until half of it is visible. Safari and Firefox, which do not
+ * run `animation-timeline: view()`, get the section reveals from the same observer.
  */
 export function SeenObserver() {
   useEffect(() => {
@@ -347,31 +389,15 @@ export function SeenObserver() {
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (!entry.isIntersecting) continue
-          entry.target.classList.add('seen', 'in')
-          observer.unobserve(entry.target)
+          const needed = entry.target.getAttribute('data-seen') === 'half' ? 0.5 : 0
+          if (entry.isIntersecting && entry.intersectionRatio >= needed) entry.target.classList.add('seen', 'in')
+          else if (!entry.isIntersecting) entry.target.classList.remove('seen', 'in')
         }
       },
-      { rootMargin: '0px 0px -12% 0px' }
+      { threshold: [0, 0.5], rootMargin: '0px 0px -8% 0px' }
     )
-    // a scene (data-seen="half") waits until half of it is on screen, so it is not played to nobody
-    const scenes = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue
-          entry.target.classList.add('seen', 'in')
-          scenes.unobserve(entry.target)
-        }
-      },
-      { threshold: 0.5 }
-    )
-    root.querySelectorAll(fallback ? '[data-seen], .rv' : '[data-seen]').forEach((element) =>
-      (element.getAttribute('data-seen') === 'half' ? scenes : observer).observe(element)
-    )
-    return () => {
-      observer.disconnect()
-      scenes.disconnect()
-    }
+    root.querySelectorAll(fallback ? '[data-seen], .rv' : '[data-seen]').forEach((element) => observer.observe(element))
+    return () => observer.disconnect()
   }, [])
   return null
 }

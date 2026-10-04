@@ -2,7 +2,7 @@ import { DemoButton } from '@/components/auth/DemoButton'
 import Image from 'next/image'
 import { ButtonLink, Chip, cn } from '@/components/ui'
 import { FREE_TIER_AI_CALLS } from '@/lib/plans'
-import { AskDemo, PlanDemo, ProPrice, StepsDemo, WeekBars } from './Interactive'
+import { AskDemo, CountUp, PlanDemo, ProPrice, StepsDemo, WeekBars } from './Interactive'
 import { HeroStage } from './HeroStage'
 
 const wrap = 'mx-auto w-full max-w-[1200px] px-6'
@@ -61,7 +61,7 @@ export function Hero() {
         <span className="self-start rounded-full bg-apricot-tint px-3 py-1 text-[13px] text-apricot-ink">
           New · Ask your notes
         </span>
-        <h1 className="text-display">
+        <h1 data-seen className="hero-h text-display">
           <Words text="Put it down." />
           <br />
           <Words text="We’ll" from={4} />
@@ -166,7 +166,7 @@ export function HowItWorks() {
     <section id="how" className={cn(wrap, 'flex scroll-mt-28 flex-col gap-12')}>
       <div className="rv flex flex-col gap-4">
         <Eyebrow>How it works</Eyebrow>
-        <h2 className="text-h1">Three steps, and you <Underlined>only do the first.</Underlined></h2>
+        <h2 className="text-h1">Three steps, and you only do the first.</h2>
       </div>
       <div className="relative">
         {/* the connector draws itself as the section scrolls in (a vertical line on phones) */}
@@ -225,17 +225,6 @@ export function Ask() {
   )
 }
 
-function Count({ to, suffix }: { to: number; suffix?: string }) {
-  return (
-    <span className="font-numeral text-[56px] leading-none">
-      {/* counts up as it scrolls in; screen readers get the number itself */}
-      <span className="count" style={{ '--to': to } as React.CSSProperties} aria-hidden="true" />
-      <span className="sr-only">{to}</span>
-      {suffix}
-    </span>
-  )
-}
-
 export function Weekly() {
   return (
     <section className={cn(wrap, twoColumns)}>
@@ -249,15 +238,15 @@ export function Weekly() {
       </div>
       <div className="rv grid grid-cols-3 gap-6 rounded-panel bg-surface p-6 md:p-8">
         <div>
-          <Count to={18} />
+          <CountUp to={18} />
           <p className="mt-1.5 text-small text-ink-3">finished</p>
         </div>
         <div>
-          <Count to={5} />
+          <CountUp to={5} />
           <p className="mt-1.5 text-small text-ink-3">moved to next week</p>
         </div>
         <div>
-          <Count to={75} suffix="%" />
+          <CountUp to={75} suffix="%" />
           <p className="mt-1.5 text-small text-ink-3">of planned steps done</p>
         </div>
         <WeekBars />
@@ -305,19 +294,27 @@ export function Pricing() {
   )
 }
 
-// The notes that fall into the tray in the closing scene, echoing the hero
-const NIGHT_SLIPS = ['renew passport', 'call ada before fri', 'idea: monthly recap']
+// What the closing scene's card lists: the day FlowMind made from the pile
+const MORNING = [
+  { time: '9:00', title: 'Finish the pitch deck', now: true },
+  { time: '10:15', title: 'Call Ada about the invoice' },
+  { time: '17:30', title: 'Buy gas before Sunday' },
+]
 
+// The hero ends with notes landing in the tray; the page ends with what came out of it.
 export function Closing() {
   return (
     <section className={wrap}>
       <div data-seen="half" className="closing rv grid items-center gap-10 overflow-hidden rounded-[32px] bg-accent p-8 text-on-accent md:grid-cols-2 md:gap-12 md:p-14">
         <div className="flex flex-col gap-6">
           <h2 className="text-h1">
-            <SeenWords text="Empty your head tonight." />
+            <SeenWords text="Your notes are sorted." />
             <br />
-            <SeenWords text="Wake up to" from={4} /> <Underlined>a plan.</Underlined>
+            <SeenWords text="Here’s" from={4} /> <Underlined>your day.</Underlined>
           </h2>
+          <p className="max-w-[44ch] text-[18px] leading-normal text-accent-tint">
+            Everything you dropped in is filed. The few things that matter today are on top, in order.
+          </p>
           <div className="flex flex-wrap gap-3">
             <ButtonLink href="/signup" size="lg" variant="warm">
               Start for free
@@ -325,25 +322,30 @@ export function Closing() {
             <DemoButton size="lg" variant="inverse" />
           </div>
         </div>
-        <div className="relative h-[260px] overflow-hidden rounded-3xl md:h-[340px]">
-          <Image
-            src="/images/close-tray-night.webp"
-            alt=""
-            fill
-            sizes="(min-width: 768px) 45vw, 100vw"
-            className="object-cover object-[50%_60%]"
-          />
-          {/* tonight's notes drop into the tray, then tomorrow's plan is there */}
+        {/* the render is pushed down and enlarged so the finished stack stays in view under the card */}
+        <div className="night relative aspect-[5/4] overflow-hidden rounded-3xl">
+          <Image src="/images/close-tray-night.webp" alt="" fill sizes="(min-width: 768px) 60vw, 150vw" className="night-img object-cover" />
           <div aria-hidden="true" className="absolute inset-0">
-            {NIGHT_SLIPS.map((slip, i) => (
-              <span key={slip} className="night-slip" style={{ '--i': i } as React.CSSProperties}>
-                {slip}
-              </span>
-            ))}
-            <span className="night-plan">
-              <span className="font-numeral text-[22px] leading-none">7:00</span>
-              Your plan for today is ready
+            <span className="night-filed">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+              48 notes filed
             </span>
+            {/* the top card of the stack lifts off and opens as today's list */}
+            <div className="night-card">
+              <span className="night-head">
+                <strong>Today</strong>
+                <span>3 things, in order</span>
+              </span>
+              {MORNING.map((step, i) => (
+                <span key={step.title} className={cn('night-row', step.now && 'night-now')} style={{ '--i': i } as React.CSSProperties}>
+                  <span className="night-box" />
+                  <span className="font-numeral text-[1.3em] leading-none">{step.time}</span>
+                  <span className="truncate">{step.title}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
