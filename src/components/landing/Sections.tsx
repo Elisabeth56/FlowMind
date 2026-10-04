@@ -27,6 +27,18 @@ const Arrow = () => (
   </svg>
 )
 
+/** The key phrase of a heading, with the hand-drawn underline that draws itself when it scrolls into view. */
+function Underlined({ children }: { children: React.ReactNode }) {
+  return (
+    <span data-seen className="uline relative inline-block whitespace-nowrap">
+      {children}
+      <svg viewBox="0 0 220 24" preserveAspectRatio="none" aria-hidden="true" className="absolute -inset-x-1 -bottom-3 h-4 w-[calc(100%+8px)] overflow-visible">
+        <path d="M4 16 C 50 6, 120 4, 216 12" fill="none" stroke="var(--fm-apricot)" strokeWidth="6" strokeLinecap="round" />
+      </svg>
+    </span>
+  )
+}
+
 // Each headline word goes from blurred to sharp, 80ms apart
 function Words({ text, from = 0 }: { text: string; from?: number }) {
   return (
@@ -154,7 +166,7 @@ export function HowItWorks() {
     <section id="how" className={cn(wrap, 'flex scroll-mt-28 flex-col gap-12')}>
       <div className="rv flex flex-col gap-4">
         <Eyebrow>How it works</Eyebrow>
-        <h2 className="text-h1">Three steps, and you only do the first.</h2>
+        <h2 className="text-h1">Three steps, and you <Underlined>only do the first.</Underlined></h2>
       </div>
       <div className="relative">
         {/* the connector draws itself as the section scrolls in (a vertical line on phones) */}
@@ -162,6 +174,7 @@ export function HowItWorks() {
           viewBox="0 0 1152 80"
           preserveAspectRatio="none"
           aria-hidden="true"
+          data-seen
           className="pointer-events-none absolute left-0 top-[18px] hidden h-20 w-full md:block"
         >
           <path
@@ -185,7 +198,7 @@ export function Today() {
     <section id="features" className={cn(wrap, twoColumns, 'scroll-mt-28')}>
       <div className="rv flex flex-col gap-5">
         <Eyebrow>Today</Eyebrow>
-        <h2 className="text-h1">A day you can actually finish.</h2>
+        <h2 className="text-h1">A day you can <Underlined>actually finish.</Underlined></h2>
         <Lead>
           FlowMind picks from what’s due and what matters, keeps it to a realistic few hours, and tells you what can
           wait until tomorrow.
@@ -262,10 +275,11 @@ export function Pricing() {
     <section id="pricing" className={cn(wrap, 'flex scroll-mt-28 flex-col gap-10')}>
       <div className="rv flex flex-col items-center gap-4 text-center">
         <Eyebrow>Pricing</Eyebrow>
-        <h2 className="text-h1">Start free. Pay in naira when it sticks.</h2>
+        <h2 className="text-h1">Start free. Pay in naira <Underlined>when it sticks.</Underlined></h2>
       </div>
       <div className="mx-auto grid w-full max-w-[840px] gap-6 md:grid-cols-2">
-        <div className="rv flex flex-col gap-4 rounded-panel bg-surface p-8">
+        <div className="rv flex">
+        <div className="lift flex w-full flex-col gap-4 rounded-panel bg-surface p-8">
           <h3 className="text-h3">Free</h3>
           <span className="font-numeral text-[56px] leading-none">₦0</span>
           <p className="text-body leading-relaxed text-ink-2">
@@ -275,7 +289,9 @@ export function Pricing() {
             Start for free
           </ButtonLink>
         </div>
-        <div className="rv relative flex flex-col gap-4 overflow-hidden rounded-panel bg-accent p-8 text-on-accent">
+        </div>
+        <div className="rv flex">
+        <div className="lift relative flex w-full flex-col gap-4 overflow-hidden rounded-panel bg-accent p-8 text-on-accent">
           <h3 className="text-h3">Pro</h3>
           <ProPrice />
           {/* signed-out visitors are sent to sign in first, then land on billing */}
@@ -283,24 +299,31 @@ export function Pricing() {
             Go Pro
           </ButtonLink>
         </div>
+        </div>
       </div>
     </section>
   )
 }
 
+// The notes that fall into the tray in the closing scene, echoing the hero
+const NIGHT_SLIPS = ['renew passport', 'call ada before fri', 'idea: monthly recap']
+
 export function Closing() {
   return (
     <section className={wrap}>
-      <div className="rv grid items-center gap-10 overflow-hidden rounded-[32px] bg-accent p-8 text-on-accent md:grid-cols-2 md:gap-12 md:p-14">
+      <div data-seen="half" className="closing rv grid items-center gap-10 overflow-hidden rounded-[32px] bg-accent p-8 text-on-accent md:grid-cols-2 md:gap-12 md:p-14">
         <div className="flex flex-col gap-6">
           <h2 className="text-h1">
-            Empty your head tonight.
+            <SeenWords text="Empty your head tonight." />
             <br />
-            Wake up to a plan.
+            <SeenWords text="Wake up to" from={4} /> <Underlined>a plan.</Underlined>
           </h2>
-          <ButtonLink href="/signup" size="lg" variant="warm" className="self-start">
-            Start for free
-          </ButtonLink>
+          <div className="flex flex-wrap gap-3">
+            <ButtonLink href="/signup" size="lg" variant="warm">
+              Start for free
+            </ButtonLink>
+            <DemoButton size="lg" variant="inverse" />
+          </div>
         </div>
         <div className="relative h-[260px] overflow-hidden rounded-3xl md:h-[340px]">
           <Image
@@ -310,8 +333,35 @@ export function Closing() {
             sizes="(min-width: 768px) 45vw, 100vw"
             className="object-cover object-[50%_60%]"
           />
+          {/* tonight's notes drop into the tray, then tomorrow's plan is there */}
+          <div aria-hidden="true" className="absolute inset-0">
+            {NIGHT_SLIPS.map((slip, i) => (
+              <span key={slip} className="night-slip" style={{ '--i': i } as React.CSSProperties}>
+                {slip}
+              </span>
+            ))}
+            <span className="night-plan">
+              <span className="font-numeral text-[22px] leading-none">7:00</span>
+              Your plan for today is ready
+            </span>
+          </div>
         </div>
       </div>
     </section>
+  )
+}
+
+/** Words that go from blurred to sharp when their section scrolls into view. */
+function SeenWords({ text, from = 0 }: { text: string; from?: number }) {
+  return (
+    <>
+      {text.split(' ').map((word, i) => (
+        <span key={i}>
+          <span className="wv" style={{ animationDelay: `${(from + i) * 80}ms` }}>
+            {word}
+          </span>{' '}
+        </span>
+      ))}
+    </>
   )
 }

@@ -328,28 +328,50 @@ export function ProPrice() {
   )
 }
 
-// ── Scroll reveals for browsers without scroll-driven animations ───────────────────
+// ── What has scrolled into view ─────────────────────────────────────────────────────
 
-/** Safari and Firefox do not run `animation-timeline: view()`, so sections fade in from an observer instead. */
-export function RevealFallback() {
+/**
+ * Marks elements with `data-seen` once they scroll into view (class `seen`), which starts
+ * the underlines, the closing scene and the footer. Also gives Safari and Firefox, which do
+ * not run `animation-timeline: view()`, the same section reveals from the observer.
+ */
+export function SeenObserver() {
   useEffect(() => {
-    if (CSS.supports('animation-timeline: view()')) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const root = document.querySelector('.lp')
-    if (!root) return
-    root.classList.add('js-rv')
+    if (!root || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const fallback = !CSS.supports('animation-timeline: view()')
+    // the classes switch on the "before" states, so without this script everything simply shows
+    root.classList.add('js-seen')
+    if (fallback) root.classList.add('js-rv')
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue
-          entry.target.classList.add('in')
+          entry.target.classList.add('seen', 'in')
           observer.unobserve(entry.target)
         }
       },
-      { rootMargin: '0px 0px -8% 0px' }
+      { rootMargin: '0px 0px -12% 0px' }
     )
-    root.querySelectorAll('.rv').forEach((element) => observer.observe(element))
-    return () => observer.disconnect()
+    // a scene (data-seen="half") waits until half of it is on screen, so it is not played to nobody
+    const scenes = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          entry.target.classList.add('seen', 'in')
+          scenes.unobserve(entry.target)
+        }
+      },
+      { threshold: 0.5 }
+    )
+    root.querySelectorAll(fallback ? '[data-seen], .rv' : '[data-seen]').forEach((element) =>
+      (element.getAttribute('data-seen') === 'half' ? scenes : observer).observe(element)
+    )
+    return () => {
+      observer.disconnect()
+      scenes.disconnect()
+    }
   }, [])
   return null
 }
