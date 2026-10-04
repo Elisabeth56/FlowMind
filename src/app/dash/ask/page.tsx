@@ -37,7 +37,8 @@ export default function AskPage() {
     if (!isPro || indexed.current) return
     const supabase = createClient()
     indexed.current = (async () => {
-      for (let batch = 0; batch < 40; batch++) {
+      // five items a call (the function's limit), so a full demo inbox is about ten calls
+      for (let batch = 0; batch < 120; batch++) {
         const { data, error } = await supabase.functions.invoke('embed', { body: {} })
         if (error || !data?.remaining) break
         setIndexing(true)
