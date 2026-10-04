@@ -111,11 +111,31 @@
   .wv{display:inline-block}
   &.js-seen .wv{animation:lp-blurin .9s var(--ease-settle) both paused}
   &.js-seen .seen .wv{animation-play-state:running}
-  .night-slip{position:absolute;left:calc(18% + var(--i) * 16%);top:14%;background:var(--fm-surface);color:var(--fm-ink);border-radius:10px;padding:7px 12px;font-size:13px;white-space:nowrap;box-shadow:0 1px 2px rgba(41,40,38,.08),0 10px 24px rgba(41,40,38,.25);opacity:0}
-  .night-plan{position:absolute;left:16px;right:16px;bottom:16px;display:flex;align-items:center;gap:12px;background:var(--fm-surface);color:var(--fm-ink);border-radius:14px;padding:12px 16px;font-size:15px;box-shadow:inset 0 0 0 2px var(--fm-apricot),0 12px 32px rgba(41,40,38,.3)}
-  &.js-seen .night-plan{opacity:0;transform:translateY(14px)}
-  &.js-seen .seen .night-slip{animation:lp-night-drop 1.5s calc(.5s + var(--i) * .45s) var(--ease-settle) both}
-  &.js-seen .seen .night-plan{animation:lp-rise .8s 2.4s var(--ease-settle) forwards}
+  .night{container-type:inline-size;font-size:clamp(11px,2.7cqw,15px)}
+  .night-filed{position:absolute;left:5%;bottom:5%;display:inline-flex;align-items:center;gap:.5em;background:color-mix(in srgb, var(--fm-surface) 92%, transparent);color:var(--fm-ink);border-radius:999px;padding:.45em .9em;font-size:.9em}
+  .night-filed svg{color:var(--fm-success)}
+  .night-img{transform:translateY(24%) scale(1.5)}
+  /* at rest the card floats above the tray; it starts as the stack's top card: small, lying
+     at the stack's angle, on top of the stack */
+  .night-card{position:absolute;left:9%;top:5%;width:82%;display:flex;flex-direction:column;gap:.45em;background:var(--fm-surface);color:var(--fm-ink);border-radius:1.2em;padding:.9em;box-shadow:0 2px 4px rgba(0,0,0,.12),0 24px 48px rgba(0,0,0,.35);transform-origin:50% 100%}
+  .night-head{display:flex;align-items:baseline;justify-content:space-between;padding:0 .2em .2em}
+  .night-head strong{font-weight:500;font-size:1.15em}.night-head span{color:var(--fm-ink-3);font-size:.9em}
+  .night-row{display:grid;grid-template-columns:1.2em 3.2em minmax(0,1fr);align-items:center;gap:.6em;background:var(--fm-bg);border-radius:.8em;padding:.6em .7em}
+  .night-now{box-shadow:inset 0 0 0 2px var(--fm-apricot)}
+  .night-box{width:1.2em;height:1.2em;border-radius:.35em;border:1.5px solid var(--fm-ink-4)}
+  &.js-seen .night-card,&.js-seen .night-row,&.js-seen .night-filed,&.js-seen .night-head{opacity:0}
+  &.js-seen .seen .night-filed{animation:lp-rise .7s .2s var(--ease-settle) both}
+  &.js-seen .seen .night-card{animation:lp-night-lift 1.3s .7s var(--ease-settle) both}
+  &.js-seen .seen .night-head{animation:lp-rise .5s 1.7s var(--ease-settle) both}
+  &.js-seen .seen .night-row{animation:lp-rise .6s calc(1.85s + var(--i) * .16s) var(--ease-settle) both}
+
+  /* the Ask graphic's bubbles lift a little under the pointer */
+  .lift-sm{transition:transform .3s var(--ease-settle)}
+  @media (hover:hover){.lift-sm:hover{transform:translateY(-3px) scale(1.02)}}
+
+  /* the hero plays again when it comes back on screen: taking the animation away while it is
+     off screen makes the browser start it afresh */
+  &.js-seen .hero-h:not(.seen) .w,&.js-seen .hero-h:not(.seen) .ul{animation:none;opacity:0}
 
   /* footer: links underline in apricot from the left; the big name rises letter by letter */
   .ft-link{background:linear-gradient(var(--fm-apricot),var(--fm-apricot)) no-repeat 0 100%/0 2px;padding-bottom:3px;transition:background-size .35s var(--ease-settle)}
@@ -128,11 +148,9 @@
   &.js-seen .ft-word span{opacity:0}
   &.js-seen .seen .ft-word span{animation:lp-letter .9s calc(var(--i) * 60ms) var(--ease-settle) both}
 
-  /* browsers without scroll-driven animations draw the steps connector once it is seen */
-  @supports not (animation-timeline: view()){
-    &.js-seen .draw-on{stroke-dasharray:900;stroke-dashoffset:900}
-    &.js-seen .seen .draw-on{animation:lp-drawon 1.8s var(--ease-settle) forwards}
-  }
+  /* the dotted line from step 1 to step 3 draws itself, left to right, each time the steps come on screen */
+  &.js-seen .draw-on{stroke-dasharray:900;stroke-dashoffset:900}
+  &.js-seen .seen .draw-on{animation:lp-drawon 2.2s .3s cubic-bezier(.4,0,.2,1) forwards}
 
   /* an example swapped by the visitor settles in, like an item being filed */
   .swap{animation:lp-swap .45s var(--ease-settle) both}
@@ -145,25 +163,21 @@
   /* quiet reveals on scroll */
   @supports (animation-timeline: view()){
     .rv{animation:lp-rise linear both;animation-timeline:view();animation-range:entry 0% entry 40%}
-    .draw-on{stroke-dasharray:900;stroke-dashoffset:900;animation:lp-drawon linear both;animation-timeline:view();animation-range:entry 10% entry 90%}
     .bar-fill{transform-origin:left;animation:lp-fill linear both;animation-timeline:view();animation-range:entry 20% entry 100%}
     .tick{animation:lp-tick linear both;animation-timeline:view();animation-range:entry 30% entry 100%}
     .stream{animation:lp-stream linear both;animation-timeline:view();animation-range:entry 10% entry 100%}
     .pop{animation:lp-pop linear both;animation-timeline:view();animation-range:entry 40% entry 100%}
-    .count{animation:lp-count linear both;animation-timeline:view();animation-range:entry 10% entry 100%}
     .navpill::after{animation:lp-lift linear both;animation-timeline:scroll();animation-range:0 120px}
   }
-  .count{counter-reset:n var(--n)}.count::after{content:counter(n)}
 
   /* with reduced motion every effect shows its end state: the slips rest in the tray */
   @media (prefers-reduced-motion:reduce){
-    .w,.ul,.st,.raw,.done,.cp,.filed,.swap,.rv,.draw-on,.bar-fill,.navpill::after,.tick,.stream,.pop,.count,.typing1,.typing2,.typing3,.caret,.enter,.tick-badge,.ty-ph,.step .badge,.step .mini,.steps::before,.mini-caret{animation:none !important}
+    .w,.ul,.st,.raw,.done,.cp,.filed,.swap,.rv,.draw-on,.bar-fill,.navpill::after,.tick,.stream,.pop,.typing1,.typing2,.typing3,.caret,.enter,.tick-badge,.ty-ph,.step .badge,.step .mini,.steps::before,.mini-caret{animation:none !important}
     .st>.lines,.st>.tags{animation:none !important;opacity:0}
     .ul,.draw-on{stroke-dashoffset:0}.raw,.typing1,.typing2,.typing3{opacity:0}.done,.cp,.filed,.tick-badge{opacity:1}
     .s1{transform:translate(calc(155.0*var(--u)),calc(256.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
     .s2{transform:translate(calc(155.0*var(--u)),calc(252.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u));background:var(--fm-accent-tint)}
     .s3{transform:translate(calc(155.0*var(--u)),calc(248.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u));background:var(--fm-apricot)}
-    .count{--n:var(--to)}
   }
 }
 
@@ -214,7 +228,7 @@
 @keyframes lp-badge-in{from{transform:scale(.6) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
 @keyframes lp-line-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @keyframes lp-slide-in{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
-@keyframes lp-night-drop{0%{opacity:0;transform:translateY(-60px) rotate(calc(-8deg + var(--i) * 7deg))}35%{opacity:1}70%{opacity:1;transform:translateY(120px) rotate(calc(-3deg + var(--i) * 3deg))}100%{opacity:0;transform:translateY(150px) scale(.8)}}
+@keyframes lp-night-lift{0%{opacity:0;transform:translateY(42%) scale(.4) perspective(600px) rotateX(58deg) rotateZ(-12deg)}25%{opacity:1}100%{opacity:1;transform:none}}
 @keyframes lp-letter{from{opacity:0;transform:translateY(.35em)}to{opacity:1;transform:none}}
 @keyframes lp-swap{from{opacity:0;transform:translateY(6px) rotate(-.6deg)}to{opacity:1;transform:none}}
 @keyframes lp-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -224,5 +238,3 @@
 @keyframes lp-stream{from{clip-path:inset(0 100% 100% 0)}to{clip-path:inset(0 0 0 0)}}
 @keyframes lp-pop{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes lp-lift{from{opacity:0}to{opacity:1}}
-@property --n{syntax:"<integer>";inherits:false;initial-value:0}
-@keyframes lp-count{from{--n:0}to{--n:var(--to)}}
