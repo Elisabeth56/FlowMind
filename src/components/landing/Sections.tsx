@@ -1,7 +1,8 @@
 import { DemoButton } from '@/components/auth/DemoButton'
 import Image from 'next/image'
 import { ButtonLink, Chip, cn } from '@/components/ui'
-import { FREE_TIER_AI_CALLS, PRO_YEARLY_TOTAL, YEARLY_DISCOUNT_PERCENT, proMonthlyPrice } from '@/lib/plans'
+import { FREE_TIER_AI_CALLS } from '@/lib/plans'
+import { AskDemo, PlanDemo, ProPrice, StepsDemo, WeekBars } from './Interactive'
 import { HeroStage } from './HeroStage'
 
 const wrap = 'mx-auto w-full max-w-[1200px] px-6'
@@ -173,75 +174,9 @@ export function HowItWorks() {
             strokeDasharray="2 10"
           />
         </svg>
-        <ol className="steps">
-          <li className="step rv">
-            <span className="badge bg-accent text-on-accent">1</span>
-            <div className="step-body">
-              <h3>Drop it in</h3>
-              <p>Type, paste a link, or press N from anywhere. It saves instantly, even on a slow connection.</p>
-              <div className="mini">
-                <span className="mini-pill">
-                  call ada before fri
-                  <span className="mini-caret" />
-                </span>
-              </div>
-            </div>
-          </li>
-          <li className="step rv">
-            <span className="badge bg-accent-tint text-accent-tint-ink">2</span>
-            <div className="step-body">
-              <h3>FlowMind files it</h3>
-              <p>Each item gets a type, a project, a priority and a due date if it has one. Change anything with a click.</p>
-              <div className="mini mini-chips">
-                <Chip tone="blue">Clients</Chip>
-                <Chip tone="blue">Task · High</Chip>
-                <Chip state="soon">Fri</Chip>
-              </div>
-            </div>
-          </li>
-          <li className="step rv">
-            <span className="badge bg-apricot text-ink">3</span>
-            <div className="step-body">
-              <h3>You get a plan</h3>
-              <p>Ask what to focus on today and get an order you can follow, with a reason for every pick.</p>
-              <div className="mini">
-                <span className="mini-plan">
-                  <span className="mini-time">10:15</span>Call Ada about the invoice
-                </span>
-              </div>
-            </div>
-          </li>
-        </ol>
+        <StepsDemo />
       </div>
     </section>
-  )
-}
-
-function PlanRow({ time, done, current, title, why }: { time: string; done?: boolean; current?: boolean; title: string; why?: string }) {
-  return (
-    <div
-      className={cn(
-        'grid grid-cols-[22px_64px_minmax(0,1fr)] items-start gap-3.5 rounded-row bg-surface px-4 py-3.5 text-[15px] leading-normal text-ink',
-        current && 'shadow-[inset_0_0_0_2px_var(--fm-apricot)]'
-      )}
-    >
-      <span
-        className={cn(
-          'mt-0.5 size-5 rounded-control border-[1.5px]',
-          done ? 'tick border-accent bg-accent' : 'border-ink-4'
-        )}
-      />
-      <span className={cn('font-numeral text-[26px] leading-none', done && !why && 'text-ink-3')}>{time}</span>
-      {why ? (
-        <span>
-          <strong className="font-medium">{title}</strong>
-          <br />
-          <span className="text-small text-ink-2">{why}</span>
-        </span>
-      ) : (
-        <span className="text-ink-3 line-through">{title}</span>
-      )}
-    </div>
   )
 }
 
@@ -256,19 +191,7 @@ export function Today() {
           wait until tomorrow.
         </Lead>
       </div>
-      <div className="rv flex flex-col gap-2 rounded-panel bg-accent p-6 text-on-accent md:p-8">
-        <div className="flex items-baseline justify-between px-1 pb-1">
-          <span className="text-h3">Thursday</span>
-          <span className="text-stat-small">2 of 4 done</span>
-        </div>
-        <span className="mx-1 mb-3 block h-1 rounded-full bg-on-accent/20">
-          <span className="bar-fill block h-1 w-1/2 rounded-full bg-apricot" />
-        </span>
-        <PlanRow time="8:30" done title="Book the meeting room" />
-        <PlanRow time="9:00" done title="Finish the pitch deck" why="Due at 2pm. Your sharpest hour goes here." />
-        <PlanRow time="10:15" current title="Call Ada about the invoice" why="Ten minutes, and it unblocks Friday." />
-        <p className="mx-1 mt-2 text-small text-accent-tint">Can wait: monthly recap email, reading list</p>
-      </div>
+      <PlanDemo />
     </section>
   )
 }
@@ -276,21 +199,7 @@ export function Today() {
 export function Ask() {
   return (
     <section className={cn(wrap, twoColumns)}>
-      <div className="rv dots flex flex-col gap-3 rounded-panel bg-surface-sunk p-6 md:p-8">
-        <div className="self-end rounded-[20px_20px_6px_20px] bg-accent-tint px-4 py-3 text-body text-accent-tint-ink">
-          What did Kemi want changed in the deck?
-        </div>
-        <div className="flex flex-col gap-3 rounded-card bg-surface p-5 text-body leading-relaxed shadow-soft">
-          <p className="stream">
-            She asked for the pricing slide to come before the team slide <sup className="text-accent">1</sup>, and for
-            one customer quote on the first page <sup className="text-accent">2</sup>.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Chip tone="blue" className="pop">1 · Kemi’s deck notes · Tue</Chip>
-            <Chip tone="blue" className="pop">2 · Call with Kemi · Mon</Chip>
-          </div>
-        </div>
-      </div>
+      <AskDemo />
       <div className="rv flex flex-col gap-5 max-md:order-first">
         <Eyebrow>Ask your notes</Eyebrow>
         <h2 className="text-h1">Get it back out, in plain words.</h2>
@@ -302,17 +211,6 @@ export function Ask() {
     </section>
   )
 }
-
-// One week, drawn as it appears on Insights. The numbers are an example week.
-const WEEK_BARS = [
-  ['60%', 'bg-accent-tint'],
-  ['72%', 'bg-accent-tint'],
-  ['70%', 'bg-accent'],
-  ['90%', 'bg-accent'],
-  ['40%', 'bg-apricot'],
-  ['20%', 'bg-accent-tint'],
-  ['8%', 'bg-surface-sunk'],
-]
 
 function Count({ to, suffix }: { to: number; suffix?: string }) {
   return (
@@ -346,14 +244,10 @@ export function Weekly() {
           <p className="mt-1.5 text-small text-ink-3">moved to next week</p>
         </div>
         <div>
-          <Count to={78} suffix="%" />
+          <Count to={75} suffix="%" />
           <p className="mt-1.5 text-small text-ink-3">of planned steps done</p>
         </div>
-        <div className="col-span-full grid h-[72px] grid-cols-7 items-end gap-2" aria-hidden="true">
-          {WEEK_BARS.map(([height, colour], i) => (
-            <span key={i} className={cn('rounded-[8px_8px_4px_4px]', colour)} style={{ height }} />
-          ))}
-        </div>
+        <WeekBars />
         <p className="col-span-full text-body leading-relaxed text-ink-2">
           Mornings went well: every deep-work block before 11 got done. Admin piled up on Friday{' '}
           <Chip tone="apricot" className="py-0.5">slipped</Chip>, so try clearing it in two short slots midweek.
@@ -382,18 +276,8 @@ export function Pricing() {
           </ButtonLink>
         </div>
         <div className="rv relative flex flex-col gap-4 overflow-hidden rounded-panel bg-accent p-8 text-on-accent">
-          <span className="absolute right-6 top-6 rounded-full bg-apricot px-2.5 py-1 text-caption font-medium text-ink">
-            Save {YEARLY_DISCOUNT_PERCENT}% yearly
-          </span>
           <h3 className="text-h3">Pro</h3>
-          <span className="font-numeral text-[56px] leading-none">
-            {proMonthlyPrice('monthly')}
-            <span className="font-sans text-body"> / month</span>
-          </span>
-          <p className="text-body leading-relaxed text-accent-tint">
-            Unlimited AI actions and Ask your notes. {proMonthlyPrice('yearly')} a month when paid yearly (
-            {PRO_YEARLY_TOTAL}).
-          </p>
+          <ProPrice />
           {/* signed-out visitors are sent to sign in first, then land on billing */}
           <ButtonLink href="/dash/settings/billing" size="lg" variant="inverse" className="self-start">
             Go Pro

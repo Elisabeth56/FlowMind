@@ -12,7 +12,7 @@
   .ai{background:var(--fm-accent-tint);color:var(--fm-accent)}.n{background:var(--fm-surface-sunk);color:var(--fm-ink-2)}.due{color:var(--fm-warning)}.apr{background:var(--fm-apricot-tint);color:var(--fm-apricot-ink)}
   .photo img{transition:transform 1.2s var(--ease-settle)}.photo:hover img{transform:scale(1.04)}
   .photo{position:relative;border-radius:28px;overflow:hidden;display:flex;align-items:flex-end;padding:20px;box-sizing:border-box}
-  .dots{background-image:radial-gradient(rgba(41,40,38,.10) 1px,transparent 1px);background-size:18px 18px}
+  .dots{background-image:radial-gradient(color-mix(in srgb, var(--fm-ink) 10%, transparent) 1px,transparent 1px);background-size:18px 18px}
 
   /* nav */
   .navpill{position:sticky;top:16px;z-index:5;margin:16px auto 0;width:min(1040px,calc(100% - 32px));box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--fm-surface);border-radius:999px;padding:8px 8px 8px 20px}
@@ -98,6 +98,14 @@
     }
   }
 
+  /* an example swapped by the visitor settles in, like an item being filed */
+  .swap{animation:lp-swap .45s var(--ease-settle) both}
+  /* browsers without scroll-driven animations get the same reveals from an observer (RevealFallback) */
+  @supports not (animation-timeline: view()){
+    &.js-rv .rv{opacity:0;transform:translateY(16px);transition:opacity .7s var(--ease-settle),transform .7s var(--ease-settle)}
+    &.js-rv .rv.in{opacity:1;transform:none}
+  }
+
   /* quiet reveals on scroll */
   @supports (animation-timeline: view()){
     .rv{animation:lp-rise linear both;animation-timeline:view();animation-range:entry 0% entry 40%}
@@ -113,7 +121,7 @@
 
   /* with reduced motion every effect shows its end state: the slips rest in the tray */
   @media (prefers-reduced-motion:reduce){
-    .w,.ul,.st,.raw,.done,.cp,.filed,.rv,.draw-on,.bar-fill,.navpill::after,.tick,.stream,.pop,.count,.typing1,.typing2,.typing3,.caret,.enter,.tick-badge,.ty-ph,.step .badge,.step .mini,.steps::before,.mini-caret{animation:none !important}
+    .w,.ul,.st,.raw,.done,.cp,.filed,.swap,.rv,.draw-on,.bar-fill,.navpill::after,.tick,.stream,.pop,.count,.typing1,.typing2,.typing3,.caret,.enter,.tick-badge,.ty-ph,.step .badge,.step .mini,.steps::before,.mini-caret{animation:none !important}
     .st>.lines,.st>.tags{animation:none !important;opacity:0}
     .ul,.draw-on{stroke-dashoffset:0}.raw,.typing1,.typing2,.typing3{opacity:0}.done,.cp,.filed,.tick-badge{opacity:1}
     .s1{transform:translate(calc(155.0*var(--u)),calc(256.0*var(--u))) rotateX(70.0deg) rotateZ(-33.0deg);width:calc(100*var(--u));height:calc(100*var(--u));border-radius:calc(11*var(--u))}
@@ -170,6 +178,7 @@
 @keyframes lp-badge-in{from{transform:scale(.6) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
 @keyframes lp-line-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @keyframes lp-slide-in{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@keyframes lp-swap{from{opacity:0;transform:translateY(6px) rotate(-.6deg)}to{opacity:1;transform:none}}
 @keyframes lp-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @keyframes lp-drawon{to{stroke-dashoffset:0}}
 @keyframes lp-fill{from{transform:scaleX(0)}}
