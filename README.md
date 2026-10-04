@@ -198,6 +198,10 @@ that is logged with every call in `ai_runs`.
 - Realtime sync across tabs and the Paystack flows have unit and database tests but have not been load tested.
 - There are no terms or privacy pages yet.
 
+## Licence
+
+[MIT](LICENSE)
+
 ## Author
 
 Elisabeth Nnamani · [elisabethnnamani.dev](https://elisabethnnamani.dev) · [GitHub](https://github.com/Elisabeth56)
