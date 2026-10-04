@@ -54,7 +54,7 @@ it('ask: retrieval', async () => {
 
   // Embed every item, a batch at a time, as the Ask screen does on opening
   let embeddedItems = 0
-  for (let batch = 0; batch < 40; batch++) {
+  for (let batch = 0; batch < 120; batch++) {
     const { data, error } = await supabase.functions.invoke('embed', { body: {} })
     if (error) throw new Error(`The embed function failed: ${error.message}`)
     embeddedItems += data.embedded

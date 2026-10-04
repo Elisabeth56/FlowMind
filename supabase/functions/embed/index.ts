@@ -13,7 +13,10 @@ const embed = (text: string) =>
   // gte-small reads about 512 tokens; items are short, a pasted essay is cut off here
   model.run(text.slice(0, 2000), { mean_pool: true, normalize: true }) as Promise<number[]>
 
-const BATCH = 25
+// Small on purpose: the hosted free plan stops a function after about two seconds of CPU
+// (it answers 546), and 25 embeddings in one call went over. The caller keeps asking
+// until nothing remains.
+const BATCH = 5
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
