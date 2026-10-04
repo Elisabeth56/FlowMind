@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ButtonLink, Logo, cn } from '@/components/ui'
+import { ButtonLink, Logo, ThemeToggle, cn } from '@/components/ui'
 
 const LINKS = [
   { id: 'how', label: 'How it works' },
@@ -72,6 +72,7 @@ export function LandingNav() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Link
             href="/login"
             className="hidden min-h-10 items-center rounded-full px-3.5 text-small text-ink transition-colors duration-200 ease-ui hover:bg-surface-sunk md:flex"
