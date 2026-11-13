@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button, Logo, cn } from '@/components/ui'
 import { loginWithGoogle } from '@/app/auth/actions'
 import { LOGIN_NOTICES } from '@/lib/auth'
+import { setBarColour } from '@/lib/theme'
 
 /** The frame shared by the auth pages: logo, a heading, one form on a quiet page. */
 export function AuthShell({
@@ -16,6 +17,9 @@ export function AuthShell({
   description: string
   children: React.ReactNode
 }) {
+  // Auth pages are always light, also after signing out of a dark app
+  useEffect(() => setBarColour('light'), [])
+
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-4 py-12 text-ink">
       <div className="flex w-full max-w-[440px] flex-col gap-8">
