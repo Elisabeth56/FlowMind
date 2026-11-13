@@ -59,9 +59,10 @@ Gemini fallback) · Paystack.
   to the element with `APP_ROOT_ID` (the app shell and the landing page each have one), and a
   script beside it applies the remembered choice before first paint. `ThemeToggle` switches it;
   in the app the choice is also saved to the profile. Auth pages are always light.
-- **Scroll reveals share `revealViewport` from `src/lib/motion.ts`.** It starts
-  the animation before the section enters view; per-component viewport settings
-  reintroduce the "page fills in late" effect.
+- **Landing motion is CSS in `landing.css`, switched on by `SeenObserver`** (`Interactive.tsx`):
+  it adds `seen` while an element marked `data-seen` is on screen and removes it when it
+  leaves, so animations replay. "Before" states apply only under `.js-seen`, so the page
+  shows fully without scripts or with reduced motion.
 - **Dates are the user's dates.** Use `todayIn()`, `weekIn()` and `startOfDayIn()` from
   `src/lib/dates.ts` with the profile's timezone. Never `new Date().toISOString().split('T')[0]`:
   that is UTC's date, which is wrong in Lagos for an hour every night.
@@ -115,4 +116,4 @@ Every variable is listed in `.env.example`. `next build` needs only the three
 ## Git
 
 Work happens on `feat/`, `fix/`, `chore/` branches, one per issue, each PR into
-`remodel`. `main` is only updated when `remodel` is merged as a whole.
+`main`. Merging to `main` deploys to production.

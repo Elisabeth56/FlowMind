@@ -186,6 +186,13 @@ html {
   scroll-behavior: smooth;
 }
 
+/* The theme is set on the app's root element, so the page behind it (seen past the edges
+   of an installed app's window and when scrolling past the end) follows it here. */
+:root:has(#fm-app[data-theme="dark"]) {
+  color-scheme: dark;
+  --fm-bg: #161615;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--fm-bg);
